@@ -1,0 +1,6 @@
+*.sw[a-zA-Z]
+
+*.py[co]
+__pycache__
+
+NuclearWeapon/
