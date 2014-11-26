@@ -89,7 +89,7 @@ def _failure_information(response):
 def list_OSBP(sessionID):
     """
     basic usage:
-        sessionID -> 200 members
+        sessionID -> members
     """
     response = requests.get(
         generate_uri(
