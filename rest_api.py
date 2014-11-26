@@ -10,6 +10,7 @@ import requests
 # ========
 
 APPLIANCE = "https://10.30.1.235"
+APPLIANCE = "https://altair-dev.dev-net.local/"
 
 
 # Tools
@@ -85,6 +86,113 @@ def _failure_information(response):
 
 # OS Build Plans
 # --------------
+
+def list_OSBP(sessionID):
+    """
+    basic usage:
+        sessionID -> 200 members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-build-plans",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def add_OSBP(sessionID, properties, parentTask=None):
+    """
+    basic usage:
+        sessionID, properties -> uri, name, buildPlanItems
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-build-plans",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==201, _failure_information(response)
+    return response.json()
+
+
+def retrieve_OSBP(sessionID, buildPlanID):
+    """
+    basic usage:
+        sessionID, buildPlanID -> uri, name, buildPlanItems
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_OSBP(sessionID, buildPlanID, properties):
+    """
+    basic usage:
+        sessionID, buildPlanID, properties -> uri, name, buildPlanItems
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def delete_OSBP(sessionID, buildPlanID):
+    """
+    basic usage:
+        sessionID, buildPlanID -> None
+    """
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==204, _failure_information(response)
+    return None
+
 
 # Packages
 # --------
