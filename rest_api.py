@@ -182,36 +182,36 @@ def _failure_information(response):
 # Login Sessions
 # --------------
 
-def authenticate(userName, password):
+def authenticate(username, password):
     """
-    Basic Usage:
-        userName, password -> 200 sessionID
+    basic usage:
+        username, password -> sessionID
     """
     response = requests.post(
         generate_uri(
-            netloc = APPLIANCE,
+            netloc = appliance,
             path = "/rest/login-sessions",
             ),
         headers = {
-            "X-API-Version": 3,
-            "Accept-Language": "en_US",
+            "x-api-version": 3,
+            "accept-language": "en_us",
             },
         json = {
-            "userName": userName,
+            "username": username,
             "password": password,
-            "authLoginDomain": None,                     
-            "authnHost": None
+            "authlogindomain": none,
+            "authnhost": none
             },
-        verify = False
+        verify = false
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
-            
+
 
 def reconnect_session(sessionID):
     """
     Basic Usage:
-        sessionID -> 200 sessionID
+        sessionID -> sessionID
 
     It looks like useless....?
     """
@@ -229,12 +229,12 @@ def reconnect_session(sessionID):
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
-            
+
 
 def remove_session(sessionID):
     """
     Basic Usage:
-        sessionID -> 204
+        sessionID -> None
 
     It is explict logout.
     """
