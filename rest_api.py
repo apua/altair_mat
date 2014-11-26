@@ -358,7 +358,7 @@ def remove_session(sessionID):
         verify = False
         )
     assert response.status_code==204, _failure_information(response)
-    return response.json()
+    return None
 
 
 # Roles
