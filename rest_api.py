@@ -65,6 +65,113 @@ def _failure_information(response):
 # Configuration Files
 # -------------------
 
+def list_cfgfile(sessionID):
+    """
+    basic usage:
+        sessionID -> members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def add_cfgfile(sessionID, properties):
+    """
+    basic usage:
+        sessionID, properties -> uri, name, description, text
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==201, _failure_information(response)
+    return response.json()
+
+
+def retrieve_cfgfile(sessionID, cfgfileID):
+    """
+    basic usage:
+        sessionID, cfgfileID -> uri, name, description, text
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_cfgfile(sessionID, cfgfileID, properties):
+    """
+    basic usage:
+        sessionID, cfgfileID, properties -> uri, name, description, text
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def delete_cfgfile(sessionID, cfgfileID):
+    """
+    basic usage:
+        sessionID, cfgfileID -> None
+    """
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==204, _failure_information(response)
+    return None
+
+
 # Deployment Settings
 # -------------------
 
