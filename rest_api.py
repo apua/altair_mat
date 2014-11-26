@@ -10,7 +10,6 @@ import requests
 # ========
 
 APPLIANCE = "https://10.30.1.235"
-APPLIANCE = "https://altair-dev.dev-net.local/"
 
 
 # Tools
