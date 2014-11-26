@@ -132,7 +132,7 @@ def add_OSBP(sessionID, properties, parentTask=None):
 def retrieve_OSBP(sessionID, buildPlanID):
     """
     basic usage:
-        sessionID, buildPlanID -> uri, name, buildPlanItems
+        sessionID, buildPlanID -> uri, name, buildPlanItems, buildPlanCustAttrs
     """
     response = requests.get(
         generate_uri(
@@ -153,7 +153,7 @@ def retrieve_OSBP(sessionID, buildPlanID):
 def edit_OSBP(sessionID, buildPlanID, properties):
     """
     basic usage:
-        sessionID, buildPlanID, properties -> uri, name, buildPlanItems
+        sessionID, buildPlanID, properties -> uri, name, buildPlanItems, buildPlanCustAttrs
     """
     response = requests.put(
         generate_uri(
