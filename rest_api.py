@@ -593,6 +593,116 @@ def delete_serverScript(sessionID, serverScriptID):
 # Servers
 # -------
 
+def list_server(sessionID):
+    """
+    basic usage:
+        sessionID -> members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-servers",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def add_server(sessionID, properties):
+    """
+    basic usage:
+        sessionID, properties -> uri, name, description, customAttributes
+
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-servers",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==201, _failure_information(response)
+    return response.json()
+
+
+def retrieve_server(sessionID, serverID):
+    """
+    basic usage:
+        sessionID, serverID -> uri, name, description, customAttributes
+
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-servers/{serverID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_server(sessionID, serverID, properties):
+    """
+    basic usage:
+        sessionID, serverID, properties -> uri, name, description, customAttributes
+
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-servers/{serverID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def delete_server(sessionID, serverID):
+    """
+    basic usage:
+        sessionID, cfgfileID -> None
+    """
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==204, _failure_information(response)
+    return None
+
+
 
 
 
