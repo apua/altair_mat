@@ -181,6 +181,70 @@ def delete_cfgfile(sessionID, cfgfileID):
 # Facility
 # --------
 
+def list_facility(sessionID):
+    """
+    basic usage:
+        sessionID -> members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-facility",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_facility(sessionID, facilityID):
+    """
+    basic usage:
+        sessionID, facilityID -> customAttributes
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-facility/{facilityID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_facility(sessionID, facilityID, properties):
+    """
+    basic usage:
+        sessionID, facilityID, properties -> customAttributes
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-facility/{facilityID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # HP OneView Appliances
 # ---------------------
 
