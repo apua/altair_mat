@@ -715,6 +715,32 @@ def delete_server(sessionID, serverID):
 # Appliance Factory Reset
 # -----------------------
 
+def reset_factory(sessionID, mode):
+    """
+    basic usage:
+        sessionID, mode -> Location
+    """
+    #assert (mode in ("BEFORE_RESTORE", "FAILED_RESTORE", "FULL", "PRESERVE_NETWORK", "RECOVERY"))
+    assert (mode in ("FULL", "PRESERVE_NETWORK", "RECOVERY"))
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/appliance",
+            Query = {
+                "mode": mode,
+                }
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = False
+        )
+    assert response.status_code==202, _failure_information(response)
+    return response.json()
+
+
 # Appliance Firmware
 # ------------------
 
