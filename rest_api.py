@@ -190,6 +190,113 @@ def delete_cfgfile(sessionID, cfgfileID):
 # OGFS Scripts
 # ------------
 
+def list_ogfsScript(sessionID):
+    """
+    basic usage:
+        sessionID -> members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-ogfs-scripts",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def add_ogfsScript(sessionID, properties):
+    """
+    basic usage:
+        sessionID, properties -> uri, name, codeType, description, source
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-ogfs-scripts",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==201, _failure_information(response)
+    return response.json()
+
+
+def retrieve_ogfsScript(sessionID, ogfsScriptID):
+    """
+    basic usage:
+        sessionID, ogfsScriptID -> uri, name, codeType, description, source
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_ogfsScript(sessionID, ogfsScriptID, properties):
+    """
+    basic usage:
+        sessionID, ogfsScriptID, properties -> uri, name, codeType, description, source
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def delete_ogfsScript(sessionID, ogfsScriptID):
+    """
+    basic usage:
+        sessionID, cfgfileID -> None
+    """
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==204, _failure_information(response)
+    return None
+
+
 # OS Build Plans
 # --------------
 
