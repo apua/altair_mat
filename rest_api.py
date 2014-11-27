@@ -80,7 +80,7 @@ def list_cfgfile(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -102,7 +102,7 @@ def add_cfgfile(sessionID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==201, _failure_information(response)
     return response.json()
@@ -123,7 +123,7 @@ def retrieve_cfgfile(sessionID, cfgfileID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -145,7 +145,7 @@ def edit_cfgfile(sessionID, cfgfileID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -166,7 +166,7 @@ def delete_cfgfile(sessionID, cfgfileID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==204, _failure_information(response)
     return None
@@ -196,7 +196,7 @@ def list_facility(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -217,7 +217,7 @@ def retrieve_facility(sessionID, facilityID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -239,7 +239,7 @@ def edit_facility(sessionID, facilityID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -269,7 +269,7 @@ def list_ogfsScript(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -291,7 +291,7 @@ def add_ogfsScript(sessionID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==201, _failure_information(response)
     return response.json()
@@ -312,7 +312,7 @@ def retrieve_ogfsScript(sessionID, ogfsScriptID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -334,7 +334,7 @@ def edit_ogfsScript(sessionID, ogfsScriptID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -355,7 +355,7 @@ def delete_ogfsScript(sessionID, ogfsScriptID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==204, _failure_information(response)
     return None
@@ -379,7 +379,7 @@ def list_OSBP(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -402,7 +402,7 @@ def add_OSBP(sessionID, properties, parentTask=None):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==201, _failure_information(response)
     return response.json()
@@ -424,7 +424,7 @@ def retrieve_OSBP(sessionID, buildPlanID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -447,7 +447,7 @@ def edit_OSBP(sessionID, buildPlanID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -468,7 +468,7 @@ def delete_OSBP(sessionID, buildPlanID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==204, _failure_information(response)
     return None
@@ -495,7 +495,7 @@ def list_serverScript(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -518,7 +518,7 @@ def add_serverScript(sessionID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==201, _failure_information(response)
     return response.json()
@@ -540,7 +540,7 @@ def retrieve_serverScript(sessionID, serverScriptID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -563,7 +563,7 @@ def edit_serverScript(sessionID, serverScriptID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -584,7 +584,7 @@ def delete_serverScript(sessionID, serverScriptID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==204, _failure_information(response)
     return None
@@ -608,7 +608,7 @@ def list_server(sessionID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -631,7 +631,7 @@ def add_server(sessionID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==201, _failure_information(response)
     return response.json()
@@ -653,7 +653,7 @@ def retrieve_server(sessionID, serverID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -676,7 +676,7 @@ def edit_server(sessionID, serverID, properties):
             "auth": sessionID,
             },
         json = properties,
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
@@ -697,7 +697,7 @@ def delete_server(sessionID, serverID):
             "accept-language": "en_us",
             "auth": sessionID,
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==204, _failure_information(response)
     return None
@@ -810,7 +810,7 @@ def authenticate(username, password):
             "authlogindomain": none,
             "authnhost": none
             },
-        verify = false
+        verify = False
         )
     assert response.status_code==200, _failure_information(response)
     return response.json()
