@@ -416,6 +416,116 @@ def delete_OSBP(sessionID, buildPlanID):
 # Server Scripts
 # --------------
 
+def list_serverScript(sessionID):
+    """
+    basic usage:
+        sessionID -> members
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-server-scripts",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def add_serverScript(sessionID, properties):
+    """
+    basic usage:
+        sessionID, properties -> uri, name, codeType, runAsSuperUser, description, source
+
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-server-scripts",
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==201, _failure_information(response)
+    return response.json()
+
+
+def retrieve_serverScript(sessionID, serverScriptID):
+    """
+    basic usage:
+        sessionID, serverScriptID -> uri, name, codeType, runAsSuperUser, description, source
+
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_serverScript(sessionID, serverScriptID, properties):
+    """
+    basic usage:
+        sessionID, serverScriptID, properties -> uri, name, codeType, runAsSuperUser, description, source
+
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        json = properties,
+        verify = false
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def delete_serverScript(sessionID, serverScriptID):
+    """
+    basic usage:
+        sessionID, cfgfileID -> None
+    """
+    response = requests.delete(
+        generate_uri(
+            netloc = appliance,
+            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            ),
+        headers = {
+            "x-api-version": 102,
+            "accept-language": "en_us",
+            "auth": sessionID,
+            },
+        verify = false
+        )
+    assert response.status_code==204, _failure_information(response)
+    return None
+
+
 # Servers
 # -------
 
