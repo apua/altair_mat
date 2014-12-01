@@ -712,6 +712,49 @@ def delete_server(sessionID, serverID):
 # Appliance Eula
 # --------------
 
+def accept_Eula():
+    """
+    basic usage:
+        supportAccess -> supportAccess, version
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/appliance/eula/save",
+        ),
+        headers = {
+            "X-API-Version": 1,
+            "Accept-Language": "en_US",
+            },
+        json = {
+            "supportAccess": supportAccess,
+        },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_Eula():
+    """
+    basic usage:
+        None -> Boolean
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/appliance/eula/status",
+            ),
+        headers = {
+            "X-API-Version": 1,
+            "Accept-Language": "en_US",
+            },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Appliance Factory Reset
 # -----------------------
 
