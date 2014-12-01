@@ -729,10 +729,10 @@ def delete_server(sessionID, serverID):
 # Appliance Eula
 # --------------
 
-def accept_Eula():
+def accept_Eula(supportAccess):
     """
     basic usage:
-        supportAccess -> supportAccess, version
+        supportAccess ("yes"/"no") -> supportAccess, version
     """
     response = requests.post(
         generate_uri(
