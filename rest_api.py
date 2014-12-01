@@ -839,6 +839,55 @@ def reset_factory(sessionID, mode):
 # Service Access
 # --------------
 
+def enable_service_access(sessionID, enable):
+    """
+    basic usage:
+        .. enable (Boolean) -> status ("Enabled"/"Disabled") 
+        enable (Boolean) -> True # it looks like the method not implemented as document said
+
+    Authorization:
+        Category: appliance
+        Action: Update
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/appliance/settings/enableServiceAccess",
+        ),
+        headers = {
+            "X-API-Version": 1,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = enable,
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_service_access(sessionID):
+    """
+    basic usage:
+        None -> Boolean
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/appliance/settings/serviceaccess",
+        ),
+        headers = {
+            "X-API-Version": 1,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Startup Progress
 # ----------------
 
