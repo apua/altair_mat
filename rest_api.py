@@ -77,7 +77,7 @@ def list_cfgfile(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -98,7 +98,7 @@ def add_cfgfile(sessionID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -120,7 +120,7 @@ def retrieve_cfgfile(sessionID, cfgfileID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -141,7 +141,7 @@ def edit_cfgfile(sessionID, cfgfileID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -163,7 +163,7 @@ def delete_cfgfile(sessionID, cfgfileID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -193,7 +193,7 @@ def list_facility(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -214,7 +214,7 @@ def retrieve_facility(sessionID, facilityID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -235,7 +235,7 @@ def edit_facility(sessionID, facilityID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -266,7 +266,7 @@ def list_ogfsScript(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -287,7 +287,7 @@ def add_ogfsScript(sessionID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -309,7 +309,7 @@ def retrieve_ogfsScript(sessionID, ogfsScriptID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -330,7 +330,7 @@ def edit_ogfsScript(sessionID, ogfsScriptID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -352,7 +352,7 @@ def delete_ogfsScript(sessionID, ogfsScriptID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -376,7 +376,7 @@ def list_OSBP(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -398,7 +398,7 @@ def add_OSBP(sessionID, properties, parentTask=None):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -421,7 +421,7 @@ def retrieve_OSBP(sessionID, buildPlanID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -443,7 +443,7 @@ def edit_OSBP(sessionID, buildPlanID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -465,7 +465,7 @@ def delete_OSBP(sessionID, buildPlanID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -492,7 +492,7 @@ def list_serverScript(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -514,7 +514,7 @@ def add_serverScript(sessionID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -537,7 +537,7 @@ def retrieve_serverScript(sessionID, serverScriptID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -559,7 +559,7 @@ def edit_serverScript(sessionID, serverScriptID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -581,7 +581,7 @@ def delete_serverScript(sessionID, serverScriptID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -605,7 +605,7 @@ def list_server(sessionID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -627,7 +627,7 @@ def add_server(sessionID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -650,7 +650,7 @@ def retrieve_server(sessionID, serverID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -672,7 +672,7 @@ def edit_server(sessionID, serverID, properties):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = properties,
@@ -694,7 +694,7 @@ def delete_server(sessionID, serverID):
             ),
         headers = {
             "X-API-Version": 102,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -732,7 +732,7 @@ def reset_factory(sessionID, mode):
             ),
         headers = {
             "X-API-Version": 100,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -807,7 +807,7 @@ def list_categories_and_actions(sessionID):
             ),
         headers = {
             "X-Api-Version": 1,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             "If-None-Match": None,
             },
@@ -829,7 +829,7 @@ def list_roles_and_associated(sessionID):
             ),
         headers = {
             "X-Api-Version": 1,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         verify = False
@@ -850,7 +850,7 @@ def check_user_permission(sessionID, actionDto, categoryDto):
             ),
         headers = {
             "X-Api-Version": 1,
-            "Accept-Language": "en_us",
+            "Accept-Language": "en_US",
             "Auth": sessionID,
             },
         json = {
