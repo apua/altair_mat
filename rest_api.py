@@ -795,6 +795,74 @@ def reset_factory(sessionID, mode):
 # Authorizations
 # --------------
 
+def list_categories_and_actions(sessionID):
+    """
+    basic usage:
+        sessionID -> ??
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/authz/category-actions",
+            ),
+        headers = {
+            "X-Api-Version": 1,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
+            "If-None-Match": None,
+            },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def list_roles_and_associated(sessionID):
+    """
+    basic usage:
+        sessionID -> ??
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/authz/role-category-actions",
+            ),
+        headers = {
+            "X-Api-Version": 1,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
+            },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def check_user_permission(sessionID, actionDto, categoryDto):
+    """
+    basic usage:
+        sessionID, actionDto, categoryDto -> Boolean
+    """
+    response = requests.post(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/authz/validator",
+            ),
+        headers = {
+            "X-Api-Version": 1,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
+            },
+        json = {
+            "actionDto": actionDto,
+            "categoryDto": categoryDto,
+        },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Certificate Authority
 # ---------------------
 
