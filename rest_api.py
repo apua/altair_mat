@@ -72,13 +72,13 @@ def list_cfgfile(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -93,13 +93,13 @@ def add_cfgfile(sessionID, properties):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -115,13 +115,13 @@ def retrieve_cfgfile(sessionID, cfgfileID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -136,13 +136,13 @@ def edit_cfgfile(sessionID, cfgfileID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -158,13 +158,13 @@ def delete_cfgfile(sessionID, cfgfileID):
     """
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -188,13 +188,13 @@ def list_facility(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-facility",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -209,13 +209,13 @@ def retrieve_facility(sessionID, facilityID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-facility/{facilityID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -230,13 +230,13 @@ def edit_facility(sessionID, facilityID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-facility/{facilityID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -261,13 +261,13 @@ def list_ogfsScript(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-ogfs-scripts",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -282,13 +282,13 @@ def add_ogfsScript(sessionID, properties):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-ogfs-scripts",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -304,13 +304,13 @@ def retrieve_ogfsScript(sessionID, ogfsScriptID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -325,13 +325,13 @@ def edit_ogfsScript(sessionID, ogfsScriptID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -347,13 +347,13 @@ def delete_ogfsScript(sessionID, ogfsScriptID):
     """
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -371,13 +371,13 @@ def list_OSBP(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-build-plans",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -393,13 +393,13 @@ def add_OSBP(sessionID, properties, parentTask=None):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-build-plans",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -416,13 +416,13 @@ def retrieve_OSBP(sessionID, buildPlanID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -438,13 +438,13 @@ def edit_OSBP(sessionID, buildPlanID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -460,13 +460,13 @@ def delete_OSBP(sessionID, buildPlanID):
     """
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -487,13 +487,13 @@ def list_serverScript(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-server-scripts",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -509,13 +509,13 @@ def add_serverScript(sessionID, properties):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-server-scripts",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -532,13 +532,13 @@ def retrieve_serverScript(sessionID, serverScriptID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -554,13 +554,13 @@ def edit_serverScript(sessionID, serverScriptID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -576,13 +576,13 @@ def delete_serverScript(sessionID, serverScriptID):
     """
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -600,13 +600,13 @@ def list_server(sessionID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-servers",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -622,13 +622,13 @@ def add_server(sessionID, properties):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-servers",
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -645,13 +645,13 @@ def retrieve_server(sessionID, serverID):
     """
     response = requests.get(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-servers/{serverID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -667,13 +667,13 @@ def edit_server(sessionID, serverID, properties):
     """
     response = requests.put(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-servers/{serverID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         json = properties,
         verify = False
@@ -689,13 +689,13 @@ def delete_server(sessionID, serverID):
     """
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 102,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -721,19 +721,19 @@ def reset_factory(sessionID, mode):
         sessionID, mode -> Location
     """
     #assert (mode in ("BEFORE_RESTORE", "FAILED_RESTORE", "FULL", "PRESERVE_NETWORK", "RECOVERY"))
-    assert (mode in ("FULL", "PRESERVE_NETWORK", "RECOVERY"))
+    #assert (mode in ("FULL", "PRESERVE_NETWORK", "RECOVERY"))
     response = requests.delete(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/appliance",
             Query = {
                 "mode": mode,
-                }
+                },
             ),
         headers = {
-            "x-api-version": 102,
-            "accept-language": "en_us",
-            "auth": sessionID,
+            "X-API-Version": 100,
+            "Accept-Language": "en_us",
+            "Auth": sessionID,
             },
         verify = False
         )
@@ -823,18 +823,18 @@ def authenticate(username, password):
     """
     response = requests.post(
         generate_uri(
-            netloc = appliance,
+            netloc = APPLIANCE,
             path = "/rest/login-sessions",
             ),
         headers = {
-            "x-api-version": 3,
-            "accept-language": "en_us",
+            "X-API-Version": 3,
+            "Accept-Language": "en_US",
             },
         json = {
-            "username": username,
+            "userName": username,
             "password": password,
-            "authlogindomain": none,
-            "authnhost": none
+            "authLoginDomain": None,
+            "authnHost": None,
             },
         verify = False
         )
