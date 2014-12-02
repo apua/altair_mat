@@ -178,6 +178,184 @@ def delete_cfgfile(sessionID, cfgfileID):
 # Deployment Settings
 # -------------------
 
+def list_deployment_settings(sessionID):
+    """
+    basic usage:
+        sessionID -> members (DHCP and FTS)
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings",
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_deployment_settings(sessionID, uri):
+    """
+    basic usage:
+        sessionID, uri -> JSON
+    uri := (FTS, OsdDhcpConfig, WinPE, activation, MatrixPassword)
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/{uri}".format(**locals()),
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_deployment_settings(sessionID, uri, data):
+    """
+    basic usage:
+        sessionID, uri, data -> JSON
+    uri := (FTS, OsdDhcpConfig, WinPE, activation, MatrixPassword)
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/{uri}".format(**locals()),
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = data,
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def export_userDefined_content(*args, **kwargs):
+    """export all user-defined content such as OSBP, script,..."""
+
+def import_userDefined_content(*args, **kwargs):
+    """import all user-defined content such as OSBP, script,..."""
+
+def reconcileindex(*args, **kwargs):
+    """sync items between webUI and Altair database"""
+
+def retrieve_file(*args, **kwargs):
+    """retrieve files such as Media Server Tool and WinPE Tool"""
+
+
+# The four methods below are reference.
+
+
+def retrieve_FTS(sessionID):
+    """
+    basic usage:
+        sessionID -> ftsTasks
+    FTS := first time setup
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/FTS",
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_FTS(sessionID, ftsTasks):
+    """
+    basic usage:
+        sessionID -> ftsTasks
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/FTS",
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {
+            "ftsTasks": ftsTasks,
+            },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_DHCP(sessionID):
+    """
+    basic usage:
+        sessionID -> value
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/OsdDhcpConfig",
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def edit_DHCP(sessionID, dhcpState, subnetList):
+    """
+    basic usage:
+        sessionID -> JSON
+    """
+    response = requests.put(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/os-deployment-settings/OsdDhcpConfig",
+            ),
+        headers = {
+            "X-API-Version": 102,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {
+            "dhcpState": dhcpState,
+            "subnetList": subnetList,
+            },
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Device Groups
 # -------------
 
