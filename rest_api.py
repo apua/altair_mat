@@ -1069,8 +1069,47 @@ def retrieve_service_access(sessionID):
 # Startup Progress
 # ----------------
 
+def get_startup_status():
+    """
+    basic usage:
+        None -> complete, total
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/appliance/progress",
+            ),
+        headers = {
+            "X-API-Version": 100,
+            "Accept-Language": "en_US",
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Version
 # -------
+
+def get_supported_API_version():
+    """
+    basic usage:
+        None -> currentVersion, minimumVersion
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/version",
+            ),
+        headers = {},
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
 
 
 
