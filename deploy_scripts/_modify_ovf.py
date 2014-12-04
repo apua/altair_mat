@@ -25,7 +25,7 @@ def modify_ovf(fn):
             shutil.copyfile(fn, bak_fn)
 
 
-    ovf_fn, mf_fn = fn, fn[:-4]+'.mf'
+    ovf_fn, mf_fn = fn, os.path.splitext(fn)[0]+'.mf'
     for fn in (ovf_fn, mf_fn):
         clean_check_backup(fn)
 
@@ -56,6 +56,5 @@ def modify_ovf(fn):
 
 
 if __name__=='__main__':
-    filename = 'ICsp-vmware-7.4.1-20141113.ovf'
-    directory = '/ovf/ICsp-vmware-7.4.1-20141113'
-    modify_ovf(fn=filename, dir=directory)
+    filename = '/ovf/ICsp-vmware-7.4.1-20141113/ICsp-vmware-7.4.1-20141113.ovf'
+    modify_ovf(fn=filename)
