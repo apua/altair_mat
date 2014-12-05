@@ -12,7 +12,10 @@ def modify_ovf(fn):
     @fn: the absolute path of OVF file
     """
 
-    import hashlib, os, re, shutil
+    import hashlib
+    import os
+    import re
+    import shutil
 
     def clean_check_backup(fn):
 
