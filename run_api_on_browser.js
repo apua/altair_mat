@@ -1,9 +1,11 @@
-(function (theUrl){
-    var xmlHttp = null;
+gen_api = (function (method, URI, payload) {
+        var xmlHttp = null;
+        xmlHttp = new XMLHttpRequest();
+        xmlHttp.open( method, URI, false );
+        xmlHttp.setRequestHeader("Auth",AUTH);
+        xmlHttp.send(payload);
+        return JSON.parse(xmlHttp.responseText);
+        })
 
-    xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, false );
-    xmlHttp.setRequestHeader("Auth","VYilMkTj_EWsPH03DKoEC5jnaIivJrMc");
-    xmlHttp.send( null );
-    return JSON.parse(xmlHttp.responseText);
-})("/rest/os-deployment-facility/1")
+/* Example */
+// rep = gen_api('GET', '/rest/os-deployment-servers/30001')
