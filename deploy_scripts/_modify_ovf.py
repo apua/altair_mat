@@ -36,7 +36,7 @@ def modify_ovf(fn):
     content = open(ovf_fn).read()
 
     # modify *Network Section*
-    patt = r'^( *<Network ovf:name=")Template(".*?</Network>)$'
+    patt = r'^(\s*<Network\s*ovf:name=")Template(".*?</Network>\s*)$'
     repl = lambda mat: '{0}Appliance{1}\n{0}Deployment{1}'.format(*mat.groups())
     content_ = re.sub(patt, repl, content, flags=re.DOTALL|re.MULTILINE)
 
