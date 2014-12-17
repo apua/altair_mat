@@ -15,6 +15,7 @@ from pyVmomi import vim, vmodl
 # ========
 
 vmname = 'deploy_altair_test'
+vmname = 'Altair-Combined-7.5.0-20141207'
 
 # "Default installation of vCenter Server, VirtualCenter,
 # and ESXi use port 443." from "OVF Tool User's Guide".

@@ -22,7 +22,9 @@ Output:
 State (Side Effect):
     + **modify OVF for setting virtual NIC**
     + take storage about ?? GB space
-    + the appliace would be turned on.
+    + the appliace would be powered on
+    + the appliace would be taken a snapshot
+      (named "deploy OVF")
 
 Consider:
     + storage space
