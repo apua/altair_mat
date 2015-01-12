@@ -1320,6 +1320,26 @@ def remove_session(sessionID):
 # Tasks
 # -----
 
+def get_tasks(sessionID):
+    """
+    basic usage:
+    """
+    response = requests.get(
+        generate_uri(
+            netloc = APPLIANCE,
+            path = "/rest/tasks",
+            ),
+        headers = {
+            "X-API-Version": 100,
+            "Accept-Language": "en_US",
+            "Auth": sessionID,
+            },
+        json = {},
+        verify = False
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
 
 
 
