@@ -395,7 +395,7 @@ class Altair(object):
                 path = "/rest/os-deployment-facility/{facilityID}".format(**locals()),
                 ),
             headers = {
-                "X-API-Version": 102,
+                "X-API-Version": 1,#02,
                 "Accept-Language": "en_US",
                 "Auth": self.session_id,
                 },
@@ -598,7 +598,7 @@ class Altair(object):
                 path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
                 ),
             headers = {
-                "X-API-Version": 102,
+                #"X-API-Version": 102,
                 "Accept-Language": "en_US",
                 "Auth": self.session_id,
                 },
@@ -712,7 +712,7 @@ class Altair(object):
                 path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
                 ),
             headers = {
-                "X-API-Version": 102,
+                #"X-API-Version": 102,
                 "Accept-Language": "en_US",
                 "Auth": self.session_id,
                 },
@@ -1366,7 +1366,7 @@ class Altair(object):
                 Query = query,
                 ),
             headers = {
-                "X-API-Version": 100,
+                #"X-API-Version": 100,
                 "Accept-Language": "en_US",
                 "Auth": self.session_id,
                 },
