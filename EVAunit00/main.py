@@ -16,34 +16,44 @@ current = dict(conf.items('current appliance'))
 print.red(current)
 
 
+# retrieve customized data from current Altair
 with Altair(appliance_ip = current['ip'],
             username = current['username'],
             password = current['password']) as api:
+
+    current_altair_data = {}
+
     # product keys
     # facility attributes
-    custom_attr = api.retrieve_facility(1)['customAttributes']
-    product_keys = {k:v for k,v in custom_attr.iteritems()
-                        if k.startswith('ProductKey_')}
-    customized_attr = {k:v for k,v in custom_attr.iteritems()
-                           if not k.startswith('ProductKey_') and
-                              not k.startswith('__OPSW') and
-                              k != 'device_discovery_naming_rules'}
-                    
-    print.yellow(sep='\n', *sorted(product_keys.iteritems()))
-    print.yellow(sep='\n', *sorted(customized_attr.iteritems()))
-
+    facility_attr = api.retrieve_facility(1)['customAttributes']
+    current_altair_data['product_keys'] = {k:v
+        for k,v in facility_attr.iteritems()
+        if k.startswith('ProductKey_')}
+    current_altair_data['custom_attr'] = {k:v
+        for k,v in facility_attr.iteritems()
+        if not k.startswith('ProductKey_') and
+           not k.startswith('__OPSW') and
+           k != 'device_discovery_naming_rules'}
 
     # OSBPs    - osdbuildplan
     # scripts  - osdscript
     # packages - osdzip
-    get_customized_members = lambda category: [member['name']#uri']
+    get_customized_members = lambda category: [member['uri']
         for member in api.list_index({'category': category})['members']
         if member['attributes']['osdCustomerContent'] != 'false']
         #if member['attributes']['osdCustomerContent']]
 
-    for cate in ('osdbuildplan', 'osdscript', 'osdzip'):
-        print.green(sep='\n', *get_customized_members(cate))
+    for category, query_category, method in (
+      ('OSBPs','osdbuildplan',api.retrieve_OSBP),
+      ('scripts','osdscript', api.retrieve_serverScript),
+      #('packages','osdzip', ....),
+      ):
+        uris = get_customized_members(query_category)
+        for uri in uris:
+            id = uri.rsplit('/')[-1]
+            j = method(id)
+            print.green(j)
+            
 
     # configuration files - osdcfgfile
     # it has no 'osdCustomerContent' attribute in searching result....damn
-
