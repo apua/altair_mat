@@ -68,6 +68,8 @@ class Altair(object):
 
     def __exit__(self, type, value, traceback):
         self.remove_session()
+        from colorprint import print
+        print.blue('remove_session~~~')
 
 
     # DEPLOYMENT
@@ -543,8 +545,8 @@ class Altair(object):
 
     def list_OSBP(self):
         """
-        basic usage:
-            sessionID -> members
+        basic usage: sessionID -> members
+        ** never use it....it wil also list detail of every OSBPs **
         """
         response = self.conn.get(
             generate_uri(
@@ -1277,6 +1279,26 @@ class Altair(object):
         assert response.status_code==200, _failure_information(response)
         return response.json()
 
+    def list_sessions(self):
+        """
+        basic usage:
+        ** This feature can not be used. **
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/sessions/users",
+                ),
+            headers = {
+                "X-API-Version": 1,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
     # Users
     # -----
 
@@ -1332,6 +1354,27 @@ class Altair(object):
 
     # Index Resources
     # ---------------
+
+    def list_index(self, query):
+        """
+        basic usage:
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/index/resources",
+                Query = query,
+                ),
+            headers = {
+                "X-API-Version": 100,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
 
     # Index Search Suggestions
     # ------------------------
