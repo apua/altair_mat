@@ -30,7 +30,7 @@ Code Structure
 Replace CSI Taipei `Altair 7.3` with `Altair 7.5`.
 
 We just transfer "Facility Custom Attributes", "Product Keys", "OSBP", and "Scripts";
-"User and Groups" has not find solution yet;
+"User and Groups", "Servers" has not find (or assure) solutions yet;
 we just know that "Configuration Files" and some customized data can not backup in simple way after testing
 (because the result of searching index have no `osdCustomerContent` attribute).
 
