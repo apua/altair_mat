@@ -48,10 +48,10 @@ class Altair(object):
     support context manager
     """
 
-    def __init__(self, appliance_ip, username, password):
+    def __init__(self, appliance_ip, username, password, trust_env=False):
         # build HTTP connection session
         self.conn = requests.Session()
-        self.conn.trust_env = False
+        self.conn.trust_env = trust_env
         self.conn.verify = False
         # set target appliance and authenticate
         self.appliance_ip = appliance_ip
