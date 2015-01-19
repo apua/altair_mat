@@ -1,16 +1,48 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Below are Altair settings.
 [credential]
+username =
+password =
 
 [network]
+hostname =
+appliance_ip =
+appliance_mask =
+appliance_gateway =
+appliance_dns1 =
+appliance_dns2 =
+deployment_interface =
+deployment_ip =
 
+;appliance_ip =
+;appliance_mask =
+;appliance_gateway =
+;appliance_dns1 =
+;appliance_dns2 =
 ;;"share" or "independent", case insensitive, and program would check that
+;deployment_interface =
+;deployment_ip =
+;deployment_mask =
 
 [media server]
+fileshare_host =
+fileshare_name =
+fileshare_user =
+fileshare_pass =
+http_server_host =
+http_server_path =
+
+#fileshare_host =
+#fileshare_name =
+#fileshare_user =
+#fileshare_pass =
+#http_server_host =
+#http_server_path =
 
 [dhcp server]
 ;it should be disable by default
 ;and there should already exist a DHCP server in network
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The customizations of Altair.
@@ -27,15 +59,34 @@
 [packages"]
 
 [current appliance]
+;ip =
+ip =
+username =
+password =
 
 [admin account]
+username =
+password =
+;role =
+email =
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; The virtual machine informations.
 
 [vcenter]
+ip =
+username =
+password =
 
 [hypervisor]
+host =
+port =
+datacenter =
+resource_pool =
+datastore =
+vmname =
+network1 =
+network2 =
 
 [ovf]
-
+source =
