@@ -1,0 +1,41 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Below are Altair settings.
+[credential]
+
+[network]
+
+;;"share" or "independent", case insensitive, and program would check that
+
+[media server]
+
+[dhcp server]
+;it should be disable by default
+;and there should already exist a DHCP server in network
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The customizations of Altair.
+; They can be record here, or copy from current Altair with program.
+
+[product keys]
+
+[facility custom attributes]
+
+[osbps]
+
+[scripts]
+
+[packages"]
+
+[current appliance]
+
+[admin account]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; The virtual machine informations.
+
+[vcenter]
+
+[hypervisor]
+
+[ovf]
+
