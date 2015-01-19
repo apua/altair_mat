@@ -67,6 +67,7 @@ password =
 [admin account]
 username =
 password =
+fullname =
 ;role =
 email =
 
