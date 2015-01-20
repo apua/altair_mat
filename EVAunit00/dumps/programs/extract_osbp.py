@@ -48,7 +48,7 @@ def extract_all():
         d = [{'name': s['name'], 'parameters': s['parameters']}
              for s in items]
         with open(m['name'], 'w') as fp:
-            json.dump(s, fp, indent=4)
+            json.dump(d, fp, indent=4)
 
 
 if __name__=='__main__':
