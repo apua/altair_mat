@@ -68,4 +68,3 @@ with Altair(appliance_ip = appliance['ip'],
 print.reverse("done\n")
 
 print.reverse("Task is Finished Successfully~")
-input("Press any key to Quit")
