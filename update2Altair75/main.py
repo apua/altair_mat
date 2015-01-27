@@ -41,6 +41,9 @@ with Altair(appliance_ip = current['ip'],
         if not k.startswith('ProductKey_') and
            not k.startswith('__OPSW') and
            k != 'device_discovery_naming_rules'}
+    current_altair_data['media'] = {k:v
+        for k,v in facility_attr.iteritems()
+        if k.startswith('__OPSW-Media')}
 
 print.reverse("done\n")
 
@@ -55,8 +58,10 @@ with Altair(appliance_ip = appliance['ip'],
     print.reverse("-> Upload Data...")
 
     facility = api.retrieve_facility(1)
+    current_altair_data['media']['__OPSW-Media-WinPassword'] = 'Compaq123'
     facility['customAttributes'].update(current_altair_data['productkeys'])
     facility['customAttributes'].update(current_altair_data['customattrs'])
+    facility['customAttributes'].update(current_altair_data['media'])
     api.edit_facility(1, facility)
 
 
