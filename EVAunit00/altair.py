@@ -69,7 +69,7 @@ class Altair(object):
     def __exit__(self, type, value, traceback):
         self.remove_session()
         from colorprint import print
-        print.blue('remove_session~~~')
+        print.blue('remove_session')
 
 
     # DEPLOYMENT
@@ -965,6 +965,25 @@ class Altair(object):
     # Appliance Network Interfaces
     # ----------------------------
 
+    def retrieve_network(self):
+        """
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = '/rest/appliance/network-interfaces/00:50:56:98:09:07',
+                #path = "/rest/appliance/network-interfaces/00:50:56:98:09:07?_=1423476857871",
+                ),
+            headers = {
+                #"X-API-Version": 100,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
     # Appliance Node Information
     # --------------------------
 
@@ -1301,6 +1320,104 @@ class Altair(object):
 
     # Users
     # -----
+
+    def list_users(self):
+        """
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users",
+                ),
+            headers = {
+                #"X-API-Version": 100,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+    def list_users_role(self, user):
+        """
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users/role/{user}".format(**locals()),
+                ),
+            headers = {
+                #"X-API-Version": 100,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+    def add_users(self, users):
+        """
+        """
+        response = self.conn.post(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users",
+                Query = {'multiResource':True} if isinstance(users, list) else {},
+                ),
+            headers = {
+                #"X-API-Version": 100,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = users,
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+    def update_user_role(self, user, roles):
+        """
+        """
+        response = self.conn.put(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users/role",
+                ),
+            headers = {
+                #"x-api-version": 100,
+                "accept-language": "en_us",
+                "auth": self.session_id,
+                },
+            json = {
+                'userName': user,
+                'roles': roles,
+                }
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+
+    def delete_user(self, user):
+        """
+        basic usage:
+            sessionID, cfgfileID -> None
+        """
+        response = self.conn.delete(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users/{user}".format(**locals()),
+                ),
+            headers = {
+                #"x-api-version": 100,
+                "accept-language": "en_us",
+                "auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
 
     # Web Server Certificates
     # -----------------------
