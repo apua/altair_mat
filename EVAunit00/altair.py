@@ -251,6 +251,44 @@ class Altair(object):
         return response.json()
 
 
+    def retrieve_activation(self):
+        """
+        """
+        response = self.conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/os-deployment-settings/activation",
+                ),
+            headers = {
+                "X-API-Version": 104,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+
+    def send_activation(self, data):
+        """
+        """
+        response = self.conn.put(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/os-deployment-settings/activation",
+                ),
+            headers = {
+                "X-API-Version": 104,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = data,
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+
     def export_userDefined_content(self, *args, **kwargs):
         """export all user-defined content such as OSBP, script,..."""
 
