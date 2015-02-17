@@ -845,7 +845,7 @@ class Altair(object):
                 },
             json = properties,
             )
-        assert response.status_code==201, _failure_information(response)
+        assert response.status_code==202, _failure_information(response)
         return response.json()
 
 
@@ -1402,14 +1402,32 @@ class Altair(object):
             generate_uri(
                 netloc = self.appliance_ip,
                 path = "/rest/users",
-                Query = {'multiResource':True} if isinstance(users, list) else {},
+                Query = {'multiresource':true} if isinstance(users, list) else {},
                 ),
             headers = {
-                #"X-API-Version": 100,
-                "Accept-Language": "en_US",
-                "Auth": self.session_id,
+                #"x-api-version": 100,
+                "accept-language": "en_us",
+                "auth": self.session_id,
                 },
             json = users,
+            )
+        assert response.status_code==200, _failure_information(response)
+        return response.json()
+
+    def update_user(self, user):
+        """
+        """
+        response = self.conn.put(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users",
+                ),
+            headers = {
+                #"x-api-version": 100,
+                "accept-language": "en_us",
+                "auth": self.session_id,
+                },
+            json = user,
             )
         assert response.status_code==200, _failure_information(response)
         return response.json()
