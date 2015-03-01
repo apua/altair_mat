@@ -7,6 +7,9 @@ and often deployed repeatly in labs.
 There are some steps have no solution yet,
 but the deploying steps are clearly now.
 
+Another information follows: https://rndwiki2.atlanta.hp.com/confluence/display/csitestdevel/Deploying+Altair
+
+
 Below is the "recipe - feature" mapping:
 
 `check_env.py`
