@@ -1,0 +1,165 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+Unmounts all the partitions belonging to the boot disk.
+
+By default, the boot disk is computed as the first hard drive listed in
+/proc/partitions.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+import re
+
+from osprov.util import process
+from osprov.errors import ShowErrorMessage
+from osprov.osbp import logger
+from osprov.diskmgr.diskmanager import DiskManager
+
+EC_SUCCESS = 0
+EC_NO_BOOT_DISK = 10
+EC_FAILED_TO_MOUNT = 11
+EC_IN_USE = 12
+
+BOOT_DISK = "@boot_disk@" #ScriptWeaver will parametrize this data at run time
+
+# We don't need the object byt by getting it, it will get set up
+LOG = logger.getIt("osprov.diskmgr")
+
+#######################################################################
+# Returns True if the specified device is mounted on the specified
+# mount point.
+#######################################################################
+
+def isDeviceMountedOnMountPoint(deviceName, mountPoint):
+
+	mountOutput = process.getStdout("mount")
+
+	if mountOutput is not None:
+		mountRE = re.compile("^%s\s+on\s+%s\s+.*" % (deviceName,mountPoint))
+
+		lines = mountOutput.splitlines()
+
+		for line in lines:
+			match = mountRE.match(line)
+	 		if match:
+				return True
+
+	return False
+
+#######################################################################
+# Counts the number of devices mounted on the specified mount point.
+#######################################################################
+
+def countDevicesMountedOnMountPoint(mountPoint):
+
+	count = 0
+
+	mountOutput = process.getStdout("mount")
+
+	if mountOutput is not None:
+		mountRE = re.compile("^\S+\s+on\s+%s\s+.*" % mountPoint)
+
+		lines = mountOutput.splitlines()
+
+		for line in lines:
+			match = mountRE.match(line)
+	 		if match:
+				count += 1
+
+	return count
+
+#######################################################################
+# Unmounts all the partitions belonging to the specified disk.
+#######################################################################
+
+def unmountAllPartitions(disk):
+
+	print "Unmounting partitions for disk '%s'" % disk.deviceName
+
+	# Get all the partitions belonging to this disk.
+	for partition in disk.getPartitions():
+
+		print "Checking if partition '%s' is mounted" % partition.getDeviceFilePath()
+
+		# Get all the mount points on which the partition is mounted.
+		mountPoints = partition.getMountPoints()
+
+		if (len(mountPoints) == 0):
+			print "Partition '%s' is not mounted anywhere" % partition.getDeviceFilePath()
+			continue
+		else:
+			print "Partition '%s' has %d mount points" % (partition.getDeviceFilePath(), len(mountPoints))
+
+		# Unmount the partition from each mount point on which it is mounted.
+		for mountPoint in mountPoints:
+			try:
+				print "Unmounting '%s' from '%s'" % (partition.getDeviceFilePath(), mountPoint)
+
+				# Count the number of devices that are mounted on this mount point.
+				count = countDevicesMountedOnMountPoint(mountPoint)
+
+				print "There are %d devices mounted on %s" % (count, mountPoint)
+
+				i = 0
+
+				# Since there may be other devices mounted on the same
+				# mount point, we need to keep unmounting devices from the
+				# mount point, until our partition is unmounted.
+				while (i < count):
+					# Is the partition unmounted?
+					if isDeviceMountedOnMountPoint(partition.getDeviceFilePath(), mountPoint):
+						print "Attempt #%d" % (i+1)
+						process.runIt("umount '%s'" % mountPoint, quiet=True, log=LOG)
+						i += 1
+					else:
+						# The partition is no longer mounted on the mount point.
+						break
+
+				# If we've tried to unmount every device mounted on the mount point,
+				# but the partition is still mounted, then issue an error.
+				if isDeviceMountedOnMountPoint(partition.getDeviceFilePath(), mountPoint):
+					raise ShowErrorMessage("Could not unmount device '%s' from '%s'" % (partition.getDeviceFilePath(), mountPoint))
+
+				print "Successfully unmounted '%s' from '%s'" % (partition.getDeviceFilePath(), mountPoint)
+
+			except OSError:
+				raise ShowErrorMessage(
+					"Could not unmount filesystem mounted at '%s'."\
+					" Ensure no shell sessions are using files under this"\
+					" mount point."
+					% mountPoint, EC_IN_USE)
+
+#######################################################################
+# Main Routine.
+#######################################################################
+
+def main():
+	"""Main entry point when executed as a script from the command line"""
+	try:
+		dm = DiskManager()
+		dm.disable_automount()
+		dm.unmountOurs()
+
+		disks = dm.get_disk_inventory(BOOT_DISK)
+
+		bootDisks = [disk for disk in disks if disk.isBootDisk]
+		if not bootDisks:
+			print "Could not identify the system's boot disk"
+			return EC_NO_BOOT_DISK
+		bootDisk = bootDisks[0]
+
+		unmountAllPartitions(bootDisk)
+
+	except ShowErrorMessage, info:
+		print info.args[0]
+		return info.args[1]
+	return EC_SUCCESS
+
+if __name__ == "__main__":
+	sys.exit(main())

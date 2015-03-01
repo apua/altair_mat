@@ -1,0 +1,158 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2009 Hewlett-Packard Development Company, L.P.
+    Server script to download unit from the agent cache
+"""
+import sys
+import random
+import os
+import socket
+
+from httplib import HTTPConnection
+from optparse import OptionParser
+
+from osprov.errors import ShowErrorMessage, DiscoveryError
+from osprov.osbp import logger
+from osprov.util import process
+from osprov import helpers
+from osprov import sa
+
+# pylint: disable=E0611,F0401
+from coglib import gwcron
+from pytwist.com.opsware.search import Filter
+# pylint: enable=E0611,F0401
+
+LOG = logger.getIt("deploy agent")
+
+
+def getShortName(platformName):
+    """ Translate platform name into the short form used to identify the agent """
+    twistServer = sa.getTwistServer()
+    unitFilter = Filter()
+    unitFilter.setObjectType("platform")
+    # Customer ID 15 is "Opsware"
+    unitFilter.setExpression("platform_name EQUAL_TO \"%s\"" % platformName)
+    refs = twistServer.device.PlatformService.findPlatformRefs(unitFilter)
+    if not refs:
+        raise ShowErrorMessage("Unable to find HP SA Agent Installer package "
+                               "for platform '%s'. Most likely your platform name is incorrect or"
+                               " misspelled." % platformName)
+    platformVO = twistServer.device.PlatformService.getPlatformVO(refs[0])
+    return "%s-%s" % (platformVO.shortName, platformVO.version)
+
+
+def getAgentName(platform, name):
+    """ Get the name of the agent given the platform short name """
+    if not name:
+        name = "osprov_ogfs_agent"
+    platform = getShortName(platform)
+    return "%s-%s" % (name, platform)
+
+
+def getGateway():
+    """ Use the agent configuration to determine valid gateway
+
+            If more GWs are present, one will be chosen by random.choice
+    """
+    gcm = gwcron.GatewayConfManager()
+    servers = gcm.load()
+    if servers:
+        return random.choice(servers)
+    else:
+        return []
+
+
+def discoverPlatform():
+    """ Discover the platform of the agent that needs downloading"""
+    platform = helpers.getDataStore().platform.full_name
+    if not platform:
+        raise DiscoveryError("Failed to discover the needed platform.")
+    return platform
+
+
+def parseArgs(args):
+    """ parse and normalise arguments for the script """
+    parser = OptionParser()
+    parser.add_option("-n", "--name", metavar="NAME",
+                      help="The name of the agent to retrieve")
+    parser.add_option("-p", "--platform", metavar="PLATFORM",
+                      help="The platform for the agent")
+    parser.add_option("-d", "--dest", metavar="DEST", default=None,
+                      help="Where to download the agent. This needs to be a full or relative "
+                      "path to a file. Directories along the path will be created if they don't "
+                      "exist.")
+    parser.add_option("-g", "--gateway",
+                      help="Optional server to download from. If not present the agents "
+                            "configuration will be used to determine a valid gateway",
+                      metavar="SERVER", default=None)
+    parser.add_option("-u", "--unzip",
+                      help="Unzip and delete the agent in the directory where it was downloaded",
+                      action="store_true", default=False)
+    options, args = parser.parse_args(args)
+    if args:
+        parser.error("Additional positional arguments are not supported")
+    if not options.dest:
+        parser.error("A destination must be provided")
+    if not options.platform:
+        options.platform = discoverPlatform()
+    options.name = getAgentName(options.platform, options.name)
+    if not options.gateway:
+        gws = getGateway()
+        if not gws:
+            parser.error("Can't determine gateway. Please provide one.")
+        options.gateway = "%s:%s" % (gws[0], gws[1])
+    options.dest = os.path.abspath(options.dest)
+    return options
+
+
+def download(server, unitName, dest):
+    """ Download the file from the Agent cache """
+    dirname = os.path.dirname(dest)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    conn = HTTPConnection(server)
+    conn.set_tunnel("127.0.0.1:8081")
+    conn.connect()
+    conn.request("GET", "/%s" % unitName)
+    resp = conn.getresponse()
+    if resp.status == 200:
+        dfile = open(dest, "w")
+        dfile.write(resp.read())
+        dfile.close()
+    else:
+        raise ShowErrorMessage("Download failed: %s %s" % (resp.status, resp.reason))
+
+
+def unzip(dest):
+    """ Unzip the agent """
+    # we can't use zipfile.extractall(os.path.dirname(dest))
+    # since our python is old
+    process.runIt("/opt/opsware/agent/bin/unzip -d %s -o %s" %
+                 (os.path.dirname(dest), dest),
+                  log=LOG, quiet=True, quieterr=True)
+    os.remove(dest)
+
+
+def main():
+    """ Main entry point """
+    try:
+        options = parseArgs(sys.argv[1:])
+        download(options.gateway, options.name, options.dest)
+        if options.unzip:
+            unzip(options.dest)
+            print "Downloaded and extracted %s to %s" % \
+                (options.name, os.path.dirname(options.dest))
+        else:
+            print "Downloaded %s to %s" % (options.name, options.dest)
+    except socket.error, why:
+        LOG.exception(why)
+        print "Can't connect to %s : %s" % (options.gateway, why)
+        return 1
+    except ShowErrorMessage, why:
+        print why
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())

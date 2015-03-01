@@ -1,0 +1,73 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will modify the ai.xml and sc.xml manifest files to inject
+the essential personalization settings for the final system.
+
+This includes IPS source, an optional http proxy and root password.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+
+from osprov.profile import AIManifest, SCManifest
+from osprov.decorators import HandleShowErrorMessage
+from osprov.optparse_ext import OptionParser
+from osprov.osbp import logger
+
+AI_XML_PATH = "/tmp/ai.xml"
+SC_XML_PATH = "/tmp/sc.xml"
+
+LOG = logger.getIt("Inject Required AI settings")
+
+
+class InjectOptionsParser(OptionParser):
+
+    def defineOptions(self):
+        self.add_option("-i", "--ips-source", help="IPS origin used for installation")
+        self.add_option("-m", "--mirror", action="append", dest="mirrors",
+                        help="IPS mirror used for installation, can specify multiple times")
+        self.add_option("-p", "--encrypted-root-password", dest="password",
+                        help="Root password for the installed system, encrypted")
+        self.add_option("-x", "--http-proxy", dest="proxy",
+                        help="HTTP proxy used for IPS installation")
+
+
+@HandleShowErrorMessage("inject required AI", LOG)
+def main():
+    """Inject required AI settings."""
+
+    opts, args = InjectOptionsParser().parse_args()
+
+    aiFile = open(AI_XML_PATH, "r")
+    aiManifest = AIManifest(aiFile)
+    scFile = open(SC_XML_PATH, "r")
+    scManifest = SCManifest(scFile)
+
+    if opts.mirrors:
+        mirrors = opts.mirrors
+    else:
+        mirrors = []
+
+    try:
+        aiManifest.autoreboot = False
+        if opts.ips_source:
+            aiManifest.setIPSPublisherInfo("solaris", ([opts.ips_source], mirrors))
+        if opts.password:
+            scManifest.rootPassword = opts.password
+        if opts.proxy:
+            aiManifest.httpProxy = opts.proxy
+
+        aiManifest.save()
+        scManifest.save()
+    finally:
+        aiFile.close()
+        scFile.close()
+
+if __name__ == "__main__":
+    sys.exit(main())

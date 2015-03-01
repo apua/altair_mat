@@ -1,0 +1,90 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-LinURI@/sles11sp3-x64"
+    }, 
+    {
+        "name": "SLES 11 SP3 x64 en_us Autoyast", 
+        "parameters": "/tmp/user.autoinst.xml"
+    }, 
+    {
+        "name": "Inject Required AutoYaST Settings", 
+        "parameters": "SuSE Linux Enterprise Server 11 X86_64"
+    }, 
+    {
+        "name": "Inject AutoYaST Personalization Settings", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Create Stub Partition", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Copy Boot Media", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ProLiant Drivers for SLES 11 SP3 x64 - 2014.02.0", 
+        "parameters": ""
+    }, 
+    {
+        "name": "GRuB Boot Loader x86", 
+        "parameters": "/tmp"
+    }, 
+    {
+        "name": "Deploy Agent", 
+        "parameters": "-d /tmp/opt/opsware/agent/ogfs-agent.zip -u"
+    }, 
+    {
+        "name": "Embed files initrd", 
+        "parameters": "-s /tmp/user.autoinst.xml:/ -s /tmp/opt/opsware/agent:/opt/opsware/ -s /tmp/dud/.:/"
+    }, 
+    {
+        "name": "Install bootloader for SuSE Linux Enterprise Server", 
+        "parameters": "--kernel_arguments=\"netwait=20 @kernel_arguments@\""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Monitor Installation", 
+        "parameters": "var/log/YaST2/y2log"
+    }, 
+    {
+        "name": "Integrate Linux HP SA Agent", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Continue SuSE AutoYaST Installation", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

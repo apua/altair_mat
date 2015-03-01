@@ -1,0 +1,65 @@
+'Sysprep Imaging Preparation Script
+'vbscript
+
+'(c) Copyright 2013, 2014 Hewlett-Packard Development Company, L.P.
+
+dim aNames(11)
+aNames(0) = "HP Insight Management Agents"
+aNames(1) = "HP Lights-Out Online Configuration Utility"
+aNames(2) = "HP ProLiant Rack Infrastructure Interface Service"
+aNames(3) = "HP Smart Array SAS/SATA Event Notification Service"
+aNames(4) = "HP Insight Diagnostics Online Edition for Windows"
+aNames(5) = "HP Insight Diagnostics  Online Edition for Windows"
+aNames(6) = "HP ProLiant Online RBSU"
+aNames(7) = "HP Insight �}�l�W�����g �G�[�W�F���g"
+aNames(8) = "HP ProLiant ���b�N �C���t���X�g���N�`�� �C���^�t�F�C�X �T�[�r�X"
+aNames(9) = "HP Smart �A���CSAS/SATA�C�x���g���m�T�[�r�X"
+aNames(10) = "HP Lights-Out �I�����C���������[�e�B���e�B"
+
+
+set oFSO = Wscript.CreateObject("Scripting.FileSystemObject")
+set oShell = Wscript.CreateObject("Wscript.Shell")
+set oRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
+const nHKLM = 2147483650
+
+
+'uninstall software
+const sUninstallKey = "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+oRegistry.EnumKey nHKLM, sUninstallKey, aKeys
+for each sKey In aKeys
+   oRegistry.GetStringValue nHKLM, sUninstallKey & "\" & sKey, "DisplayName", sDisplayName
+   oRegistry.GetExpandedStringValue nHKLM, sUninstallKey & "\" & sKey, "UninstallString", sUninstallString
+   if IsNull(sDisplayName) = False and IsNull(sUninstallString) = False and IsAMatch(sDisplayName) then
+      uninstallCommand = sUninstallString & " /passive"
+      WScript.echo "Uninstalling component => " & uninstallCommand
+      oShell.Run(uninstallCommand),1,true
+   end if
+next
+
+'Get the system drive.
+'Set WshShell = CreateObject("WScript.Shell")
+'systemDrive = WshShell.ExpandEnvironmentStrings("%SystemDrive%")
+
+'Create windows scheduled task which reinstalls Broadcom driver on reboot with 15 min delay 
+'reinstallCommand = "schtasks /create /sc ONSTART /tn ReinstallBroadCom  /tr " & Chr(34) & systemDrive & "\" & Chr(36) & "oem" & Chr(36) & "\components\update_broadcom.cmd" & Chr(34) & " /DELAY 0015:00 /f /ru SYSTEM"
+'WScript.echo "Scheduling reinstalling of Broadcom driver => " & reinstallCommand
+'oShell.Run(reinstallCommand)
+
+
+function IsAMatch(sString)
+   fFound = False
+   for each sName in aNames
+      if sName = sString then
+         fFound = True
+      end if
+   next
+   IsAMatch = fFound
+end function
+
+
+function DeleteFile (sPathExist, sPathDelete)
+   if oFSO.FileExists(sPathExist) then
+      oFSO.DeleteFile(sPathDelete), True
+   end if
+end function
+

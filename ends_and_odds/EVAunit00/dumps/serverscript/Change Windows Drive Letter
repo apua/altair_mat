@@ -1,0 +1,125 @@
+' This script obtains the volume id and disk serial numbers that correspond
+' to a logical drive that you provide on the commandline.
+' It creates a file <drive>:\$WIN_NT$.~BT\migrate.inf
+' That file contains the syntax windows setup needs to ensure
+' that the desired drive letter is used instead of the default "C"
+' Does not work with reparse/mountpoints
+' Don't know if it will work with dynamic disks
+'
+Wscript.Timeout = 75
+'On Error Resume Next
+
+Private Function StrPad(Unpadded, Length, Padding)
+    StrPad = String((Length-Len(Unpadded)), Padding) & Unpadded
+End Function
+
+Private Function SigOrder(unordered)
+	SigOrder = LCase(right(unordered,2) & "," & left(right(unordered,4),2) & _
+        "," & right(left(unordered,4),2) & "," & left(unordered,2))
+End Function
+
+Private Function StartSectorOrder(unordered)
+	StartSectorOrder = right(unordered, 2) & "," & left(right(unordered,4),2) &_
+        "," & left(right(unordered,6),2) & "," & left(right(unordered,8),2) &_
+        "," & left(right(unordered,10),2) & "," & left(right(unordered,12),2)
+	StartSectorOrder = LCase(StartSectorOrder)
+End Function
+
+Private Function StartPartition(offsetsectors)
+	hexstring = StrPad(Hex(offsetsectors*2), 12, "0")
+    StartPartition = hexstring
+End Function
+
+If WScript.Arguments.Count > 0 Then
+	drive = Left(WScript.Arguments.Item(0), 1) & ":"
+Else
+	drive = "@SystemDrive:C@:"
+End If
+
+If UCase(drive) = "C:" Then
+	WScript.echo "SystemDrive is configured for the default of " & drive & ". No special configuration required. Exiting without any changes."
+	WScript.Quit(0)
+End If
+
+Set FSO = CreateObject("Scripting.FileSystemObject")
+If Not FSO.FolderExists(drive & "\") Then
+	WScript.Stderr.Write("Drive letter " & drive & " does not exist." & VbCrLf)
+	WScript.Quit(5)
+End If
+diskSignatureHex = ""
+migrateData = ""
+registrySignature = ""
+volKey = ""
+
+Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
+Set colDiskDrives = objWMIService.ExecQuery("SELECT * FROM Win32_DiskDrive")
+Set objVolumes = objWMIService.InstancesOf("Win32_Volume",48)
+
+For Each objDrive In colDiskDrives
+   strDeviceID = Replace(objDrive.DeviceID, "\", "\\")
+   Set colPartitions = objWMIService.ExecQuery _
+      ("ASSOCIATORS OF {Win32_DiskDrive.DeviceID=""" & _
+         strDeviceID & """} WHERE AssocClass = " & _
+            "Win32_DiskDriveToDiskPartition")
+ 
+   For Each objPartition In colPartitions
+      Set colLogicalDisks = objWMIService.ExecQuery _
+         ("ASSOCIATORS OF {Win32_DiskPartition.DeviceID=""" & _
+            objPartition.DeviceID & """} WHERE AssocClass = " & _
+               "Win32_LogicalDiskToPartition")
+ 
+      For Each objLogicalDisk In colLogicalDisks
+         if objLogicalDisk.DeviceID = UCase(drive) Then
+            For Each volume in objVolumes
+               if volume.DriveLetter = UCase(drive) Then
+                  volKey = replace(replace(volume.DeviceID, "\\?", "\??"), "}\", "}")
+                  volString = SigOrder(StrPad(Hex(objDrive.signature), 8, "0")) & ",00," & StartSectorOrder(StartPartition(objPartition.StartingOffset/objDrive.BytesPerSector)) & ",00"
+				  registrySignature =  Replace(volString, ",", "")
+				  diskSignatureHex = Hex(objDrive.signature)
+                  if reg = 0 Then
+                     migrateData = migrateData & "HKLM,""SYSTEM\MountedDevices"",""" & volKey & _
+                       """" & ",0x00030001,\" & VbCrLf
+                     migrateData = migrateData &  "     " & volString & VbCrLf
+                     migrateData = migrateData & "HKLM,""SYSTEM\MountedDevices"",""" & _
+                       "\DosDevices\" & UCase(objLogicalDisk.DeviceID) & _
+                       """,0x00030001,\" & VbCrLf
+                     migrateData = migrateData & "     " & volString & VbCrLf
+                  else
+                     migrateData = migrateData & "Volume: " & volKey & VbCrLf
+                     migrateData = migrateData & "Registry Signature: " & registrySignature & VbCrLf
+                     migrateData = migrateData & "Disk Signature: " & diskSignatureHex & VbCrLf
+                  end if
+				  Exit For
+               end if
+            Next
+         end if
+      Next
+   Next
+Next
+WScript.Echo("Configuring Windows to use drive letter " & drive & " as the System Drive")
+WScript.Echo("(Drive: " & drive & ", Registry Signature: " & registrySignature & ", Volume Key: " & volKey & ", Disk Signature: " & diskSignatureHex & ")")
+
+btDir = drive & "\$WIN_NT$.~BT"
+If Not FSO.FolderExists(btDir) Then
+    FSO.CreateFolder(btDir)
+End If
+Set TextStream = FSO.CreateTextFile(btDir & "\migrate.inf")
+TextStream.WriteLine("[Version]")
+TextStream.WriteLine("Signature" & "=" & """" & "$Windows NT$" & """")
+TextStream.WriteBlankLines(1)
+TextStream.WriteLine("[Addreg]")
+TextStream.WriteLine("HKLM,""SYSTEM\MountedDevices"",,0x00000010")
+TextStream.Write(migrateData)
+TextStream.Close()
+
+'See http://www.experts-exchange.com/Programming/Languages/Visual_Basic/VB_Script/Q_22481368.html
+'SCROLL TO THE BOTTOM OF THE WEB PAGE TO SEE THE ANSWER
+set oShell = WScript.CreateObject ("Wscript.Shell")
+sTempHive = """HKEY_LOCAL_MACHINE\HPSA"""
+oShell.run "reg load " & sTempHive & " " & drive & "\windows\system32\config\system", true
+WScript.Sleep 2000
+oShell.run "reg add HKLM\HPSA\MountedDevices /ve /f", true
+oShell.run "reg add HKLM\HPSA\MountedDevices /v \DosDevices\" & UCase(drive) & " /t REG_BINARY /d " & registrySignature & " /f", true
+oShell.run "reg add HKLM\HPSA\MountedDevices /v " & volKey & " /t REG_BINARY /d " & registrySignature & " /f", true
+oShell.run "reg add HKLM\HPSA\Setup /v BootDiskSig /t REG_DWORD /d 0x" & diskSignatureHex & " /f", true
+oShell.run "reg unload " & sTempHive

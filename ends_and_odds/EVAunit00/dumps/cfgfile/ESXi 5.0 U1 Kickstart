@@ -1,0 +1,30 @@
+# (c) Copyright 2013, 2014 Hewlett-Packard Development Company, L.P.
+# Accept the VMware End User License Agreement
+vmaccepteula
+ 
+#-------------------------------------------------------------------------  
+# Command for server-based licensing
+# To use: Set the Custom Attribute for ProductKey_ESXi50 and uncomment the 
+#   'vmserialnum' line below
+# vmserialnum --esx=@ProductKey_ESXi50@
+ 
+# Set the root password for the DCUI and Tech Support Mode
+rootpw --iscrypted "@encrypted_root_password:$1$7z4m7f1z$wliShMhVv2HuCAPmuiQzV1@"
+ 
+# Choose the first discovered disk to install onto
+# Note for more advanced partitioning, you may want to replace and customize
+# this section
+install --firstdisk --overwritevmfs
+ 
+# reboot after installation
+reboot
+ 
+# Set the network to DHCP on the network adapater
+network --bootproto=dhcp
+ 
+## post-install script
+### DO NOT MODIFY THE CODE BELOW. IT WILL RESULT IN BUILD PLAN FAILURE ###
+%post --interpreter=python --ignorefailure=true
+import time
+stampFile = file("/finished.stamp", mode="w")
+stampFile.write( time.asctime() )

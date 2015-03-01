@@ -1,0 +1,59 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will modify the sc.xml manifest file to inject
+the optional personalization settings for the final system.
+
+This includes hostname, timezone and locale.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+
+from osprov.profile import SCManifest
+from osprov.decorators import HandleShowErrorMessage
+from osprov.optparse_ext import OptionParser
+from osprov.osbp import logger
+
+SC_XML_PATH = "/tmp/sc.xml"
+
+LOG = logger.getIt("Inject AI Personalization settings")
+
+
+class InjectOptionsParser(OptionParser):
+
+    def defineOptions(self):
+        self.add_option("-n", "--hostname", help="Installed system hostname")
+        self.add_option("-t", "--timezone", help="Timezone for the installed system")
+        self.add_option(
+            "-l", "--locale", help="System language and locale, specified in POSIX format (eg. en_US.UTF-8)")
+
+
+@HandleShowErrorMessage("inject AI personalization", LOG)
+def main():
+    """Inject AI Personalization settings."""
+
+    opts, args = InjectOptionsParser().parse_args()
+
+    scFile = open(SC_XML_PATH, "r")
+    scManifest = SCManifest(scFile)
+
+    try:
+        if opts.hostname:
+            scManifest.hostname = opts.hostname
+        if opts.timezone:
+            scManifest.timezone = opts.timezone
+        if opts.locale:
+            scManifest.locale = opts.locale
+
+        scManifest.save()
+    finally:
+        scFile.close()
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,438 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+"""
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+This python script installs and configures Grub for BIOS and Grub2 for UEFI.
+"""
+
+import os
+import sys
+import re
+import glob
+import shutil
+from cStringIO import StringIO
+
+from osprov.decorators import HandleShowErrorMessage
+from osprov.diskmgr.disk import LinuxDisk
+from osprov.optparse_ext import OptionParser
+from osprov.osbp import logger
+from osprov.parsers.syslinux import Syslinux
+from osprov.util import process
+from osprov.errors import DiscoveryError, NotFoundError, ShowErrorMessage
+from osprov import helpers, media, netconfig
+from osprov.parsers.netconfig import Netconfig
+from osprov.parsers.netconfig import getActiveInterface
+from osprov.server import ThisLocalServer
+from osprov.constants import DEFAULT_INITRD_DIR, DEFAULT_SA_INITRD_MASK
+from osprov.wrappers.efibootmgr import EfiBootMgr, DiskBootEntry
+
+EC_INVALID_ARGS = 1
+EC_IG_FAILED = 5
+EC_GRUBMENU_FAILED = 6
+EC_NO_BOOTDISK = 7
+
+LOG = logger.getIt("install_configure_grub")
+
+# for easier mocking
+
+
+def _open(filepath, mode="r"):
+    return open(filepath, mode)
+
+
+def readFile(filepath):
+    """Reads from the file identified by filepath"""
+    return open(filepath).read()
+
+
+def get_partition_name(device_name, partition_num):
+    """Returns the partition with number partition_num for device_name"""
+    if not partition_num:
+        return device_name
+    base_name = os.path.basename(device_name)
+    if re.search(r"c\dd\d", base_name):
+        return device_name + "p" + str(partition_num)
+    return device_name + str(partition_num)
+
+
+class Grub(object):
+
+    """ Helper class for configuring and installing the Grub boot loader. """
+
+    MENU_PATH = "boot/grub/menu.lst"
+    MODULES_PATH = "boot/grub"
+
+    def __init__(self, location):
+        self.location = location
+        self.grubinfo = self.validate()
+
+    def _getInfo(self):
+        info = {}
+        # first test for newer info.txt file
+        infofile = os.path.join(self.location, "info.txt")
+        if os.path.exists(infofile):
+            # get the path info from into.txt
+            execfile(infofile, info)
+            for value in ["grub", "loaderfiles"]:
+                if not info[value]:
+                    # expected value is missing
+                    return {}
+        else:
+            # set the required info values manually for older grub packages
+            info["grub"] = "sbin/grub"
+            info["loaderfiles"] = "share/grub/i386-pc"
+        return info
+
+    def validate(self):
+        """    Performs some simple validation on the directory where GRUB is located.
+        info.txt can provide non default values for grub binary and loader files
+        and saves from hardcoding more paths in here.
+        info.txt should also contain version info for better tracking of versions.
+        required info entries are:
+                "grub"            - path to grub binary
+                "loaderfiles"   - path to loader files
+        """
+        info = self._getInfo()
+        if not info:
+            return {}
+        # finally verify the paths
+        for path in [info["grub"], info["loaderfiles"]]:
+            if not os.path.exists(os.path.join(self.location, path)):
+                return {}
+        return info
+
+    def copyFilesTo(self, bootDiskMount):
+        """ Copies files to the location specified. """
+        print("Copying Boot Loader files to runtime location")
+        grubinfo = self.grubinfo
+        if not grubinfo:
+            raise ShowErrorMessage(
+                "Failed to validate %s. A previous Build Plan step may be missing." % self.location)
+        targetLocation = os.path.join(bootDiskMount, self.MODULES_PATH)
+        helpers.makeDirs(targetLocation)
+        files = glob.glob("%s/*" % os.path.join(self.location, grubinfo["loaderfiles"]))
+        if not files:
+            raise ShowErrorMessage("No file to copy. A previous Build Plan step may be missing")
+        for source in files:
+            destination = os.path.join(targetLocation, os.path.basename(source))
+            LOG.debug("Copying %s to %s" % (source, destination))
+            shutil.copyfile(source, destination)
+
+    def install(self, bootDiskMount, bootDisk):
+        """
+        Installs the files needed for GRuB on boot_disk.
+        Note that it will overwrite the Master Boot Record for boot_disk.
+        """
+        self.copyFilesTo(bootDiskMount)
+        print("Preparing Boot Loader config script")
+        config = list()
+        config.append("device (hd0) " + bootDisk)
+        config.append("root (hd0,0)")
+        config.append("install --stage2=%s/boot/grub/stage2 /boot/grub/stage1 d (hd0) "
+                      "/boot/grub/stage2 p /boot/grub/menu.lst" % bootDiskMount)
+        config.append("quit")
+        config_str = "\n".join(config) + "\n"
+
+        print("Installing Boot Loader")
+        os.chmod("%s" % os.path.join(self.location, self.grubinfo["grub"]), 0777)
+        params = "--batch --no-floppy --config-file=/boot/grub/menu.lst"
+        process.runIt("%s %s" %
+                      (os.path.join(self.location, self.grubinfo["grub"]), params), input=config_str, quiet=True)
+        return config_str
+
+    def configureMenu(self, title, kernel, kernelArguments, initrds, keys):
+        """    Creates a GRUB menu.lst configuration. """
+        return """
+default 0
+timeout 5
+title %(title)s
+root (hd0,0)
+
+kernel /%(kernel)s %(kernelArguments)s
+initrd %(initrds)s
+
+""" % {
+            'title': title,
+            'kernel': kernel,
+            'kernelArguments': kernelArguments,
+            'initrds': ' '.join(initrds)
+        }
+
+
+class Grub2(Grub):
+    BOOT_DIRECTORY = "boot/"
+    MENU_PATH = os.path.join(BOOT_DIRECTORY, "grub/grub.cfg")
+
+    def _getInfo(self):
+        info = dict()
+        info["grub"] = "sbin/grub-install"
+        info["loaderfiles"] = "lib/grub/x86_64-efi"
+        return info
+
+    def install(self, bootDiskMount, bootDisk):
+        process.runIt("%(grub-install)s --removable --efi-directory=%(bootDiskMount)s --boot-directory=%(bootDirectory)s %(bootDisk)s"
+                      % {'grub-install': os.path.join(self.location, self.grubinfo['grub']),
+                         'bootDiskMount': bootDiskMount,
+                         'bootDirectory': os.path.join(bootDiskMount, self.BOOT_DIRECTORY),
+                         'bootDisk': bootDisk}, log=LOG, quiet=True)
+        # configure the UEFI boot entries
+        osInstallerBootEntry = DiskBootEntry("HPSA Assisted OS Installer", disk=bootDisk)
+        efibootmgr = EfiBootMgr(log=LOG)
+        efibootmgr.bootOneTime(osInstallerBootEntry)
+        print("Configured boot to: %s" % osInstallerBootEntry)
+
+    def configureMenu(self, title, kernel, kernelArguments, initrds, keys):
+        """ Creates a GRUB2 grub.conf configuration """
+        return """
+set default=0
+set timeout=5
+
+insmod all_video
+
+menuentry '%(title)s' {
+    search -n -u %(device_uuid)s -s
+    linux  /%(kernel)s %(kernelArguments)s
+    initrd %(initrds)s
+}
+
+""" % {
+            'title': title,
+            'kernel': kernel,
+            'kernelArguments': kernelArguments,
+            'initrds': ' '.join(initrds),
+            'device_uuid': keys.disk.device_uuid
+        }
+
+
+def getGrub(bootDisk):
+    """ Factor a Grub or Grub2 object based on the partition table type of the boot disk """
+    if bootDisk.partitionTableType == "msdos":
+        return Grub("/tmp/grub")
+    else:
+        return Grub2("/tmp/grub2")
+
+
+def configureKernelArguments(osdata, keys, kernel_arguments=""):
+    """ Configures the kernel arguments """
+    localServer = ThisLocalServer()
+    boot_disk = keys.disk.device_path
+    boot_disk_uuid = keys.disk.device_uuid
+    os_version = osdata["os_version"]
+    # to be used by install_params
+    root_partition = get_partition_name(boot_disk[5:], 1)
+    if "SLES" in os_version and "cciss" in boot_disk:
+        boot_disk = "%s//" % boot_disk
+    # ALERT: do not remove lower(), SLES doesn't recognize a MAC address if upper
+    mac = localServer.getMACAddress().lower()
+    url = mediaUrl(keys)
+    arg_dict = {
+        "mac": mac,
+        "boot_disk": boot_disk,
+        "root_partition": root_partition,
+        "boot_disk_uuid": boot_disk_uuid,
+        "url": url.canonical(),
+        "bootif": netconfig.macToBootIf(mac)
+    }
+
+    # Handle TCP/IP settings to make sure that installers behave  ##
+    netconfig_ca = StringIO("""@hpsa_netconfig@""")
+    parser = Netconfig.readonly(netconfig_ca)
+    try:
+        activeKey, activeIface = getActiveInterface(localServer, parser.info())
+    except NotFoundError:
+        activeIface = None
+    ip_params = ""
+    if activeIface and activeIface.static:
+        net_data = {
+            "ip": activeIface.ip[0],
+            "mask": activeIface.mask[0],
+            "dns": "",
+            "gw": "",
+        }
+        # Static provisioning
+        if hasattr(activeIface, "dns") and activeIface.dns:
+            net_data["dns"] = activeIface.dns[0]
+        if hasattr(activeIface, "gw"):
+            net_data["gw"] = activeIface.gw[0]
+        ip_params += " " + (osdata["ip_config_static"] % net_data)
+    else:
+        # dhcp provisioning
+        ip_params += " " + osdata["ip_config_dhcp"]
+
+    kernel_params = osdata['install_params'] % arg_dict
+    if kernel_arguments:
+        print("found kernel arguments: " + kernel_arguments)
+        kernel_params = kernel_params + " " + kernel_arguments
+
+    kernel_params += " " + ip_params
+
+    # Limit ports only if we are doing NFS, sles 11 sp0 has issues with this setting
+    if url.scheme == "nfs":
+        # Make sure that the nfs client doesn't use the agent port
+        kernel_params += " sunrpc.max_resvport=1000"
+
+    # if present handle addonloc
+    if "addonloc" in osdata and osdata["addonloc"]:
+        # Handle SLES addon sources (eg. by use of kISO content)
+        if "SLES" in osdata["os_version"]:
+            if kernel_params.lower().find("addon=") == -1:
+                # no addon parameter present - add it using the found location if any
+                print "Boot Loader (SLES) auto appending kernel parameter ""addon=%s"" " % osdata["addonloc"]
+                kernel_params += " addon=%s" % osdata["addonloc"]
+            else:
+                print "Boot Loader (SLES) ""addon="" parameter present - not auto appending"
+
+    # tidy up the kernel_params to contain only one blank between and no trailing blanks
+    # required for SLES's picky addon parameter handler (would fail with nfs:// source)
+    kernel_params = ' '.join(kernel_params.split())
+
+    return kernel_params
+
+
+def configureInitrds(osdata, keys):
+    # start with the default initrd
+    initrdlist = ["/%s" % osdata["initrd"]]
+
+    discoverLocalRds(osdata, root=keys.disk.device_mount)
+
+    # if present add supplemental local initrds
+    if "localrds" in osdata:
+        for eachrd in osdata["localrds"]:
+            initrdlist.append(eachrd)
+        # max number of initrds that can be handled is limited by the line length
+        # limit of grubs menu.lst: 1500 chars.
+        if len(initrdlist) > (1500 - 1):
+            raise DiscoveryError("INITRD parameter: Maximum parameter length (1500) exceeded! "
+                                 "- Too many additional initrd files found.")
+    return initrdlist
+
+
+def discoverLocalRds(osdata, root):
+    """ Get initrd files from /localrds directory """
+    rds = helpers.findFiles(
+        path=os.path.join(root, DEFAULT_INITRD_DIR), mask=DEFAULT_SA_INITRD_MASK)
+    if rds:
+        rdlist = []
+        # add the local path to make it suitable for grub
+        for eachrd in rds:
+            rdlist.append(os.path.join(os.path.sep, DEFAULT_INITRD_DIR, eachrd))
+        osdata["localrds"] = helpers.numericalSort(rdlist)
+    return
+
+
+def discoverOsdata(osdata, keys):
+    """ Discover the kernel and initrd to use based on the media """
+    # the copy boot media step should have run by now, so we work with the
+    # stub partition. This is just so we don't access the media twice
+    stub_path = keys.disk.device_mount
+    if not stub_path:
+        raise DiscoveryError("Cannot discover boot disk mount point. "
+                             "Was the stub partition created?")
+    isocfg = Syslinux.readonly(_open(os.path.join(stub_path, "isolinux.cfg")))
+    isocfg_label = isocfg.info()["label " + isocfg.first_non_local_label()]
+    # discover the kernel
+    osdata["kernel"] = os.path.basename(isocfg_label["kernel"])
+    # discover the initrd
+    append = isocfg_label["append"].split(' ')
+    for each in append:
+        if '=' in each:
+            key, value = [x.strip() for x in each.split('=', 1)]
+            if key == "initrd":
+                osdata["initrd"] = os.path.basename(value)
+    if not osdata.has_key("initrd"):
+        raise DiscoveryError("Failed to discover the initrd")
+
+    # verify the files are there otherwise the boot loader will fail to find them
+    kernel = os.path.join(stub_path, osdata["kernel"])
+    initrd = os.path.join(stub_path, osdata["initrd"])
+    if not os.path.exists(kernel) or not os.path.exists(initrd):
+        raise DiscoveryError("Failed to discover the boot kernel or initrd")
+
+
+def discoverSlesAddon(osdata, keys):
+    """ Discover addon directories for
+            SLES: kISO formatted media w/ "addon" directory
+    """
+    url = mediaUrl(keys)
+    thismedia = media.factor(str(url))
+    # for SLES check for addon directory in the repository
+    SLES_ADDON_LOCATIONS = [
+        # common names for SLES addon directory
+        "addon/", "ADDON/", "AddOn/"
+    ]
+    for each_file in SLES_ADDON_LOCATIONS:
+        if thismedia.exists(each_file):
+            osdata["addonloc"] = url.canonical() + "/" + each_file
+            print "Boot Loader (SLES) ADDON directory found in source location: %s" % osdata["addonloc"]
+            return
+
+
+def mediaUrl(keys):
+    """ determine the media server and path """
+    url = keys.media.url
+    if not url:
+        # Fall back in case of old NFS mount script
+        mediaServer = _open("/tmp/osbp_info/media_server", "r").read().strip()
+        mediaPath = _open("/tmp/osbp_info/media_path", "r").read().strip()
+        mediaMount = _open("/tmp/osbp_info/media_mount", "r").read().strip()
+        url = "nfs://%s:%s/#%s" % (mediaServer, mediaPath, mediaMount)
+    return media.parseUrl(url)
+
+
+class InstallConfigureGrubOptionParser(OptionParser):
+
+    def defineOptions(self):
+        self.add_option("--kernel_arguments", default="",
+                        help="a string of arguments that will be passed to the OS installer kernel")
+
+
+@HandleShowErrorMessage("install and configure bootloader", log=LOG)
+def main():
+    options, remainingArgs = InstallConfigureGrubOptionParser().parse_args()
+
+    keys = helpers.getDataStore()
+
+    bootDiskMount = keys.disk.device_mount
+    if not bootDiskMount:
+        raise DiscoveryError("Discovery of the boot disk mount point failed. "
+                             "Was the stub partition created?", EC_NO_BOOTDISK)
+
+    bootDisk = LinuxDisk(keys.disk.device_path, None, None)
+    grub = getGrub(bootDisk)
+    try:
+        grub.install(bootDiskMount, bootDisk.getDeviceFilePath())
+    except (OSError, IOError), why:
+        print "Installing GRuB failed. %s" % why
+        return EC_IG_FAILED
+
+    # build.py will perform the needed substitutions here
+    osdata = dict()
+    osdata["os_display_name"] = "CentOS"
+    osdata["os_version"] = "CentOS"
+    osdata["install_params"] = "ks=file:/user.ks.cfg  ksdevice=%(mac)s"
+    osdata["ip_config_static"] = "ip=%(ip)s gateway=%(gw)s netmask=%(mask)s"
+    osdata["ip_config_dhcp"] = "ip=dhcp noipv6"
+
+    discoverOsdata(osdata, keys)
+    if "SLES" in osdata["os_version"]:
+        discoverSlesAddon(osdata, keys)
+
+    title = 'HP SA assisted %s installer' % osdata['os_display_name']
+    kernelArguments = configureKernelArguments(osdata, keys,
+                                               kernel_arguments=options.kernel_arguments + " hpsa_monitoring_agent=1")
+    initrds = configureInitrds(osdata, keys)
+
+    menu = grub.configureMenu(title,
+                              osdata['kernel'], kernelArguments,
+                              initrds, keys)
+
+    _open(os.path.join(bootDiskMount, grub.MENU_PATH), "w").write(menu)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

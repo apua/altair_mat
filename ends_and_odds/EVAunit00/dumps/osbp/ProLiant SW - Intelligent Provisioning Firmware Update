@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Verify server has iLO4 or newer", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64 --method=network --force"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#/mnt/media?noserverino"
+    }, 
+    {
+        "name": "LinuxPE add-on packages", 
+        "parameters": "/"
+    }, 
+    {
+        "name": "Update Intelligent Provisioning Firmware", 
+        "parameters": "--ip_version=@IPversion:latest@"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64 --force"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }
+]

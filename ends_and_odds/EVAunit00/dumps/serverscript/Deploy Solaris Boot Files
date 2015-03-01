@@ -1,0 +1,59 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will copy the kernel and boot archive to the stub partition,
+creating any necessary directory structure along the way.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+import shutil
+
+from osprov import helpers
+from osprov.osbp import logger
+from osprov.errors import NotSupportedError
+from osprov.decorators import HandleShowErrorMessage
+
+
+def getOsStructs():
+    if os.uname()[-1].startswith("i86"):
+        platform = os.uname()[-1]
+        return "platform/%s/kernel/amd64/" % platform, "platform/%s/amd64/" % platform
+    else:
+        raise NotSupportedError("Module not available yet on SPARC.")
+
+LOG = logger.getIt("Install Boot Files")
+
+
+@HandleShowErrorMessage("Install Solaris Boot Files", LOG)
+def main():
+    """Main function to run when the module is executed as a script."""
+
+    kernelDirStruct, baDirStruct = getOsStructs()
+
+    keys = helpers.getDataStore()
+    stub_path = keys.disk.device_mount
+    bootfiles_dir = os.path.join(stub_path, "bootfiles")
+
+    LOG.info("Creating directory structure for the boot files.")
+    kernel_dir = os.path.join(stub_path, kernelDirStruct)
+    ba_dir = os.path.join(stub_path, baDirStruct)
+    helpers.makeDirs(kernel_dir)
+    helpers.makeDirs(ba_dir)
+
+    LOG.info("Copying the kernel and the boot archive to the stub partition.")
+    shutil.copy2(os.path.join(bootfiles_dir, "unix"), kernel_dir)
+    shutil.copy2(os.path.join(bootfiles_dir, "boot_archive"), ba_dir)
+
+    LOG.info("Cleaning up the rest of the boot files.")
+    shutil.rmtree(bootfiles_dir, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

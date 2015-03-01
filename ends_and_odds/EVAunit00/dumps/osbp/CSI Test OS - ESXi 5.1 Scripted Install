@@ -1,0 +1,78 @@
+[
+    {
+        "name": "Validate Gateway Setting for Static Network Configuration", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--uefi=false"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-LinURI@/ESXI/esxi5.1/@VERSION@"
+    }, 
+    {
+        "name": "ESXi 5.1 Kickstart", 
+        "parameters": "/tmp/user.ks.cfg"
+    }, 
+    {
+        "name": "ESXi 5.1 Kickstart for CSI Test", 
+        "parameters": "/tmp/user.ks.cfg"
+    }, 
+    {
+        "name": "Inject Required ESXi 5 Kickstart Settings", 
+        "parameters": "--accept-encrypted-password"
+    }, 
+    {
+        "name": "Inject Kickstart Personalization Settings for ESXi 5", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Create Stub Partition", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Copy Boot Media", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ESXi Installation Utilities", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Deploy Agent", 
+        "parameters": "-d /opt/hpsa_agent/ogfs-agent.zip -p \"Red Hat Enterprise Linux Server 5 X86_64\" -u"
+    }, 
+    {
+        "name": "Add ESXi Module", 
+        "parameters": "-s /opt/hpsa_agent -d"
+    }, 
+    {
+        "name": "Add ESXi Module", 
+        "parameters": "-s /tmp/user.ks.cfg -a ks.cfg"
+    }, 
+    {
+        "name": "Install bootloader for ESXi", 
+        "parameters": "--kernel_arguments=\"@kernel_arguments@\""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for ESXi installation", 
+        "parameters": "--atLeast=3 --atMost=60"
+    }
+]

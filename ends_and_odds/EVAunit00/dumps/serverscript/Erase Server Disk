@@ -1,0 +1,86 @@
+#!/opt/opsware/agent/bin/python
+
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+# This script runs dd on all the devices on the server where it's run to
+# erase the partition table
+
+import re
+import commands
+import subprocess
+from osprov.diskmgr.diskmanager import DiskManager
+from osprov.errors import ProcessExecutionError
+from osprov.osbp import logger
+
+LOG = logger.getIt("osprov.diskmgr")
+
+
+def scan():
+    '''
+    Get the list of (partitioned) hard drives on this server.
+    Uses 'parted -lm', which requires superuser permission.
+    '''
+    disks = []
+    args = ["parted", "--list", "--machine"]
+    # /dev/sda:36.4GB:scsi:512:512:msdos:HP LOGICAL VOLUME;
+    regex = re.compile(r"^(/dev/[hs]d\w+):.*:.*:\d+:\d+:.*:(.*);$")
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    for line in proc.stdout:
+        match = regex.match(line)
+        if match:
+            dev = match.group(1)
+            name = match.group(2)
+            if "HP iLO LUN" in name:
+                # print "exclude %s [%s]" % (dev, name)
+                continue    # skip Gaius flash media
+            # print "include %s [%s]" % (dev, name)
+            disks.append(dev)
+    return disks
+
+
+def eraseDisk():
+    '''
+    Get the list of hard drives on this server and run dd on it
+    to zero out the first 1M bytes.
+    '''
+    hdList = scan()
+
+    for deviceName in hdList:
+        # For each device name returned, run dd on it
+
+        cmdStr = "dd if=/dev/zero of=" + deviceName + " bs=8k count=128"
+        # print "Performing dd: Cmd String used: %s" % cmdStr
+
+        status, output = commands.getstatusoutput(cmdStr)
+        if status != 0:
+            raise Exception("dd failed with exitcode %d: Msg:%s" % (status, output))
+        print "Successfully erased disk " + deviceName
+
+if __name__ == "__main__":
+    dm = DiskManager(log=LOG)
+    dm.disable_automount()
+    dm.unmountOurs()
+    dm.unmountDisks(skipUsb=True)
+
+    inventory_disks = dm.get_disk_inventory()
+    disks = []
+
+    hdList = scan()
+
+    # filtering out Gaius flash media from disk inventory
+    for temp_disk in inventory_disks:
+        if temp_disk.getDeviceFilePath() in hdList:
+            disks.append(temp_disk)
+
+    for temp_disk in disks:
+        temp_disk.releaseAndUnload()
+
+    eraseDisk()
+
+    # refreshing kernel partition table
+    for temp_disk in disks:
+        try:
+            temp_disk.rescan()
+        except ProcessExecutionError, why:
+            print "Warning : Rereading partition table for %s failed : %s. Reboot to refresh partition table." % (temp_disk.getDeviceFilePath(), why)

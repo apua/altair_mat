@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "Install Windows SPP In Background for CSI Test", 
+        "parameters": "--spp_version=@SPPversion:latest@"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=2 --atMost=60"
+    }, 
+    {
+        "name": "Report Windows SPP Installation Results", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

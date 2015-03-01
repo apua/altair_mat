@@ -1,0 +1,7 @@
+; (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+;   These directories must be in any exclusion list or the image
+;   installation will not work.
+
+[ExclusionList]
+"\Program Files\Opsware"
+"\Program Files\Common Files\Opsware"

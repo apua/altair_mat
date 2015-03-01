@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=winpe64 --force"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }
+]

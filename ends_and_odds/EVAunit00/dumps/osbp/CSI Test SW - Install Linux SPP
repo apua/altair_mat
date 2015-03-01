@@ -1,0 +1,18 @@
+[
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#/mnt/media?noserverino"
+    }, 
+    {
+        "name": "Install Linux SPP for CSI Test", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

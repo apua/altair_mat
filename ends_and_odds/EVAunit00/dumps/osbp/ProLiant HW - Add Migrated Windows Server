@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=1 --atMost=5"
+    }, 
+    {
+        "name": "Hponcfg for Windows x64 with One Time PXE Boot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64 --force"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=2 --atMost=20"
+    }, 
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

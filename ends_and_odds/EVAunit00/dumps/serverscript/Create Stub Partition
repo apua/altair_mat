@@ -1,0 +1,98 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+This program will repartition the target server's boot disk and create a
+(1 GB) "stub" partition.
+
+The boot disk by default is computed as the first hard drive listed in
+/proc/partitions, but can be overridden using the boot_disk custom attribute.
+
+WARNING:
+The boot disk's partition table, master boot record, and all existing file systems
+are PERMANENTLY ERASED by this operation.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+from optparse import OptionError
+
+import sys
+import types
+
+from osprov.decorators import HandleShowErrorMessage
+from osprov.optparse_ext import OptionParser
+from osprov.osbp import logger
+from osprov.diskmgr.diskmanager import LinuxDiskManager
+from osprov.diskmgr.disk import Disk
+from osprov import helpers
+from osprov import diskmgr
+from osprov.scripts import bootmode
+from osprov.server import ThisLocalServer
+
+EC_SUCCESS = 0
+EC_NO_BOOT_DISK = 10
+
+BOOT_DISK = "@boot_disk@"  # will be replaced with the custom attribute value at run time
+
+LOG = logger.getIt("osprov.diskmgr")
+
+
+class CreateStubPartitionOptionsParser(OptionParser):
+
+    """ An option parser for this step. """
+
+    def defineOptions(self):
+        self.add_option("--bootMode", type=types.StringType,
+                        help="boot mode of the server, can be UEFI or Legacy (case insensitive);"
+                        "this also influences how the partition table will be created: "
+                        " - for UEFI, a GPT partition table with 1 fat32 formatted partition of 1GB "
+                        " - for Legacy, a MBR partition table with 1 ext3 formatted partition of 1GB")
+        self.add_option(
+            "--bootDisk", help="Create the stub partition on BOOTDISK instead of auto determining")
+
+    def validateArgs(self, opt, args):
+        if opt.bootMode and not opt.bootMode.lower() in [x.lower() for x in bootmode.SUPPORTED_BOOT_MODES]:
+            raise OptionError("invalid boot mode: " + opt.bootMode, "bootMode")
+
+
+@HandleShowErrorMessage("create stub partition", log=LOG)
+def main():
+    options, remainingArgs = CreateStubPartitionOptionsParser().parse_args()
+
+    dm = LinuxDiskManager(log=LOG)
+    dm.disable_automount()
+    dm.unmountOurs()
+    dm.unmountDisks(skipUsb=True)
+
+    if BOOT_DISK and not "@" in BOOT_DISK:
+        bootDisk = Disk(BOOT_DISK)
+    elif options.bootDisk:
+        bootDisk = Disk(options.bootDisk)
+    else:
+        bootDisk = None
+    bootDisk = dm.getSystemBootDisk(bootDisk)
+
+    if options.bootMode:
+        bootMode = options.bootMode
+    else:
+        bootMode = bootmode.getCurrentBootMode(targetServer=ThisLocalServer(), log=LOG)
+
+    stubPartition = bootDisk.createStubPartition(partitionTable=diskmgr.getPartitionTable(bootMode))
+    print "Boot disk partitioned. Stub partition filesystem is on %s." % stubPartition.getDeviceFilePath()
+
+    stubPartition.mount()
+    print "Successfully mounted stub partition filesystem on %s." % stubPartition.getMountPoint()
+
+    keys = helpers.getDataStore()
+    keys.disk.device_path = bootDisk.getDeviceFilePath()
+    keys.disk.device_uuid = bootDisk.getDeviceUuid()
+    keys.disk.device_mount = stubPartition.getMountPoint()
+    helpers.putDataStore(keys)
+
+    return EC_SUCCESS
+
+
+if __name__ == "__main__":
+    sys.exit(main())

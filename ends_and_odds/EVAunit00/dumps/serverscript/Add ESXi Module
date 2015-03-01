@@ -1,0 +1,96 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2009 Hewlett-Packard Development Company, L.P.
+
+    Create a new ESXi module that will be picked up by the ESXi boot configuration
+"""
+
+import sys
+import optparse
+import os
+from osprov.osbp import logger
+from osprov.util import process
+from osprov.errors import DiscoveryError
+from osprov import helpers
+
+LOG = logger.getIt('esxi module')
+
+
+def discoverTarget():
+    """ discover the target partition """
+    target = helpers.getDataStore().disk.device_mount
+    if not target:
+        raise DiscoveryError("Can't determine target destination. "
+                             "Was the stub partition created?")
+    return target
+
+
+def findUnusedName():
+    """ Get a name that isn't used """
+    start = 0
+    moduleDir = os.path.join(discoverTarget(), "usermod")
+    if not os.path.exists(moduleDir):
+        os.makedirs(moduleDir)
+    while os.path.exists("%s/mod%d" % (moduleDir, start)):
+        start += 1
+    return "%s/mod%d" % (moduleDir, start)
+
+
+def embed(opt):
+    """ Create an ESXi module from a file or directory """
+    source = opt.source
+    target = findUnusedName()
+    modRoot = os.path.join("/tmp/_modroot", os.path.basename(target))
+    alias_dir = os.path.join(modRoot, "usr")
+    alias_base = os.path.basename(source)
+    if opt.alias:
+        alias_base = opt.alias
+    alias = os.path.join(alias_dir, alias_base)
+    if not os.path.exists(alias_dir):
+        os.makedirs(alias_dir)
+    if os.path.exists(alias):
+        os.remove(alias)
+    os.symlink(source, alias)
+    if opt.double:
+        first = os.path.join(modRoot, alias_base + ".tar.gz")
+        process.runIt("tar chzf %s usr" % first,
+                      cwd=modRoot, quiet=True, log=LOG)
+        process.runIt("tar chzf %s %s" % (target, alias_base + ".tar.gz"),
+                      cwd=modRoot, quiet=True, log=LOG)
+        os.remove(first)
+    else:
+        process.runIt("tar chzf %s usr" % target,
+                      cwd=modRoot, quiet=True, shell=True, log=LOG)
+    print "Adding %s to ESXi module" % (opt.source)
+
+
+def parseArgs(args):
+    """Parse the command line arguments"""
+    parser = optparse.OptionParser(description=__doc__)
+    parser.add_option('-s', '--source',
+                      help="A file or directory to create a module from",
+                      metavar="SOURCE")
+    parser.add_option('-a', '--alias',
+                      help="Alias the file or directory",
+                      metavar="ALIAS")
+    parser.add_option('-d', '--double',
+                      help="Create a tar in tar image to get arround vmware's vgz format",
+                      action="store_true", default=False)
+    opt, args = parser.parse_args(args)
+    if args:
+        parser.error("Additional positional argumetns are not supported")
+    if not opt.source:
+        parser.error("A source needs to be present")
+    return opt
+
+
+def main():
+    """ main entry point on the cmdline """
+    opt = parseArgs(sys.argv[1:])
+    embed(opt)
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

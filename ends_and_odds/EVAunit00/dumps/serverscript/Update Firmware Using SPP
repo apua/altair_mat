@@ -1,0 +1,620 @@
+#!/bin/sh
+# (c) Copyright 2013, 2014 Hewlett-Packard Development Company, L.P.
+
+if [ ! -e "/root/compaq" ]
+then
+   # We're not in the Intelligent Provisioning so we can't perform this
+   # script successfully in all cases.
+   echo "ERROR: Offline firmware updates are not supported using the PXE booted environment."
+   echo "Offline firmware updates can be performed using Intelligent Provisioning."
+   exit 1
+fi
+
+# The "zip" command is only available in the PXE Linux service OS from the 
+# "/opt/opsware/agent/bin" directory, so we must add it to the path.
+# We also need "tr" which is located in "/opt/opsware/agent/osprov/bin/x86".
+PATH=${PATH}:/opt/opsware/agent/bin:/opt/opsware/agent/osprov/bin/x86
+
+# The default HP SUM log directory.  This may be overridden with the "/logdir" or
+# "-logdir" option.
+hpSumLogDir="/var"
+
+# A directory that we use as a workaround for the fact that, on the PXE
+# Linux Service OS, the "/tmp" filesystem is small and fills up when
+# hpsum copies files to "/tmp/hp_sum".
+hpSumStageDir=/hp_sum
+
+# The mount point where the file share is mounted.
+# if /mnt/media not exist fall back to /mnt/ms mount point
+mountPoint=/mnt/media
+if [ ! -d "$mountPoint" ]
+then
+	mountPoint=/mnt/ms
+fi
+
+# Any additional options to HP SUM, which may be specified as a parameter
+# to this script.
+hpSumOptions=
+
+# The SPP version we want to install, which may be specified as a parameter
+# to this script.
+sppVersion=
+
+# The directory on the file share where the SPPs are stored.
+sppDir="$mountPoint/Media/spp"
+
+# The relative path to the file that contains the SPP version.
+relativePathToSppVersionFile="hp/swpackages/_fwdvdver.xml"
+
+# The subdirectory on the file share where we can dump the zipped HP SUM logs.
+hpSumLogsDumpDir=""
+
+# Sets the HDU_BOOTENV_SMPJTB=yes environment variable which tells HP SUM to
+# copy the files from the file share to the local system.  This is preferred
+# in order to avoid a situation where a NIC firmware update might cause the
+# mounted share connection to drop.  This can be changed using the
+# "--hpsum_copy_files_locally" parameter.  One reason that we may not want
+# HP SUM to copy the files locally is if there isn't enough space on the
+# target server to copy the files.
+hpSumCopyFilesLocally="true"
+
+# The zip file containing the HP SUM logs.
+hpSumLogsZipFile=/tmp/hpsum_logs.zip
+
+# Show the "Installed Components:" section of "hpsum_log.txt" by default
+# unless it's disabled by the "--no_show_log" option.
+showHpSumLog=1
+
+##############################################################################
+# This function returns the version of the SPP, as contained in the
+# "hp/swpackages/_fwdvdver.xml" file.
+##############################################################################
+
+getSppVersion() {
+    local sppVersionPath=$1
+    set `cat ${sppVersionPath} | sed -n -e 's@.*<version>\([0-9a-zA-Z\.-]*\)</version>.*@\1@p'`
+    ver=$1
+    echo ${ver}
+}
+
+##############################################################################
+# This function returns the server ID for the target server.  Since the PXE
+# Linux Service OS does not contain the "tr" command, we have to remove the
+# trailing "\r\n" from the server ID contained in "/etc/opt/opsware/agent/mid"
+# ourselves.
+##############################################################################
+
+getServerId()
+{
+    # Read the server ID, which will contain a trailing CR and LF.
+    local idWithCrAndLf=$(cat /etc/opt/opsware/agent/mid)
+
+    local serverId=""
+
+    # Get the length.
+    len=${#idWithCrAndLf}
+
+    # Iterate through each character and build up the server ID
+    # until we reach a non-digit (e.g. CR or LF).
+    for (( i = 0; i <= ${len}; i++ ))
+    do
+        char="${idWithCrAndLf:${i}:1}"
+
+        if [[ ${char} = [[:digit:]] ]]
+        then
+            serverId="${serverId}${char}"
+        else
+            break;
+        fi
+    done
+
+    echo -n "${serverId}"
+}
+
+##############################################################################
+# This function returns the absolute path to the HP SUM detail log.
+##############################################################################
+
+getHpSumDetailLog()
+{
+    local logFile=${hpSumLogDir}/hp/log/localhost/hpsum_detail_log.txt
+
+    if [ -e "${logFile}" ]
+    then
+        echo "${logFile}"
+    fi
+}
+
+##############################################################################
+# This function returns the absolute path to the HP SUM log file.
+##############################################################################
+
+getHpSumLog()
+{
+    local logFile=${hpSumLogDir}/hp/log/localhost/hpsum_log.txt
+
+    if [ -e "${logFile}" ]
+    then
+        echo "${logFile}"
+    fi
+}
+
+##############################################################################
+# This function returns the absolute path to the HP SUM trace file.
+##############################################################################
+
+getHpSumTraceFile()
+{
+    local logFile=/tmp/hp_sum/OpMan.trace
+
+    if [ -e "${logFile}" ]
+    then
+        echo "${logFile}"
+    fi
+}
+
+##############################################################################
+# This function returns all the log files under the "/tmp/HPSUM" directory
+# that was first introduced in HP SUM 6.0.  The "/tmp/HPSUM" directory
+# replaces the "/tmp/hp_sum" directory from earlier versions of HP SUM.
+##############################################################################
+
+getOtherHpSumLogs() {
+    local logFiles=
+
+    if [ -e /tmp/HPSUM ] && [ -d /tmp/HPSUM ]
+    then
+        for logFile in `find /tmp/HPSUM -name "*\.log"`
+        do
+            logFiles="${logFiles} ${logFile}"
+        done
+    fi
+
+    echo $logFiles
+}
+
+##############################################################################
+# This function returns the absolute path to the HP SUM log files.
+##############################################################################
+
+getHpSumLogs()
+{
+    local hpSumDetailLog=$(getHpSumDetailLog)
+    local hpSumLog=$(getHpSumLog)
+    local hpSumTrace=$(getHpSumTraceFile)
+    local otherHpSumLogs=$(getOtherHpSumLogs)
+    local hpSumLogs="${hpSumDetailLog} ${hpSumLog} ${hpSumTrace} ${otherHpSumLogs}"
+
+    echo "${hpSumLogs}"
+}
+
+##############################################################################
+# This function scans the user-specified HP SUM command line options for the
+# "/logdir" or "-logdir" option, which changes the directory in which HP SUM
+# places its log files.  If the option was specified, then our script makes a
+# note of it, so that we can grab the HP SUM log files from the correct 
+# location when the firmware update is complete.
+##############################################################################
+
+checkForOverrideOfHpSumLogDir()
+{
+    local hpSumOptions="$1"
+
+    # This will contain "/logdir" or "-logdir" if either form was specified
+    # in the HP SUM options.  It is only used to display a message to stdout.
+    optName=""
+
+    # We'll start off assuming that the "/logdir" or "-logdir" option was not
+    # specified in the HP SUM options.
+    containsLogDir=0
+
+    # Iterate through the user-specified HP SUM options and check if the
+    # "/logdir" or "-logdir" option was specified.
+    for arg in ${hpSumOptions}
+    do
+        if [ ${containsLogDir} -eq 1 ]
+        then
+            hpSumLogDir=${arg}
+
+            # Don't break out of for-loop.  Keep going in case "-logdir" or
+            # "/logdir" was specified more than once, for whatever reason.
+            # The last one specified takes precedence over the previous ones.
+            containsLogDir=0
+
+            echo "HP SUM log directory overridden by option '${optName} ${hpSumLogDir}'"
+        elif [ "${arg}" == "/logdir" ] || [ "${arg}" == "-logdir" ]
+        then
+            optName=${arg}
+            containsLogDir=1
+        fi
+    done
+}
+
+##############################################################################
+# This function determines which version of the SPP to install.  Unless a
+# specific SPP version is specifed, the latest SPP, as determined by the
+# sort order, is used.
+##############################################################################
+
+findSPPVersion ()
+{
+    if [ "$sppVersion" == "" ] || [ "$sppVersion" == "latest" ]
+    then
+        sppVersion=$(find "${sppDir}" -mindepth 1 -maxdepth 1 -type d -printf %f\\n | sort | tail -1)
+
+        if [ "$sppVersion" == "" ]
+        then
+            echo "No SPP directories were found under '${sppDir}'" 1>&2
+            echo "Check your media server and verify that there is at least one directory under the '/Media/spp' directory which contains the SPP files" 1>&2
+            echo "SPP directories are typically named using the SPP version, for example '2012.08'" 1>&2
+            return 1
+        fi
+        if [ ! -d "${sppDir}/${sppVersion}" ]
+        then
+            echo "${sppDir}/${sppVersion} is not a directory" 1>&2
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+##############################################################################
+# This function runs the "hpsum" executable contained in the SPP that's
+# mounted from the media share.
+##############################################################################
+
+runHPSUM ()
+{
+    local retCode=0
+
+    echo "SPP version to be installed is $sppVersion"
+
+    sppVersionDir="${sppDir}/$sppVersion"
+
+    # Check if the directory containing the SPP exists.
+    if [ ! -d "${sppVersionDir}" ]
+    then
+        echo "'${sppVersionDir}' does not exist" 1>&2
+        return 1
+    fi
+
+    sppVersionFile="${sppVersionDir}/${relativePathToSppVersionFile}"
+
+    if [ -e ${sppVersionFile} ]
+    then
+        sppVersionContainedInFile=$(getSppVersion ${sppVersionFile})
+
+        if [ ! -z ${sppVersionContainedInFile} ]
+        then
+            echo "SPP version as reported in '${relativePathToSppVersionFile}' is '${sppVersionContainedInFile}'"
+        else
+            echo "Could not find the SPP version in '${relativePathToSppVersionFile}'" 1>&2
+        fi
+    else
+        echo "'${sppVersionFile}' not found" 1>&2
+    fi
+
+    # Check if any HP SUM options were specified.
+    if [[ ! ${hpSumOptions} =~ [^[:space:]] ]] ; then
+        echo "No additional HP SUM arguments were specified"
+    else
+        echo "Additional HP SUM arguments => ${hpSumOptions}"
+    fi
+
+    # HP SUM copies some files to "/tmp/hp_sum".  On the PXE Linux Service OS,
+    # the "/tmp" filesystem is small and cannot accomdate the HP SUM files.
+    # As a workaround, we create an "hp_sum" directory under the root file
+    # system and create a symlink from "/tmp/hp_sump" to "/hp_sum".
+    if [ ! -d ${hpSumStageDir} ]
+    then
+        echo "Creating directory '${hpSumStageDir}'"
+        mkdir ${hpSumStageDir}
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to create the directory '${hpSumStageDir}'" 1>&2
+            return 1
+        fi
+    fi
+
+    echo "Creating a symlink from '/tmp/hp_sum' to '${hpSumStageDir}'"
+
+    # Create a symlink from "/tmp/hp_sum" to "/hp_sum" to workaround the small "/tmp"
+    # filesystem size in the PXE Linux Service OS.
+    ln -f -s ${hpSumStageDir} /tmp/hp_sum
+
+    if [ $? -ne 0 ]
+    then
+        echo "Failed to create symbolic link from /tmp/hp_sum to ${hpSumStageDir}" 1>&2
+        return 1
+    fi
+
+    # HP SUM expects the "rpm" binary to be under "/bin", but on the SA Linux Service OS
+    # the "rpm" binary is under "/usr/bin".  Therefore, we'll create a symlink from
+    # "/bin/rpm" to "/usr/bin/rpm" to prevent "hpsum" from failing.
+    if [ ! -e /bin/rpm ]
+    then
+        if [ -e /usr/bin/rpm ]
+        then
+            echo "Creating a symlink from '/bin/rpm' to '/usr/bin/rpm'"
+
+            ln -f -s /usr/bin/rpm /bin/rpm
+
+            if [ $? -ne 0 ]
+            then
+                echo "Failed to create symbolic link from '/bin/rpm' to '/usr/bin/rpm'" 1>&2
+                return 1
+            fi
+        fi
+    fi
+
+    # The packages directory is where the "hpsum" executable and the firmware
+    # files reside.  Let's make sure that it exists.
+    packagesDir="${sppVersionDir}/hp/swpackages"
+
+    if [ ! -e "${packagesDir}" ]
+    then
+        echo "'${packagesDir}' does not exist"
+        return 1
+    fi
+
+    # Must be run as currently running directory
+    cd ${packagesDir}
+
+    if [ $? -ne 0 ]
+    then
+        echo "Could not change directory to '${packagesDir}'" 1>&2
+        return 1
+    fi
+
+    # To get HPSUM to run in offline mode, we need to set the environment variable
+    # HDU_BOOTENV_SMPJTB=yes.  This will cause HPSUM to copy the files to the temp
+    # location (/tmp/hp_sum today and /var/hp/hpsum in the future) and then execute
+    # the components from there.  The reason for doing this is to avoid a situation
+    # where the NIC over which the file share is mounted goes unresponsive while
+    # its firmware is being updated, potentially dropping the connection to the
+    # file share.
+    if [ "${hpSumCopyFilesLocally}" == "true" ]
+    then
+        echo "Setting environment variable HDU_BOOTENV_SMPJTB=yes"
+        export HDU_BOOTENV_SMPJTB=yes
+    fi
+
+    hp_sum_cmd="./hpsum /romonly /silent $hpSumOptions"
+
+    echo "Executing => ${hp_sum_cmd}"
+
+    # Run HP SUM.
+    ${hp_sum_cmd}
+
+    hpSumRetCode=$?
+
+    # +--------------------------------------------------------------+
+    # |       Return code        | Value | Linux |       Text        |
+    # |--------------------------+-------+-------+-------------------|
+    # | SUCCESS_NO_REBOOT        | 0     | 0     | The installation  |
+    # |                          |       |       | was successful.   |
+    # |--------------------------+-------+-------+-------------------|
+    # |                          |       |       | The installation  |
+    # | SUCCESS_REBOOT           | 1     | 1     | was successful,   |
+    # |                          |       |       | but a reboot is   |
+    # |                          |       |       | required.         |
+    # |--------------------------+-------+-------+-------------------|
+    # |                          |       |       | The component was |
+    # | SUCCESS_NOT_REQUIRED     | 3     | 3     | current or not    |
+    # |                          |       |       | required.         |
+    # |--------------------------+-------+-------+-------------------|
+    # |                          |       |       | A general failure |
+    # | FAILURE_GENERAL          | -1    | 255   | occurred. For     |
+    # |                          |       |       | details, see the  |
+    # |                          |       |       | error log.        |
+    # |--------------------------+-------+-------+-------------------|
+    # |                          |       |       | A bad input       |
+    # | FAILURE_BAD_PARM         | -2    | 254   | parameter was     |
+    # |                          |       |       | encountered.      |
+    # |--------------------------+-------+-------+-------------------|
+    # |                          |       |       | The installation  |
+    # | FAILURE_COMPONENT_FAILED | -3    | 253   | of the component  |
+    # |                          |       |       | failed.           |
+    # +--------------------------------------------------------------+
+
+    if [ ${hpSumRetCode} -gt 3 ] || [ ${hpSumRetCode} -lt 0 ]; then
+        echo "hpsum failed with return code ${hpSumRetCode}"
+        retCode=${hpSumRetCode}
+    else
+        echo "hpsum successfully completed with return code ${hpSumRetCode}"
+        retCode=0
+    fi
+
+    echo "hpsum logs are located at /var/hp/log unless specified otherwise by hpsum -logdir option"
+
+    return ${retCode}
+}
+
+##############################################################################
+# Main Routine
+##############################################################################
+
+echo "Parameters to script => ${*}"
+
+# Parse the command line arguments.
+lastOpt=
+
+for arg in $*
+do
+    optName=`echo $arg | awk -F'=' '{print $1;}'`
+    optValue=${arg:$((${#optName}+1))}
+
+    if [ "${optName}" == "--spp_version" ]; then
+
+        if [[ ! "${optValue}" =~ [^[:space:]] ]]
+        then
+            echo "Missing argument to '--spp_version'" 1>&2
+            exit 1
+        fi
+
+        sppVersion=${optValue}
+
+        lastOpt=
+    elif [ "${arg:0:2}" != "--" ] && [ "${lastOpt}" == "--hpsum_options" ]; then
+        hpSumOptions="${hpSumOptions} ${arg}"
+    elif [ "${optName}" == "--hpsum_options" ]; then
+        if [[ ! "${optValue}" =~ [^[:space:]] ]]
+        then
+            echo "Missing argument to '--hpsum_options'" 1>&2
+            exit 1
+        fi
+
+        hpSumOptions="${optValue}"
+
+        lastOpt="--hpsum_options"
+    elif [ "${optName}" == "--hpsum_logs_dump_dir" ]
+    then
+        if [[ ! "${optValue}" =~ [^[:space:]] ]]
+        then
+            echo "Missing argument to '--hpsum_logs_dump_dir'" 1>&2
+            exit 1
+        fi
+
+        hpSumLogsDumpDir="${optValue}"
+        lastOpt=
+    elif [ "${optName}" == "--hpsum_copy_files_locally" ]
+    then
+        if [ "${optValue}" == "true" ] || [ "${optValue}" == "false" ]
+        then
+            hpSumCopyFilesLocally="${optValue}"
+        else
+            echo "Invalid value '${optValue}' specified for script parameter '--hpsum_copy_files_locally'" 1>&2
+            echo "Valid values are 'true' or 'false'" 1>&2
+            exit 1
+        fi
+    elif [ "${optName}" == "--no_show_log" ]
+    then
+        showHpSumLog=0
+    else
+        echo "invalid option '${optName}'" 1>&2
+        exit 1
+    fi
+done
+
+# If we have user-specified HP SUM command line options, then check if the
+# log directory has been overridden with the "/logdir" or "-logdir" option.
+# We need to know where the log files will be placed so that we can zip them
+# up when the offline firmware update is complete.
+if [ ! -z "${hpSumOptions}" ]
+then
+    checkForOverrideOfHpSumLogDir "${hpSumOptions}"
+fi
+
+# Locates the SPP version to be used.
+findSPPVersion
+
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+
+runHPSUM
+retCode=$?
+
+# This section of code displays the "Install Components" section of "hpsum_log.txt"
+# to standard output, so that it is visible in the Insight Control Server Provisioning
+# job log.  Because the job log is limited to 10K, only a small portion of 
+# "hpsum_log.txt" is being displayed.  The code below may be edited to show more of
+# "hpsum_log.txt", or for more detailed information, "hpsum_detail_log.txt" may be
+# used instead.  To use "hpsum_detail_log.txt", replace "$(getHpSumLog)" below with
+# "$(getHpSumDetailLog)".
+if [ ${showHpSumLog} -eq 1 ]
+then
+    logFileToDisplay=$(getHpSumLog)
+
+    if [ -e ${logFileToDisplay} ]
+    then
+        installedComponents="Installed Components:"
+        deployedComponents="Deployed Components:"
+
+        # Log file for HP SUM version < 6.0.1 will show "Installed Components:"
+        # Log file for HP SUM version >= 6.0.1 will show "Deployed Components:"
+        if grep "^${installedComponents}" ${logFileToDisplay} > /dev/null 2>&1
+        then
+            searchText=${installedComponents}
+        elif grep "^${deployedComponents}" ${logFileToDisplay} > /dev/null 2>&1
+        then
+            searchText=${deployedComponents}
+        else
+            searchText=
+        fi
+
+        if [ ! -z "${searchText}" ]
+        then
+            echo -e "The '${searchText}' section of '${logFileToDisplay}' is as follows:\n"
+
+            hpSumInstalledComponents=$(awk "/^${searchText}/ { SHOW = 1 }; SHOW == 1 { print }" ${logFileToDisplay})
+
+            if [ -z "${hpSumInstalledComponents}" ]
+            then
+                echo "Could not find '^${searchText}' in ${logFileToDisplay}" 1>&2
+            else
+                echo "${hpSumInstalledComponents}"
+            fi
+        else
+            echo "Could not find '${installedComponents}' or '${deployedComponents}' in ${logFileToDisplay}" 1>&2
+        fi
+    else
+        echo "'${logFileToDisplay}' not found" 1>&2
+    fi
+fi
+
+echo "Placing HP SUM log files into '${hpSumLogsZipFile}'"
+
+# Zip up the HP SUM log files.
+zip -r ${hpSumLogsZipFile} $(getHpSumLogs) > /dev/null
+
+if [ $? -ne 0 ]
+then
+    echo "Failed to create HP SUM logs zip file '${hpSumLogsZipFile}'" 1>&2
+    exit 1
+fi
+
+# If the "--hpsum_logs_dump_dir" parameter was specified, then zip up the
+# HP SUM log files and place them in the specified directory.
+if [[ ${hpSumLogsDumpDir} =~ [^[:space:]] ]]
+then
+    # If the directory where the zipped HP SUM log files is to be placed does not
+    # exist, then create it.
+    if [ ! -d ${hpSumLogsDumpDir} ]
+    then
+        echo "The directory '${hpSumLogsDumpDir}' does not exist on file share.  Creating it."
+        mkdir -p ${hpSumLogsDumpDir}
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to create directory '${hpSumLogsDumpDir}' on file share" 1>&2
+            echo "Verify that the directory is writable" 1>&2
+        fi
+    fi
+
+    serverId=$(getServerId)
+
+    timeStamp=$(date +%Y%m%d-%H%M%S)
+
+    hpSumLogsZipFileWithServerId=hpsum_logs_${serverId}_${timeStamp}.zip
+
+    pathToZipFileOnFileShare="${hpSumLogsDumpDir}/${hpSumLogsZipFileWithServerId}"
+
+    echo "Copying '${hpSumLogsZipFile}' to '${pathToZipFileOnFileShare}'"
+
+    cp ${hpSumLogsZipFile} ${pathToZipFileOnFileShare}
+
+    if [ $? -eq 0 ]
+    then
+        echo "Successfuly copied '${hpSumLogsZipFile}' to '${pathToZipFileOnFileShare}'"
+    else
+        echo "Failed to copy '${hpSumLogsZipFile}' to '${pathToZipFileOnFileShare}'" 1>&2
+    fi
+else
+    echo "Since the '--hpsum_logs_dump_dir' option was not specified, the zipped HP SUM log files were not copied to the file share"
+fi 
+
+exit $retCode

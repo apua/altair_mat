@@ -1,0 +1,23 @@
+@echo off
+echo rescan > X:\diskpart.txt
+echo select disk @SystemDiskNumber:0@ >> X:\diskpart.txt
+echo clean >> X:\diskpart.txt
+echo create partition primary >> X:\diskpart.txt
+echo select partition=1 >> X:\diskpart.txt
+echo assign letter=@SystemDrive:C@ >> X:\diskpart.txt
+echo active >> X:\diskpart.txt
+echo format FS=NTFS LABEL="OS" REVISION="6.00" quick >> X:\diskpart.txt
+echo exit >> X:\diskpart.txt
+echo  >> X:\diskpart.txt
+echo  >> X:\diskpart.txt
+diskpart.exe /s X:\diskpart.txt > %TEMP%\diskpart.out 2>&1
+if %ERRORLEVEL% == 0 (
+    echo diskpart completed successfully
+    find /V "0 percent completed" %TEMP%\diskpart.out
+    exit
+) else (
+    echo ERROR: diskpart exited status %ERRORLEVEL%
+    find /V "0 percent completed" %TEMP%\diskpart.out
+    exit /B %ERRORLEVEL%
+)
+    

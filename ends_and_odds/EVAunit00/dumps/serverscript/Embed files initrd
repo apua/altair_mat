@@ -1,0 +1,116 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2009 Hewlett-Packard Development Company, L.P.
+        OS Build Plan Step used to embed a list of files in the initrd image.
+"""
+
+import sys
+import optparse
+import os
+import shutil
+from osprov.osbp import logger
+from osprov.util import process
+from osprov import helpers
+from osprov.errors import ProcessExecutionError
+
+from osprov.constants import DEFAULT_SA_INITRD_MASK
+from osprov.constants import DEFAULT_INITRD_DIR
+
+LOG = logger.getIt('embed to initrd')
+KEYS = helpers.getDataStore()
+
+
+def embed(sources, initrd):
+    """ Embed a given directory in an initrd image or
+    append to an existing initrd.
+    """
+
+    # create the destination folder of the initrd if it doesn't exist
+    folder = os.path.dirname(initrd)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # create an empty tmp folder of the initrd
+    rdpath, rdname = os.path.split(initrd)
+    tmpfolder = "%s/tmp_%s" % (rdpath, rdname)
+
+    if os.path.exists(tmpfolder):
+        shutil.rmtree(tmpfolder)
+    os.makedirs(tmpfolder)
+
+    process.runIt("sync")
+    # collect all sources
+    for thissrc in sources:
+        source, dest = thissrc.split(":")
+        print "Adding to intrd %s : source %s -> destination: %s" % (initrd, source, dest)
+        tmpdest = "%s/%s" % (tmpfolder, dest)
+        # add the target dir unless it exists already
+        if not os.path.exists(tmpdest):
+            os.makedirs(tmpdest)
+        # copy now - rc=1 complains about file attrib & permissions
+        # so it gets ignored as we're root anyway.
+        process.runIt("cp -a %s %s" % (source, tmpdest), checkExitCode=(0, 1,), log = LOG)
+
+    # create or append to initrd
+    process.runIt("cd %s && find . -print0 | cpio -0 --format=newc -ov | gzip -9 >> %s" %
+                  (tmpfolder, initrd),
+                  log=LOG, quiet=True, shell=True,
+                  )
+
+    # remove the tmpfolder to cleanup and save space.
+    shutil.rmtree(tmpfolder)
+
+
+def argsError(parser, msg):
+    print "%s" % msg
+    parser.error(msg)
+
+
+def parseArgs(args):
+    """Parse the command line arguments"""
+    parser = optparse.OptionParser(description=__doc__, version='0.0.1', )
+    parser.add_option('-s', '--source',
+                      help="Path to add to initrd. Can be repeated multiple times ",
+                      action="append")
+    parser.add_option('-n', '--name',
+                      help="the base name of the new initrd file to be created. "
+                      "If this parameter is not present a default name will be used "
+                      "also a version number is added and incremented if required to "
+                      "make the filename unique and to indicate the sequence of creation.")
+    opt, args = parser.parse_args(args)
+    if args:
+        argsError(parser, "Additional positional arguments are not supported")
+    if not opt.source:
+        argsError(parser, "At least one source needs to be present")
+    for eachsrc in opt.source:
+        if ":" not in eachsrc:
+            argsError(
+                parser, "Invalid source parameter: needs \":\" to separate <source>:<destination-dir>.")
+        if eachsrc.endswith(":"):
+            argsError(parser, "Invalid source parameter: needs <destination-dir> after \":\".")
+    return opt
+
+
+def main():
+    """ main entry point on the cmdline """
+    opt = parseArgs(sys.argv[1:])
+    root_location = KEYS.disk.device_mount
+    if opt.name:
+        initrdmask = opt.initrd
+    else:
+        initrdmask = DEFAULT_SA_INITRD_MASK
+    initrdfile = helpers.generateSeqFileName(
+        path=os.path.join(root_location, DEFAULT_INITRD_DIR), mask=initrdmask)
+    # put all sources into one new initrd file
+    try:
+        embed(opt.source, os.path.join(root_location, DEFAULT_INITRD_DIR, initrdfile))
+    except ProcessExecutionError, why:
+        LOG.exception(why)
+        print "Failed to create initrd: %s" % why
+        return why.exitCode
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

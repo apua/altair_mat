@@ -1,0 +1,15 @@
+#!/bin/sh
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+# Script uses the /sbin/hpbootcfg utility to set a one time PXE boot
+
+if [ -x /sbin/hpbootcfg ]; then
+  /sbin/hpbootcfg -P
+  if [ $? -ne 0 ]; then
+     echo "Setting of one time PXE boot failed"
+     exit 1
+  fi
+else
+  echo "Required utility /sbin/hpbootcfg does not exist"
+  exit 1
+fi

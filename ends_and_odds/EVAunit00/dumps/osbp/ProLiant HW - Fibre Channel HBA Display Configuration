@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "LinuxPE HBA add-on packages", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Configure Fibre Channel HBA Boot Device", 
+        "parameters": "--displayHbaOnly"
+    }
+]

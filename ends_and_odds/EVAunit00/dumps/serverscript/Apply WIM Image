@@ -1,0 +1,44 @@
+@echo off
+::Usage: apply_wim_image.cmd IMAGEPATH [IMAGENUMBER] [TARGETDRIVE]
+set SIG=WINPE
+set IMAGENUMBER=1
+set TARGETDRIVE=@SystemDrive:C@
+
+set | find "opswbasig=%SIG%" > NUL
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Target server must be running %SIG% but it is not
+    exit /B 1
+)
+if not exist %1 (
+    echo image file %1 missing! Cannot apply image.
+	exit /B 2
+)
+if not X%2==X (
+    set IMAGENUMBER=%2
+)
+if not X%3==X (
+    set TARGETDRIVE=%3
+)
+
+if "%TARGETDRIVE%"=="C" goto have_targetdrive
+if "%TARGETDRIVE%"=="c" goto have_targetdrive
+echo Only C: drive deploy is supported
+
+:have_targetdrive
+
+::start "Applying WIM Image" /wait cmd /c imagex /verify /scroll /apply %1 %IMAGENUMBER% %TARGETDRIVE%:
+echo Applying WIM Image %1 to drive %TARGETDRIVE%: (Image Number %IMAGENUMBER%)
+imagex /check /verify /scroll /apply %1 %IMAGENUMBER% %TARGETDRIVE%:
+
+if %ERRORLEVEL% == 0 (
+    echo Image applied successfully
+) else (
+    echo ERROR: imagex exited status %ERRORLEVEL%
+    exit /B %ERRORLEVEL%
+)
+
+if exist %TARGETDRIVE%:\Windows\System32\bcdboot.exe (
+	echo Running bcdboot against %TARGETDRIVE%:\Windows
+	copy %TARGETDRIVE%:\Windows\System32\bcdboot.exe %temp%
+    %temp%\bcdboot.exe %TARGETDRIVE%:\Windows /s %TARGETDRIVE%:
+)

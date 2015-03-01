@@ -1,0 +1,63 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+This program will repartition the target server's boot disk and create a
+small (2 GB) "stub" ZFS filesystem.
+
+The boot disk by default is the first hard drive as listed in lshal.
+
+WARNING!
+
+The disk's partition table, master boot record, and all existing file systems
+are PERMANENTLY ERASED by this operation.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+
+from osprov.osbp import logger
+from osprov.diskmgr.diskmanager import DiskManager
+from osprov.diskmgr.disk import Disk
+from osprov import helpers
+from osprov.decorators import HandleShowErrorMessage
+
+
+BOOT_DISK = "@boot_disk@"  # ScriptWeaver will parametrize this data at run time
+
+LOG = logger.getIt("Create Solaris Stub Partition")
+
+
+@HandleShowErrorMessage("Create Solaris Stub Partition", LOG)
+def main():
+    """Main entry point when executed as a script from the command line"""
+
+    dm = DiskManager(log=LOG)
+    dm.disable_automount()
+    dm.unmountOurs()
+
+    if BOOT_DISK and "@" not in BOOT_DISK:
+        bootDisk = Disk(BOOT_DISK)
+    else:
+        bootDisk = None
+
+    bootDisk = dm.getSystemBootDisk(bootDisk)
+
+    stubPartition = bootDisk.createStubPartition()
+    print "Boot disk partitioned. Stub filesystem is on %s" % \
+        stubPartition.getDeviceFilePath()
+
+    # ZFS auto-mounts filesystems, so just setting the mount point suffices
+    stubPartition.setMountPoint("/mnt/root")
+
+    # Save relevant information in the datastore
+    keys = helpers.getDataStore()
+    keys.disk.device_path = stubPartition.getRawFilePath()
+    keys.disk.device_mount = "/mnt/root"
+    helpers.putDataStore(keys)
+
+if __name__ == "__main__":
+    sys.exit(main())

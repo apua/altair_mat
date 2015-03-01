@@ -1,0 +1,105 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+import os
+from optparse import OptionParser
+
+windowsSystemDrive = os.getenv("SystemDrive")
+windowsTempDir = windowsSystemDrive + "\\Windows\\Temp"
+localHpSumDir = windowsTempDir + "\\LocalHpSum"
+icspTempDir = windowsTempDir + "\\icsp"
+hpSumExitCodeFile = icspTempDir + "\\hpsum_exit_code.txt"
+
+##############################################################################
+# Parses the command line arguments.
+##############################################################################
+
+def parseArgs(args):
+    parser = OptionParser()
+    parser.add_option("--fail_on_warning",
+            action = "store_true",
+            default = False,
+            dest = "failOnWarning",
+            help="Causes the build plan step to fail if hpsum could not install one of the components")
+    options, args = parser.parse_args(args)
+    if args:
+        parser.error("Additional positional arguments are not supported")
+    return options, args
+
+##############################################################################
+# Returns the HP SUM return code.
+##############################################################################
+
+def getHpSumExitCode():
+
+    exitCode = "0";
+
+    if (os.path.exists(hpSumExitCodeFile)):
+        try:
+            f = open( hpSumExitCodeFile, 'r')
+
+            contents = f.read();
+
+            exitCode = contents.strip()
+
+            f.close();
+        except (Exception), why:
+            raise Exception("An error occurred while reading '%s': %s" % (hpSumExitCodeFile,why))
+    else:
+        raise Exception("'%s' not found" % hpSumExitCodeFile)
+
+    return exitCode
+
+##############################################################################
+# Main Routine
+##############################################################################
+
+def main():
+
+    retCode = 0
+
+    options, remaining_args = parseArgs(sys.argv[1:])
+
+    # If this is set to True, then a "-3" returned by HP SUM will result in
+    # the build plan step returning an error.
+    failOnWarning = options.failOnWarning
+
+    try:
+        hpSumExitCode = getHpSumExitCode()
+
+        print "HP SUM return code is '%s'" % hpSumExitCode
+
+        if (hpSumExitCode == "0"):
+            print "The installation was successful"
+        elif (hpSumExitCode == "1"):
+            print "The installation was successful, but a reboot is required"
+        elif (hpSumExitCode == "3"):
+            print "The component was current or not required"
+        elif (hpSumExitCode == "-1"):
+            print "A general failure occurred.  For details, see the error log."
+            retCode = 1
+        elif (hpSumExitCode == "-2"):
+            print "A bad input parameter was encountered"
+            retCode = 1
+        elif (hpSumExitCode == "-3"):
+            print "The installation of the component failed"
+            if (failOnWarning):
+                retCode = 1
+        else:
+            print "Unknown HP SUM return code"
+            retCode = 1
+    except (Exception), why:
+        retCode = 1
+        sys.stderr.write("%s" % why)
+
+    return retCode
+
+if __name__ == "__main__":
+    sys.exit(main())

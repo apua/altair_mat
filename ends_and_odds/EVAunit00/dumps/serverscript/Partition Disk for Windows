@@ -1,0 +1,85 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+import sys
+import os
+from optparse import OptionError
+from osprov.errors import FileNotFoundError
+from osprov.optparse_ext import OptionParser
+from osprov.scripts import bootmode
+from osprov.diskmgr import const, disk
+from osprov.util import process
+from osprov.osbp import logger
+from osprov.decorators import HandleShowErrorMessage
+from osprov import diskmgr
+from osprov import helpers
+from osprov.server import ThisLocalServer
+
+LOG = logger.getIt("partition_disk_for_windows")
+DISKPART_LEGACY = r"X:\Windows\Temp\diskpart_legacy.txt"
+DISKPART_UEFI = r"X:\Windows\Temp\diskpart_uefi.txt"
+
+
+class PartitionDiskForWindowsOptionParser(OptionParser):
+
+    """ Option parser for this step """
+
+    def defineOptions(self):
+        self.add_option("--bootMode", type="string",
+                        help="boot mode of the server, can be UEFI or Legacy")
+        self.add_option("--systemDiskNumber", type="int", default=0,
+                        help="system disk number where Windows is installed (default disk number is '0').")
+        self.add_option("--systemPartitionLabel", type="string", default="System",
+                        help="label of partition where Windows will be installed")
+
+    def validateArgs(self, opt, args):
+        if opt.bootMode and not opt.bootMode.lower() in [x.lower() for x in bootmode.SUPPORTED_BOOT_MODES]:
+            raise OptionError("Invalid boot mode: " + opt.bootMode, "bootMode")
+
+
+def doDiskpart(dpFile, log=LOG):
+    # check if dpFile exists
+    if False == os.path.isfile(dpFile):
+        raise FileNotFoundError("Diskpart configuration file not found: %s" % dpFile)
+
+    # run diskpart
+    process.runIt("diskpart.exe /s %s" % (dpFile), checkExitCode=(0,), log=log, quiet=True)
+
+
+def savePartitionIdToDatastore(partitionId):
+    if not partitionId:
+        return
+    datastore = helpers.getDataStore()
+    datastore.windows.partition_id = partitionId
+    helpers.putDataStore(datastore)
+
+
+@HandleShowErrorMessage("Partition Disk for Windows", LOG)
+def main():
+    # get and parse arguments
+    options, remainingArgs = PartitionDiskForWindowsOptionParser().parse_args()
+
+    # get bootmode (legacy bios or uefi)
+    if options.bootMode:
+        bootMode = options.bootMode
+    else:
+        bootMode = bootmode.getCurrentBootMode(ThisLocalServer(), log=LOG)
+
+    partitionTable = diskmgr.getPartitionTable(bootMode)
+    if const.PARTITION_TABLE_MBR == partitionTable:
+        print "Partitioning disk based on Legacy Windows Partitioning Schema"
+        doDiskpart(DISKPART_LEGACY)
+    elif const.PARTITION_TABLE_GPT == partitionTable:
+        print "Partitioning disk based on Uefi Windows Partitioning Schema"
+        doDiskpart(DISKPART_UEFI)
+
+    partition = disk.WindowsDisk(
+        options.systemDiskNumber).getPartitionWithLabel(options.systemPartitionLabel)
+    partitionNr = str(partition.partitionNr)
+    savePartitionIdToDatastore(partitionNr)
+
+if __name__ == "__main__":
+    sys.exit(main())

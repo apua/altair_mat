@@ -1,0 +1,90 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--uefi=false"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-LinURI@/RHEL/rhel59-x64"
+    }, 
+    {
+        "name": "RHEL 5.9 x64 en_us Kickstart for CSI Test", 
+        "parameters": "/tmp/user.ks.cfg"
+    }, 
+    {
+        "name": "Inject Required Kickstart Settings", 
+        "parameters": "Red Hat Enterprise Linux Server 5 X86_64"
+    }, 
+    {
+        "name": "Inject Kickstart Personalization Settings", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Create Stub Partition", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Copy Boot Media", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ProLiant Drivers for RHEL 5.9 x64 - 2014.02.0", 
+        "parameters": ""
+    }, 
+    {
+        "name": "GRuB Boot Loader x86", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Deploy Agent", 
+        "parameters": "-d /tmp/opt/opsware/agent/ogfs-agent.zip -u"
+    }, 
+    {
+        "name": "Embed files initrd", 
+        "parameters": "-s /tmp/user.ks.cfg:/ -s /tmp/opt/opsware/agent:/opt/opsware/ -s /tmp/dud/.:/"
+    }, 
+    {
+        "name": "Install bootloader for RedHat Enterprise Linux Server", 
+        "parameters": "--kernel_arguments=\"@kernel_arguments@\""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Monitor Installation", 
+        "parameters": "tmp/anaconda.log"
+    }, 
+    {
+        "name": "Integrate Linux HP SA Agent", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

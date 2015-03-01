@@ -1,0 +1,95 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+import sys
+import os
+from optparse import OptionError
+from osprov.optparse_ext import OptionParser
+from osprov.scripts import bootmode
+from osprov.osbp import logger
+from osprov.util import process
+from osprov.decorators import HandleShowErrorMessage
+from osprov import diskmgr
+from osprov.diskmgr import const, disk, diskmanager, partition
+from osprov.server import ThisLocalServer
+from tempfile import mkstemp
+
+LOG = logger.getIt("windows_image_capture")
+
+IMAGEX_CONFIG_FILE = """
+[ExclusionList]
+"\\Boot"
+"\\Program Files\\Opsware"
+"\\Program Files\\Common Files\\Opsware"
+"""
+
+
+class WindowsImageCaptureOptionParser(OptionParser):
+
+    """ Option parser for this step """
+
+    def defineOptions(self):
+        self.add_option("--bootMode", type="string",
+                        help="boot mode of the server, can be UEFI or Legacy (boot mode is autodetected if this parameter is not passed).")
+        self.add_option("--systemDiskNumber", type="int", default=0,
+                        help="system disk number where Windows is installed (default disk number is '0').")
+        self.add_option("--systemPartitionLabel", type="string", default="System",
+                        help="label of partition where Windows is installed (default partition label is 'System').")
+        self.add_option("--wimFilePath", type="string",
+                        help="path where to save WIM file (Currently using CA 'WimFileName' to provide WIM file name).")
+        self.add_option("--wimScript", type="string",
+                        help="path to ImageX config file.")
+
+    def validateArgs(self, opt, args):
+        if opt.bootMode and not opt.bootMode.lower() in [x.lower() for x in bootmode.SUPPORTED_BOOT_MODES]:
+            raise OptionError("Invalid boot mode: " + opt.bootMode, "bootMode")
+        if not opt.wimFilePath:
+            raise OptionError("Missing parameter: --wimFilePath", "wimFilePath")
+
+
+def captureESP(freeLetter, wimFilePath, log=LOG):
+    process.runIt("imagex.exe /check /verify /capture %s: \"%s_ESP\" \"ESP\"" %
+                  (freeLetter, wimFilePath), checkExitCode=(0,), log=log)
+
+
+def capturePartition(windowsDriveLetter, wimFilePath, configFilePath=None, log=LOG):
+    if not configFilePath:
+        fd, configFilePath = mkstemp()
+        with os.fdopen(fd, 'w') as f:
+            f.write(IMAGEX_CONFIG_FILE)
+
+    process.runIt("imagex.exe /config %s /check /verify /capture %s: \"%s\" \"System\"" %
+                  (configFilePath, windowsDriveLetter, wimFilePath), checkExitCode=(0,), log=log)
+
+@HandleShowErrorMessage("Windows Image Capture", LOG)
+def main():
+
+    # get and parse arguments
+    options, remainingArgs = WindowsImageCaptureOptionParser().parse_args()
+    wimFilePath = options.wimFilePath.strip()
+    systemDiskNumber = options.systemDiskNumber
+    # get bootmode (legacy bios or uefi)
+    if options.bootMode:
+        bootMode = options.bootMode
+    else:
+        bootMode = bootmode.getCurrentBootMode(ThisLocalServer(), log=LOG)
+
+    windowsDriveLetter = disk.WindowsDisk(systemDiskNumber).getPartitionWithLabel(
+        options.systemPartitionLabel).letter
+
+    partitionTable = diskmgr.getPartitionTable(bootMode)
+    if const.PARTITION_TABLE_MBR == partitionTable:
+        print "Capturing Windows Image based on Legacy Windows Partitioning Schema"
+        capturePartition(windowsDriveLetter, wimFilePath, configFilePath=options.wimScript)
+    elif const.PARTITION_TABLE_GPT == partitionTable:
+        print "Capturing Windows Image based on Uefi Windows Partitioning Schema"
+        freeLetter = diskmanager.WindowsDiskManager().findFirstAvailableDriveLetter()
+        partition.WindowsPartition(systemDiskNumber, 1).setPartitionLetter(freeLetter)
+        captureESP(freeLetter, wimFilePath)
+        capturePartition(windowsDriveLetter, wimFilePath, configFilePath=options.wimScript)
+
+if __name__ == "__main__":
+    sys.exit(main())

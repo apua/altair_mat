@@ -1,0 +1,11 @@
+@echo off
+if not exist %WINDIR%\system32\sysprep\sysprep.exe (
+	echo "Sysprep tool was not found in this Windows installation. This is only supported for Windows 2008 and newer"
+	exit 1
+)
+
+if "%1"=="" (
+  %WINDIR%\system32\sysprep\sysprep.exe /generalize /oobe /quit
+) else (
+  %WINDIR%\system32\sysprep\sysprep.exe /generalize /oobe /quit /unattend:%1
+)

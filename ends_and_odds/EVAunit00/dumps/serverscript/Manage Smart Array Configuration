@@ -1,0 +1,115 @@
+#!/bin/sh
+
+# (c) Copyright 2012-2014 Hewlett-Packard Development Company, L.P.
+
+# ======================================================================
+# Reads/Writes HP Smart Array configuration
+#
+# Capture parameters: -c output.ini [-internal | -external] [-nofail]
+# Deploy parameters: -i input.ini [-internal | -external] [-reset] [-nofail]
+# ======================================================================
+
+USAGE="usage: $(basename $0) {-c|-i} cfg.ini [-options] [-nofail]"
+
+# expected location of the installed HP HPSSACLI utilities
+DIR="/tmp/sstk/hpssacli"
+HPSSACLI="${DIR}/hpssacli"
+HPSSASCRIPTING="${DIR}/hpssascripting"
+
+# In the PXE-booted Linux service OS, the "tr" command
+# is in a non-standard directory.  Set PATH for "tr".
+export PATH=${PATH}:/opt/opsware/agent/osprov/bin/x86
+
+# Required libraries for HP SSACLI utilities
+export LD_LIBRARY_PATH="$DIR"
+
+# for each HPSSA utility:
+# - verify existence
+# - ensure executable
+for UTIL in "$HPSSACLI" "$HPSSASCRIPTING"
+do
+    # verify Existence
+    if [ ! -e "$UTIL" ]; then
+	echo "$UTIL can not be found" 1>&2
+	exit 1
+    fi
+    # ensure utility has eXecute permission
+    [ -x "$UTIL" ] || chmod +x "$UTIL"
+done
+
+# specify scripting mode: -c (capture) | -i (input)
+MODE=${1:?$USAGE}
+shift
+
+# specify full path for configuration filename on target system
+CFG_FILE=${1:?$USAGE}
+shift
+
+# specify full path for error log file on target system
+ERR_FILE="$DIR/error.log"
+
+# validate supported mode
+if [ "$MODE" != "-c" ] && [ "$MODE" != "-i" ]; then
+    echo $USAGE 1>&2
+    exit 1
+fi
+
+# Parse additional args
+while [ "$1" != "" ] ; do
+    case $1 in
+    -internal|-external)
+        OPT3=$1
+	;;
+    -reset)
+        OPT4=$1
+        ;;
+    -nofail)
+        NOFAIL=true
+        ;;
+     *)
+        echo $USAGE 1>&2
+        exit 1
+     esac
+     shift
+done
+
+# Check for presence of controller we can reset.
+if ! $HPSSACLI controller all show > /dev/null ; then
+    echo "No controller found. Exiting.."
+    #No controller was found now check to see if we need to
+    #signal an error
+    if [ "$NOFAIL" == "" ]; then
+	# nofail wasn't set, so fail
+	exit 1
+    else
+	# nofail was set, so we can quit but signal success.
+	exit 0
+    fi
+fi
+
+# a logical drive with OS Status of LOCKED can't be reset
+# unmount logical drives to avoid error 3036 in use by OS
+
+# Run the unmount from the osprov lib.
+PYTHONPATH=/opt/opsware/pylibs2/ /opt/opsware/agent/bin/python -c "from osprov.diskmgr.diskmanager import DiskManager; dm = DiskManager(); dm.disable_automount(); dm.unmountDisks(skipUsb=True)"
+
+# also force unmount, to ensure everything is unmounted
+DEVS=`($HPSSACLI controller all show config detail | grep 'Mount Points' | sed -e 's/.*Mount Points:\(.*\)/\1/' | tr , '\012' | cut -d' ' -f2) 2>/dev/null`
+[ -n "$DEVS"  -a "$DEVS" != "None" ] && umount -v $DEVS 2>/dev/null
+
+# remove any leftover error log file; don't want old errors
+rm -f "$ERR_FILE"
+
+# run utility
+"$HPSSASCRIPTING" $MODE "$CFG_FILE" $OPT3 $OPT4 -e "$ERR_FILE"
+rc=$?
+
+case $rc in
+   0 )
+      echo "$HPSSASCRIPTING successful";;
+   * )
+      # output error log on stderr
+      [ -e "$ERR_FILE" ] && cat "$ERR_FILE" 1>&2
+      echo "$HPSSASCRIPTING failed ($rc)" 1>&2;;
+esac
+exit $rc

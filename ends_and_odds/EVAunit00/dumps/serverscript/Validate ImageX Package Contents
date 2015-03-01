@@ -1,0 +1,69 @@
+@echo off
+
+:: (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+set imagexValidated=0
+
+REM When run from production Windows, this script expects that the ImageX package 
+REM was previously extracted to "\HPPROVTEMP" on the system drive so that its
+REM contents can be checked to see if 'imagex.exe' present.
+REM
+REM WARNING: DO NOT CHANGE THIS DIRECTORY. IT AND ITS SUBDIRECTORIES AND FILES
+REM          ARE RECURSIVELY REMOVED AT THE END OF THIS SCRIPT.  SPECIFYING
+REM          A DIFFERENT DIRECTORY MAY CAUSE DAMAGE TO YOUR SYSTEM.
+set hpProvTempDir=%SystemDrive%\HPPROVTEMP
+
+REM In WinPE, it is expected that "imagex.exe" will always be extracted to
+REM the "X:\Windows\System32".
+set winPeSystemDir=X:\Windows\System32
+
+REM If the ImageX package was extracted to "\HPPROVTEMP", then the directory will exist.
+if exist "%hpProvTempDir%" (
+    REM Check if 'imagex.exe' is in the ImageX package.  The ImageX package
+    REM will not contain 'imagex.exe' until WinPE is uploaded to the appliance.
+    if exist "%hpProvTempDir%\imagex.exe" (
+        echo '%hpProvTempDir%\imagex.exe' exists
+
+        set imagexValidated=1
+    ) else (
+        echo '%hpProvTempDir%\imagex.exe' was not found
+    )
+
+    echo Removing directory '%hpProvTempDir%'
+
+    REM Remove the temporary directory where the ImageX package contents were
+    REM extracted to.
+    rmdir /S /Q %hpProvTempDir%
+
+    if %errorlevel% neq 0 (
+        echo Failed to remove '%hpProvTempDir%' 1>&2
+    )
+)
+
+REM If "imagex.exe" was not extracted to "\HPPROVTEMP" on the system drive of
+REM the production OS, then check for it in "X:\Windows\System32", in case we're
+REM in WinPE.
+if "%imagexValidated%" == "0" (
+    if exist "%winPeSystemDir%" (
+        if exist "%winPeSystemDir%\imagex.exe" (
+            echo '%winPeSystemDir%\imagex.exe' exists
+
+            set imagexValidated=1
+        ) else (
+            echo '%winPeSystemDir%\imagex.exe' was not found.
+        )
+    ) else (
+        echo The directory '%winPeSystemDir%' does not exist.
+    )
+)
+
+if "%imagexValidated%" == "1" (
+    exit /B 0
+) else (
+    echo The ImageX package in this Build Plan does not contain 'imagex.exe'. 1>&2
+    echo In order to add 'imagex.exe' to the ImageX package, WinPE must be 1>&2
+    echo uploaded to the appliance. 1>&2
+
+    exit /B 1
+)
+

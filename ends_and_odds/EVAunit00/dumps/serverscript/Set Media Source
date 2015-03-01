@@ -1,0 +1,70 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2009 Hewlett-Packard Development Company, L.P.
+Server script to set the media source to be used
+"""
+import sys
+import socket
+from osprov.optparse_ext import OptionParser
+
+from osprov import helpers
+from osprov import media
+from osprov.errors import ShowErrorMessage
+from osprov.decorators import HandleShowErrorMessage
+from osprov.osbp import logger
+
+LOG = logger.getIt("set_media_source")
+
+
+class CustomParser(OptionParser):
+
+    """ local, custom parser """
+
+    def __init__(self, *args, **kwargs):
+        OptionParser.__init__(self, *args, **kwargs)
+
+    def defineOptions(self):
+        self.add_option("--resolve-hostname", default=False, action="store_true",
+                        dest="doDNS",
+                        help="Forces DNS resolution at this time. Useful with installers with DNS issues."
+                        )
+
+    def validateArgs(self, opt, args):
+        if not args:
+            self.error("The URL is mandatory")
+
+
+def resolveHostname(parsedUrl):
+    """ Resolve the hostname in the URL to an IP address """
+    try:
+        hostname = socket.gethostbyname(parsedUrl.hostname)
+    except socket.gaierror, why:
+        raise ShowErrorMessage("Could not resovle %s: %s" % (parsedUrl.hostname, why), cause=why)
+    port = parsedUrl.port
+    if hostname != parsedUrl.hostname:
+        print "Resolved %s to %s" % (parsedUrl.hostname, hostname)
+    if port:
+        parsedUrl.netloc = "%s:%s" % (hostname, port)
+    else:
+        parsedUrl.netloc = hostname
+
+
+@HandleShowErrorMessage("Set Media Source", LOG)
+def main():
+    """ Entry point if called form the cli  """
+    parser = CustomParser("usage: %prog [options] url")
+    options, args = parser.parse_args()
+    url = media.parseUrl(args[0])
+    if options.doDNS:
+        resolveHostname(url)
+    mediaObj = media.factor(str(url), log=LOG)
+    datastore = helpers.getDataStore()
+    datastore.media.url = str(url)
+    helpers.putDataStore(datastore)
+    print "Successfully set media source %s" % mediaObj
+
+
+if __name__ == "__main__":
+    sys.exit(main())

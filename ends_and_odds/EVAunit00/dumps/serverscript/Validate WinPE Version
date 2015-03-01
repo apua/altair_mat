@@ -1,0 +1,75 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+from optparse import OptionParser
+
+EC_SUCCESS = 0
+EC_FAILED = 1
+WINPE30 = "6.1.7600.16385"
+WINPE31 = "6.1.7601.17514"
+WINPE40 = "6.2.9200.16384"
+WINPEMAP = {'3.1': WINPE31, '4.0': WINPE40, '3.0': WINPE30, 'any' : 'any' }
+DIRMAP = { WINPE31: '3.1', WINPE40: '4.0', WINPE30: '3.0', 'any': 'any' }
+
+def parseArgs(args):
+    parser = OptionParser()
+    parser.add_option("--version", dest="winpeVersion", type="string", default="3.1",
+                        help="Check for specified WinPE version (default value is '3.1').")
+  
+    options, args = parser.parse_args(args)
+    # Create list of options and remove any spaces
+    options.winpeVersion = map(str.strip, options.winpeVersion.split(","))
+
+    if args:
+        parser.error("Additional positional arguments are not supported")
+    return options, args
+
+# Validate the supplied options
+def validateOptions(opts):
+    for o in opts.winpeVersion:
+        if not o in WINPEMAP.keys():
+           print "--winpeVersion must be list of %s" % WINPEMAP.keys()
+           exit(EC_FAILED)
+
+def main():
+    opts, remArgs = parseArgs(sys.argv[1:])
+    validateOptions(opts) 
+
+    # if any value is acceptable, just return success
+    if "any" in opts.winpeVersion:
+        return EC_SUCCESS
+
+    # Look up the WinPE version.  There should only be one file
+    # in this directory, but check just in case.
+    for dir in os.listdir("x:\\Windows\\Servicing\\Version"):
+        if not dir.startswith("6"):
+            continue
+        foundWinpe = dir
+        break
+
+    # Make sure we know about the version of WinPE found
+    if not foundWinpe in DIRMAP.keys():
+        print "WinPE version is for OS version %s is unknown." % foundWinpe
+        return EC_FAILED
+
+    # Validate that the found WinPE version is acceptable.
+    if DIRMAP[foundWinpe] in opts.winpeVersion:
+        print "Found WinPE %s." % DIRMAP[foundWinpe]
+        return EC_SUCCESS
+
+    # If we're here, then we don't have a matching WinPE, so
+    # we need to fail.
+    print ("Found WinPE %s, requesting WinPE %s") % (DIRMAP[foundWinpe], 
+               opts.winpeVersion)
+    return EC_FAILED
+
+if __name__ == "__main__":
+    sys.exit(main())

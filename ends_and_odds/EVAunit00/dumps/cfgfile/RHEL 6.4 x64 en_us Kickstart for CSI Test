@@ -1,0 +1,81 @@
+lang en_US.UTF-8
+keyboard us
+timezone --utc Asia/Taipei
+text 
+install
+key --skip
+network  --bootproto dhcp 
+firewall --disabled
+xconfig --startxonboot
+
+#Add for DUD 
+#driverdisk --source=http://@__OPSW-Media-LinURI@:/deployment/Media/spp/@SPP_VER@/@BUILD_VER@/DUD/@DUD_VER@
+
+authconfig --enableshadow --enablemd5
+rootpw @administrator@
+
+clearpart --all --initlabel 
+autopart
+
+bootloader --append="@kernel_arguments: @" --location=mbr
+
+# Disable firewall and selinux for SPP components
+firewall --disabled
+selinux --disabled
+
+%packages
+@Base
+@core
+@basic-desktop
+@desktop-platform
+@general-desktop
+@graphical-admin-tools
+@internet-browser
+@legacy-x
+@x11
+mtools
+sgpio
+wodim
+genisoimage
+redhat-lsb
+libXmu
+-gthumb
+-gnome-audio
+-cheese
+-sound-juicer
+-brasero
+-brasero-nautilus
+-brasero-libs
+-totem
+-totem-nautilus
+-rhythmbox
+-gnote
+
+# Components listed below are needed for mount to media server for HPSUM installation
+keyutils
+libtalloc
+cifs-utils
+
+# Components listed below are needed to run HPSUM and SPP components
+expat.i686
+fontconfig.i686
+freetype.i686
+libICE.i686
+libSM.i686
+libuuid.i686
+libX11.i686
+libXau.i686
+libxcb.i686
+libXcursor.i686
+libXext.i686
+libXfixes.i686
+libXi.i686
+libXinerama.i686
+libXrandr.i686
+libXrender.i686
+zlib.i686 
+libgcc.i686
+libstdc++.i686
+make
+net-snmp
+net-snmp-libs

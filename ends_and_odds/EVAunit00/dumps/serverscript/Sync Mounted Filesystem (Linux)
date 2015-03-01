@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "Syncing modified files in mounted filesystem"
+sync

@@ -1,0 +1,2 @@
+set RMFOLDER=%ProgramFiles%\Opsware\dbscanner.oracle
+if exist "%RMFOLDER%" (rd /S /Q "%RMFOLDER%") 

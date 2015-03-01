@@ -1,0 +1,12 @@
+SELECT disk @SystemDiskNumber:0@
+CLEAN
+CONVERT gpt
+rem == 1. Create Efi System Partition ==
+CREATE partition efi size=1000
+FORMAT quick fs=fat32 label="ESP"
+rem == 2. Create the Windows partition ==
+CREATE partition primary
+FORMAT fs=ntfs label="System" quick
+ASSIGN letter=@SystemDrive:C@
+DETAIL partition
+EXIT

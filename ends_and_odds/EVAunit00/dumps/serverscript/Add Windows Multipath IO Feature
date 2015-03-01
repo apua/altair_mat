@@ -1,0 +1,40 @@
+@echo off
+
+:: (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+set wdir=%windir%
+set FEATURE=Multipath-IO
+set RESULTFILE="%wdir%\MPIOInstallResult.xml"
+
+:: Try PowerShell if exists
+for %%X in (powershell.exe) do (set FOUND1=%%~$PATH:X)
+if defined FOUND1 (
+   echo Import-module servermanager > "%wdir%\FeatureInstall.ps1"
+   echo add-windowsfeature -Name %FEATURE% -logPath %RESULTFILE% -Restart >> "%wdir%\FeatureInstall.ps1"
+   powershell.exe -ExecutionPolicy Unrestricted -NoLogo -NonInteractive -NoProfile -WindowStyle Hidden -File "%wdir%\FeatureInstall.ps1"
+   set rc=%errorlevel%
+   goto EndWithFailureMessage
+)
+
+:: Try ServerManagerCmd if exists and PowerShell wasn't found
+for %%X in (ServerManagerCmd.exe) do (set FOUND2=%%~$PATH:X)
+if defined FOUND2 (
+   ServerManagerCmd.exe -install %FEATURE% -resultPath %RESULTFILE% >> %temp%\status.log
+   set rc=%errorlevel%
+   goto EndWithFailureMessage
+) 
+
+if NOT defined rc (
+   echo PowerShell and ServerManagerCmd were not found and could not set %FEATURE%
+   set rc=99
+   goto End
+)
+
+:EndWithFailureMessage
+if NOT %rc%==0 (
+   echo PowerShell and ServerManagerCmd Add Windows Feature failed to install %FEATURE%:  error code %rc%
+   echo Refer to %RESULTFILE% log file.
+)
+
+:End
+exit /B %rc%

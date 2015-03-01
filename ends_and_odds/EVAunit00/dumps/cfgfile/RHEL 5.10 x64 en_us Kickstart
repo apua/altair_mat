@@ -1,0 +1,53 @@
+# (c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+lang en_US
+keyboard us
+timezone --utc America/Chicago
+text 
+install
+key --skip
+skipx
+network  --bootproto dhcp 
+
+
+authconfig --enableshadow --enablemd5
+rootpw --iscrypted "@encrypted_root_password:$1$7z4m7f1z$wliShMhVv2HuCAPmuiQzV1@"
+
+zerombr
+clearpart --all --initlabel 
+autopart
+
+bootloader --append="@kernel_arguments: @" --location=mbr
+
+# Disable firewall and selinux for SPP components
+firewall --disabled
+# Port 1002 is needed for agent communication if the firewall is enabled
+# firewall --enable --port=1002:tcp
+selinux --disabled
+
+%packages
+@Base
+@ Core
+@ Administration Tools
+@ Legacy Software Support
+@ System Tools
+@ DNS Name Server
+@ Legacy Network Server
+@ Network Servers
+@ Server Configuration Tools
+lm_sensors
+libnl
+
+# Components listed below are needed to run HPSUM and SPP components
+libICE.i386
+libSM.i386
+libXau.i386
+libXdmcp.i386
+libX11.i386
+libXrender.i386
+freetype.i386
+fontconfig.i386
+libXext.i386
+
+make
+net-snmp
+net-snmp-libs

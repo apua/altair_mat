@@ -1,0 +1,238 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will create an IPS package containing the HPSA Agent and installer
+and inject it into the AI manifest to be installed along with the rest of the system.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+import shutil
+import tarfile
+import tempfile
+
+from osprov import helpers
+from osprov.util import process
+from osprov.profile import AIManifest
+from osprov.errors import ShowErrorMessage
+from osprov.decorators import HandleShowErrorMessage
+from osprov.server.local import ThisLocalServer, LocalServer
+from osprov.osbp import logger
+
+LOG = logger.getIt("Integrate Solaris 11 HPSA Agent")
+
+SERVICE_MANIFEST_CONTENT = """<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<service_bundle type='manifest' name='hpsa-agent-installer:hpsa-agent-installer-svc'>
+
+<service
+    name='hpsa-agent-installer'
+    type='service'
+    version='1'>
+    <create_default_instance enabled='true' />
+    <single_instance />
+
+<!-- Run the script late in the startup sequence after first boot. -->
+<dependency name='multi-user' grouping='require_all' restart_on='none' type='service'>
+    <service_fmri value='svc:/milestone/multi-user:default' />
+</dependency>
+<!-- Depend on network being up -->
+<dependency name='network' grouping='require_all' restart_on='none' type='service'>
+    <service_fmri value='svc:/milestone/network:default' />
+</dependency>
+
+<exec_method
+    type='method'
+    name='start'
+    exec='/opt/hpsa/hpsa-agent-installer.sh'
+    timeout_seconds='900'>
+    <method_context>
+        <method_credential user='root'/>
+    </method_context>
+</exec_method>
+
+<exec_method
+    type='method'
+    name='stop'
+    exec=':true'
+    timeout_seconds='60'
+/>
+
+<property_group name='startd' type='framework'>
+    <propval name='duration' type='astring' value='transient' />
+</property_group>
+
+</service>
+</service_bundle>
+"""
+
+INSTALLER_SCRIPT_TEMPLATE = """#!/bin/sh
+HPSA_INSTALL_LOG=/var/log/opsware/agent/install.log
+mkdir -p `dirname $HPSA_INSTALL_LOG`
+
+echo "Installing HPSA Agent"
+
+# Redirect messages to the log
+exec >> $HPSA_INSTALL_LOG
+exec 2>> $HPSA_INSTALL_LOG
+
+HPSA_BIN=/opt/hpsa/hpsa-agent
+
+# Print diagnostic messages
+echo "START NETWORK DIAGNOSTIC INFO"
+gw=`echo %(gwIpPort)s | cut -d':' -f1`
+port=`echo %(gwIpPort)s | cut -d':' -f2`
+ifconfig -a
+route -n
+for i in `seq 20` ; do
+    python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(10); s.connect(('$gw', $port)); print 'Gateway $gw listening on port $port'"
+    if [ $? -eq 0 ] ; then break; fi
+    sleep $i
+done
+echo "END NETWORK DIAGNOSTIC INFO"
+
+# Copy mid and crypto
+echo "COPYING MID & CRYPTO"
+mkdir -p /etc/opt/opsware/agent
+mkdir -p /var/opt/opsware/crypto
+cp -p /opt/hpsa/mid /etc/opt/opsware/agent/mid
+cat /etc/opt/opsware/agent/mid
+# Use GNU tar on Solaris
+gtar -xvf /opt/hpsa/crypto.tar -C /var/opt/opsware/crypto
+ls /var/opt/opsware/crypto/agent/
+
+# Run the installer
+$HPSA_BIN -s --settime --force_full_hw_reg --force_sw_reg \\
+    --logfile $HPSA_INSTALL_LOG    \\
+    --opsw_gw_addr %(gwIpPort)s
+RC=$?
+
+if [ $RC -eq 0 ] ; then
+    echo "Agent Installation successful"
+    # self destruct
+    svcadm disable svc:/hpsa-agent-installer:default
+    pkg uninstall pkg:/hpsa-agent-installer
+    pkg unset-publisher hpsa
+    exit $SMF_EXIT_OK
+else
+    #  The installer also logs here, so no extra message is needed
+    echo "Agent Installation Failed"
+    # Don't exit with an error because SMF will keep trying to rerun this service
+    exit $SMF_EXIT_OK
+fi
+"""
+
+PACKAGE_MANIFEST_CONTENTS = """set name=pkg.fmri value=hpsa-agent-installer@1.0,5.11
+set name=pkg.summary value="HPSA Agent first-boot installer"
+file path=lib/svc/manifest/hpsa/hpsa-agent-installer.xml mode=0444 owner=root group=sys
+dir path=opt/hpsa mode=0755 owner=root group=sys
+file path=opt/hpsa/hpsa-agent-installer.sh mode=0555 owner=root group=sys
+file path=opt/hpsa/hpsa-agent mode=0555 owner=root group=sys
+file path=opt/hpsa/mid mode=0644 owner=root group=sys
+file path=opt/hpsa/crypto.tar mode=0644 owner=root group=sys
+"""
+
+HPSA_AGENT_PATH = "/tmp/hpsa_agent_installer"
+AGENT_INSTALLER_REPO_PATH = "/tmp/hpsa-repo"
+AI_XML_PATH = "/tmp/ai.xml"
+
+
+class LocalIPSRepo(object):
+
+    """A local Solaris 11 IPS repository directory structure"""
+
+    def __init__(self, workingDir, publisherName):
+
+        self.workdir = workingDir
+        self.repodir = os.path.join(self.workdir, "repo")
+        self.pubName = publisherName
+
+    def create(self):
+        helpers.makeDirs(self.workdir)
+        if os.path.exists(self.repodir):
+            shutil.rmtree(self.repodir)
+        process.runIt("pkgrepo create %s" % self.repodir, log=LOG)
+        process.runIt("pkgrepo -s %s add-publisher %s" % (self.repodir, self.pubName), log=LOG)
+
+    def publishPackage(self, manifestPath, protoPath):
+        process.runIt("pkgsend publish -d %s -s %s %s" %
+                      (protoPath, self.repodir, manifestPath), log=LOG)
+
+
+def packageAgent(tempDir):
+    """Packages the agent into an IPS repo"""
+
+    helpers.makeDirs(os.path.join(tempDir, "proto/opt/hpsa"))
+    helpers.makeDirs(os.path.join(tempDir, "proto/lib/svc/manifest/hpsa"))
+
+    pkgManifestFilePath = os.path.join(tempDir, "hpsa-agent-installer.p5m")
+    pkgManifestFile = open(pkgManifestFilePath, "w")
+    pkgManifestFile.write(PACKAGE_MANIFEST_CONTENTS)
+    pkgManifestFile.flush()
+    pkgManifestFile.close()
+
+    svcManifestFile = open(
+        os.path.join(tempDir, "proto/lib/svc/manifest/hpsa/hpsa-agent-installer.xml"), "w")
+    svcManifestFile.write(SERVICE_MANIFEST_CONTENT)
+    svcManifestFile.flush()
+    svcManifestFile.close()
+
+    installerScriptFile = open(os.path.join(tempDir, "proto/opt/hpsa/hpsa-agent-installer.sh"), "w")
+    installerScript = INSTALLER_SCRIPT_TEMPLATE % {
+        "gwIpPort": LocalServer.gateway2str(ThisLocalServer().getRandomAgentGateway())
+    }
+    installerScriptFile.write(installerScript)
+    installerScriptFile.flush()
+    installerScriptFile.close()
+
+    shutil.copy2(HPSA_AGENT_PATH, os.path.join(tempDir, "proto/opt/hpsa/hpsa-agent"))
+
+    copyMidCrypto(tempDir)
+
+    repo = LocalIPSRepo(AGENT_INSTALLER_REPO_PATH, "hpsa")
+    repo.create()
+    repo.publishPackage(pkgManifestFilePath, os.path.join(tempDir, "proto"))
+
+
+def injectAIRepo():
+    """Injects the hpsa agent installer repository into the AI manifest"""
+
+    aiFile = open(AI_XML_PATH, "r")
+    aiManifest = AIManifest(aiFile)
+    aiManifest.addIPSPublisher("hpsa", (["file:///hpsa/repo"], []))
+    aiManifest.addIPSPackage("pkg:/hpsa-agent-installer@latest")
+    aiManifest.save()
+    aiFile.close()
+
+
+def copyMidCrypto(tempDir):
+    """Copies mid and crypto to agent packaging directory"""
+
+    server = ThisLocalServer()
+    shutil.copy2(server.MID_FILE, os.path.join(tempDir, "proto/opt/hpsa/mid"))
+    cryptoTar = tarfile.open(os.path.join(tempDir, "proto/opt/hpsa/crypto.tar"), "w")
+    cryptoTar.add(server.CRYPTO_DIR, arcname="agent")
+    cryptoTar.close()
+
+
+@HandleShowErrorMessage("Integrate Solaris 11 HPSA Agent", LOG)
+def main():
+    if not os.path.isfile(HPSA_AGENT_PATH):
+        raise ShowErrorMessage("HPSA Agent not found, have you run the 'Deploy Agent' step?")
+    tempDir = tempfile.mkdtemp()
+    LOG.info("Temporary directory for agent packaging created at: %s" % tempDir)
+    packageAgent(tempDir)
+    print "Successfully packaged HPSA Agent..."
+    shutil.rmtree(tempDir)
+    injectAIRepo()
+    print "Successfully integrated HPSA Agent with IPS Install..."
+
+
+if __name__ == "__main__":
+    sys.exit(main())

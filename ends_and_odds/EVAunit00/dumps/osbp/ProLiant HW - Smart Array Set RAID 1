@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "ProLiant Scripting Toolkit for Linux x64", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Smart Array Configuration - Set RAID 1", 
+        "parameters": "/tmp/sstk/hpssacli/acuinput.ini"
+    }, 
+    {
+        "name": "Manage Smart Array Configuration", 
+        "parameters": "-i /tmp/sstk/hpssacli/acuinput.ini -internal -reset"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64 --force"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }
+]

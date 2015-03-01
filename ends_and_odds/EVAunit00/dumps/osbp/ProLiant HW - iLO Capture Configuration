@@ -1,0 +1,34 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "LinuxPE add-on packages", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ProLiant Scripting Toolkit for Linux x64", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Manage iLO Configuration", 
+        "parameters": "-w @configuration_location@"
+    }, 
+    {
+        "name": "Capture Configuration File", 
+        "parameters": "@configuration_location@"
+    }
+]

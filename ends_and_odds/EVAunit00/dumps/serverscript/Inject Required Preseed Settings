@@ -1,0 +1,112 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+Inject required options and move the file onto the boot
+partition. """
+
+import os
+import sys
+
+from osprov.constants import MONITORING_STOP_FLAG
+from osprov.decorators import HandleShowErrorMessage
+from osprov.profile.preseed import Preseed
+from osprov.diskmgr.diskmanager import DiskManager
+from osprov.osbp import logger
+from osprov.diskmgr.disk import Disk
+from osprov import helpers
+from osprov.server import ThisLocalServer
+
+LOG = logger.getIt('inject_required')
+
+BASE_PS_FILE = "tmp/preseed.cfg"
+BOOT_DISK = "@boot_disk@"  # ScriptWeaver will parametrize this data at run time
+
+
+def initPreseed(baseFile):
+    """ Initialize a Preseed object """
+    return Preseed(open(baseFile, "r"))
+
+
+def writeFinalPs(psobj):
+    """ Write the preseed file onto the boot disk """
+    psfile = open(BASE_PS_FILE, "w")
+    psfile.write(str(psobj))
+    psfile.close()
+    LOG.info("Preseed contents after injecting required settings")
+    LOG.info(str(psobj))
+    print "Preseed file written to disk"
+
+
+def injectMonitoringAgentPreScript(targetServer, psobj):
+    """ Configure the monitoring osprov ogfs agent to start during the install before anything else """
+    agwIp, agwPort = targetServer.getRandomAgentGateway()
+    ogfsAgentStartScript = targetServer.getOgfsAgentStartupScript(
+        agent=targetServer.AGENT_PATH,
+        agwIpPort="%s:%s" % (
+            agwIp, agwPort),
+        env="LD_LIBRARY_PATH=%s" % os.path.join(
+            targetServer.AGENT_PATH, "osprov/lib"),
+        flags={"daemonize": True, "mount": False, "quiet": True})
+    LOG.debug("Using the following script to start the monitoring agent:\n%s" %
+              ogfsAgentStartScript)
+    psobj.setPreScript(script=ogfsAgentStartScript)
+
+
+def injectDisk(preseed):
+    """ Inject the disk the installer to use. Only do this if the user does not have custom partitioning.
+        Also make use of the boot_disk custom attribute. """
+    # Only set the disk if the user does not have custom partitioning.
+    _cmd, (_type, value) = getattr(preseed, "d-i partman-auto/disk", (None, (None, "")))
+    if not value.strip():
+        # Use the first disk for partitioning or the one specified by the boot_disk CA.
+        if BOOT_DISK and not "@" in BOOT_DISK:
+            bootDisk = Disk(BOOT_DISK).getDeviceFilePath()
+            print "Injecting 'd-i partman-auto/disk %s' into the preseed" % bootDisk
+        else:
+            bootDisk = None
+            print "Configuring 'd-i partman-auto/disk' to use the first available disk"
+        preseed.setDisk(bootDisk)
+        return True
+    else:
+        return False
+
+
+@HandleShowErrorMessage("inject required preseed settings", LOG)
+def main():
+    """ Do the injection into the preseed """
+    try:
+        targetServer = ThisLocalServer()
+        keys = helpers.getDataStore(targetServer)
+
+        preseed = initPreseed(BASE_PS_FILE)
+        mediaUrl = keys.media.url
+
+        if not mediaUrl.startswith("http:"):
+            print "Provisioning Ubuntu Server through anything other than http is not yet supported : \n%s" % str(
+                mediaUrl)
+            return 100
+
+        preseed.setMediaSource(mediaUrl)
+        preseed.setNetworkInterfaceToAuto()
+
+        injectDisk(preseed)
+
+        # Start the ogfs agent during the installation.
+        injectMonitoringAgentPreScript(targetServer, preseed)
+        # This flag is used to stop the monitoring step.
+        preseed.setPostScript("touch %s" % MONITORING_STOP_FLAG)
+        # Stop the installer in order to integrate the HPSA agent.
+        preseed.stopInstaller()
+
+        writeFinalPs(preseed)
+        print "Successfully injected required settings"
+        LOG.info("Preseed after required settings were injected:\n%s" % str(preseed))
+    except (IOError, OSError), why:
+        LOG.exception(why)
+        sys.stderr.write("Failed to inject required settings.%s\n" % why)
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())

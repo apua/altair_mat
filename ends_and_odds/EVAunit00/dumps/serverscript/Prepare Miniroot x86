@@ -1,0 +1,100 @@
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will unpack, resize and modify the Solaris miniroot to include
+all necessary files for automated installation.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+import os
+import sys
+import shutil
+import tarfile
+from osprov import helpers
+from osprov.osbp import logger
+from osprov.server import ThisLocalServer
+from osprov.decorators import HandleShowErrorMessage
+from osprov.wrappers.boot_archive import BootArchive
+
+
+LOG = logger.getIt("Prepare Miniroot x86")
+
+
+def createConfigTar(jumpstartDir):
+    """ Creates the config.tar file in the jumpstart directory on the mounted path """
+    os.chdir(jumpstartDir)
+    configTarPath = os.path.join(jumpstartDir, "config.tar")
+
+    LOG.debug("Jumpstart Configuration .tar path : %s" % configTarPath)
+    tar = tarfile.open(configTarPath, "w:")
+    configFilesList = os.listdir(jumpstartDir)
+    for configFile in configFilesList:
+        tar.add(configFile)
+    LOG.debug("Files compressed in %s : %s" % (configTarPath, str(tar.getmembers())))
+    tar.close()
+    return configTarPath
+
+
+def injectJumpstartToMiniroot(jumpstartDir, unpackMrDir):
+    """ Copies Jumpstart files to the mounted miniroot """
+    createConfigTar(jumpstartDir=jumpstartDir)
+    destJumpstartDir = os.path.join(unpackMrDir, "jumpstart/")
+    shutil.copytree(jumpstartDir, destJumpstartDir)
+    LOG.debug("Injected Jumpstart Files to miniroot %s " % destJumpstartDir)
+
+
+def injectAgentFilesToMiniroot(tmpOGFSAgentPath, unpackMrDir):
+    """ Copies ogfs agent files to the mounted miniroot """
+    destOGFSAgentPath = os.path.join(unpackMrDir, "opt/opsware/agent/")
+    shutil.copytree(tmpOGFSAgentPath, destOGFSAgentPath)
+    LOG.debug("Injected Agent Files to miniroot %s " % destOGFSAgentPath)
+
+
+def injectSmbiosToMiniroot(smbiosPath, unpackMrDir):
+    """ Copies smbios filee to the mounted miniroot """
+    destSmbiosPath = os.path.join(unpackMrDir, "dev/smbios")
+    shutil.copyfile(smbiosPath, destSmbiosPath)
+    LOG.debug("Injected smbios File to miniroot %s " % destSmbiosPath)
+
+
+def setupMiniroot(minirootObj):
+    """ Unpacking, resizing and mounting miniroot """
+    minirootObj.unpack()
+    minirootObj.grow(200)
+    minirootObj.mount()
+    LOG.info("Unpacked, resized and mounted the miniroot")
+
+
+def cleanupMiniroot(minirootObj):
+    """ Unmounting, repacking and cleaning up miniroot """
+    minirootObj.umount()
+    minirootObj.repack()
+    minirootObj.cleanup()
+    LOG.info("Umounted, repacked and cleaned up the miniroot")
+
+
+@HandleShowErrorMessage("Prepare Miniroot x86", LOG)
+def main():
+    """ Injecting the necessary files to the install miniroot """
+    keys = helpers.getDataStore()
+    targetServer = ThisLocalServer()
+    minirootObj = BootArchive(
+        osVersion="10", log=LOG, dataStoreKeys=keys, thisLocalServer=targetServer)
+
+    setupMiniroot(minirootObj=minirootObj)
+
+    stubMountpoint = keys.disk.device_mount
+    jumpstartDir = os.path.join(stubMountpoint, "jumpstart")
+    injectJumpstartToMiniroot(jumpstartDir, minirootObj.mountpoint)
+    injectAgentFilesToMiniroot("/tmp/opt/opsware/agent", minirootObj.mountpoint)
+    injectSmbiosToMiniroot("/dev/smbios", minirootObj.mountpoint)
+
+    cleanupMiniroot(minirootObj=minirootObj)
+    print "Prepare Miniroot x86 terminated successfully."
+
+
+if __name__ == "__main__":
+    sys.exit(main())

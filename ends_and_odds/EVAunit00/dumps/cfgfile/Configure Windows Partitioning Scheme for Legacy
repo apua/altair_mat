@@ -1,0 +1,10 @@
+LIST disk
+SELECT disk @SystemDiskNumber:0@
+CLEAN
+CONVERT mbr
+CREATE partition primary
+FORMAT fs=ntfs label="System" quick
+ASSIGN letter=@SystemDrive:C@
+ACTIVE
+DETAIL partition
+EXIT

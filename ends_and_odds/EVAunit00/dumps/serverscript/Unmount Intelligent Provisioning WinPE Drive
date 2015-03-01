@@ -1,0 +1,25 @@
+@echo off
+
+:: (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+:: Unmount the drives containing Intelligent Provisioning WinPE drivers 
+echo Checking for existence of Intelligent Provisioning WinPE driver Volume to unmount
+set flag=0
+for %%d in (c d e f g h i j k l m n o p q r s t u v w y ) do (
+if exist %%d:\$WinPEdriver$\ (
+    echo Found drive %%d that contains Intelligent Provisioning WinPE drivers
+    set flag=1
+    mountvol %%d: /p
+    if NOT %errorlevel%==0 (
+        echo Failed to unmount the drive %%d that contains Intelligent Provisioning WinPE drivers
+	
+    )else  (
+	echo Successfully unmounted the drive %%d that contains Intelligent Provisioning WinPE drivers
+	
+    )
+  )
+)
+
+
+if %flag%==0 (
+    echo No drive found that contains Intelligent Provisioning WinPE drivers,skipping unmounting
+)

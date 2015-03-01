@@ -1,0 +1,208 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+import re
+import subprocess
+import os.path
+from sys import platform as _platform
+from subprocess import Popen, PIPE, STDOUT
+from osprov import ilo
+from osprov.osbp import logger
+from osprov.errors import ShowErrorMessage
+from osprov.server import ThisLocalServer
+
+DEBUG=@Debug:0@
+
+log = logger.getIt("Delete UEFI Custom Boot Options")
+
+# Writes an debug message to stdout and the logger.
+def writeDebugMessage(msg):
+
+    # Write the message to stdout so that it shows up in the job output.
+    if (DEBUG):
+        print msg
+
+    # Write the message to the logger so that it shows up in the log files.
+    log.debug(msg);
+
+# Writes an info message to stdout and the logger.
+def writeInfoMessage(msg):
+
+    # Write the message to stdout so that it shows up in the job output.
+    print msg
+
+    # Write the message to the logger so that it shows up in the log files.
+    log.info(msg);
+
+# Writes an error message to stderr and the logger.
+def writeErrorMessage(msg):
+
+    # Write the message to stderr so that it shows up in the job output.
+    sys.stderr.write(msg)
+
+    # Write the message to the logger so that it shows up in the log files.
+    log.error(msg);
+
+# Converts the specified list to a string that is delimited by the specified
+# delimiter character (default = ' ').
+def listToString(list, delimeter=' '):
+
+    str = delimeter.join(list)
+
+    return str
+
+# Executes the specified command, which must be a list contaning the 
+# executable name and its arguments.
+def executeCommand(cmdArgs):
+
+    cmdAsString = listToString(cmdArgs)
+
+    writeDebugMessage("Executing => %s" % cmdAsString)
+
+    p = subprocess.Popen(cmdArgs, stdout=subprocess.PIPE, stderr=STDOUT)
+
+    output = p.communicate()[0].strip()
+
+    retCode = p.poll()
+
+    p.stdout.close()
+
+    return retCode, output
+
+# Adds a boot option for ESXi to the top of the UEFI Boot Order.
+def getBootOptions():
+
+    cmdArgs = ["efibootmgr", "-v"]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode != 0):
+        writeErrorMessage("Failed to get the list of boot options")
+        raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+    return output.splitlines()
+
+# Returns the list of custom boot options.
+def getCustomBootOptions():
+
+    # Initialize custom boot options list.
+    customBootOptions = []
+
+    bootOptions = getBootOptions();
+
+    if (len(bootOptions) > 0):
+        customBootOptionPattern = re.compile(r"^Boot[0-9A-Za-z]{4}.*File\(.+\).*$")
+
+        for bootOption in bootOptions:
+            result = customBootOptionPattern.search(bootOption)
+
+            if result:
+                writeDebugMessage("customBootOption = %s" % bootOption)
+                customBootOptions.append(bootOption)
+    else:
+        writeErrorMessage("No boot options found")
+        raise ShowErrorMessage("No boot options found");
+
+    return customBootOptions
+
+# Deletes the boot option that corresponds to the specified boot option ID.
+def deleteBootOption(bootOptionID):
+
+    cmdArgs = ["efibootmgr", "--inactive", "--bootnum", bootOptionID]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode == 0):
+        writeDebugMessage("Successfully inactivated boot option ID '%s'" % bootOptionID)
+    else:
+        writeErrorMessage("Failed to inactivate boot option ID '%s'" % bootOptionID)
+        raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+    cmdArgs = ["efibootmgr", "--delete-bootnum", "--bootnum", bootOptionID]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode == 0):
+        writeDebugMessage("Successfully deleted boot option ID '%s'" % bootOptionID)
+    else:
+        writeErrorMessage("Failed to deleted boot option ID '%s'" % bootOptionID)
+        raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+# Deletes the custom boot options.
+def deleteCustomBootOptions():
+
+    # Get the list of custom boot options.
+    customBootOptions = getCustomBootOptions();
+
+    if (len(customBootOptions) == 0):
+        writeInfoMessage("No custom boot options found")
+        return 0
+
+    # Extract the "####" ID from "Boot####".
+    bootOptionIdPattern = re.compile(r"^[Bb][Oo][Oo][Tt]([0-9A-Za-z]{4}).*")
+
+    # Delete all the custom boot options using their "####" ID.
+    for customBootOption in customBootOptions:
+        result = bootOptionIdPattern.search(customBootOption)
+
+        if result:
+            writeInfoMessage("Deleting custom boot option => %s" % customBootOption)
+
+            bootOptionID = result.group(1)
+
+            deleteBootOption(bootOptionID)
+
+# Returns "True" if the server is in UEFI mode; "False" otherwise.
+def isServerInUefiMode():
+
+    targetServer = ThisLocalServer()
+
+    iloServer = ilo.getIlo(targetServer, log=log)
+
+    currentBootMode = iloServer.getCurrentBootMode()
+
+    uefiPattern = re.compile(r".*UEFI.*")
+
+    result = uefiPattern.search(currentBootMode)
+
+    if result:
+        uefiMode = True
+    else:
+        uefiMode = False
+
+    return uefiMode
+
+# Returns "True" if the OS is supported; "False" otherwise.  Currently this script can
+# only be run on Linux OSs which provide the "efibootmgr" utility.
+def checkIfOsIsSupported():
+
+    if (DEBUG):
+        print "_platform = %s" % _platform
+
+    if _platform == "linux" or _platform == "linux2" or _platform == "linux-x86_64":
+        return True
+    else:
+        return False
+
+# Main Routine
+def main():
+
+    if (checkIfOsIsSupported()):
+        if (isServerInUefiMode()):
+            writeDebugMessage("Boot Mode is UEFI")
+            deleteCustomBootOptions()
+        else:
+            print "Boot Mode is not UEFI.  Skipping this step."
+    else:
+        writeErrorMessage("This script can only be run on Linux\n")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())

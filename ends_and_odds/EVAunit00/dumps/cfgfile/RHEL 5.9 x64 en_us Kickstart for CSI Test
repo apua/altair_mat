@@ -1,0 +1,56 @@
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+lang en_US
+keyboard us
+timezone --utc Asia/Taipei
+text 
+install
+key --skip
+network  --bootproto dhcp 
+xconfig --startxonboot 
+authconfig --enableshadow --enablemd5
+rootpw @administrator@
+ 
+clearpart --all --initlabel 
+autopart
+ 
+bootloader --append="@kernel_arguments: @" --location=mbr
+ 
+# Disable firewall and selinux for SPP components
+firewall --disabled
+selinux --disabled
+ 
+%packages
+@Base
+@ Core
+@ Administration Tools
+@ Legacy Software Support
+@ System Tools
+@ DNS Name Server
+@ Legacy Network Server
+@ Network Servers
+@ Server Configuration Tools
+@ Development Tools
+@ FTP Server
+@ GNOME Desktop Environment
+@ GNOME Software Development
+@ X Window System
+@ Graphical Internet
+lm_sensors
+libnl
+
+
+ 
+# Components listed below are needed to run HPSUM and SPP components
+libICE.i386
+libSM.i386
+libXau.i386
+libXdmcp.i386
+libX11.i386
+libXrender.i386
+freetype.i386
+fontconfig.i386
+libXext.i386
+ 
+make
+net-snmp
+net-snmp-libs

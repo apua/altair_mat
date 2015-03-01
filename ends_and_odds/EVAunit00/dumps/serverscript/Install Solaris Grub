@@ -1,0 +1,120 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will install grub on the stub partition and the MBR of its containing
+disk. Also it will install a default grub.cfg file depending on the OS.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+
+from osprov import helpers
+from osprov.util import process
+from osprov.optparse_ext import OptionParser, OptionValueError
+from osprov.decorators import HandleShowErrorMessage
+from osprov.errors import NotSupportedError, DiscoveryError
+from osprov.osbp import logger
+from osprov.server.local import ThisLocalServer, LocalServer
+
+GRUB_CFG_DEST = "boot/grub/grub.cfg"
+
+SOLARIS10_GRUB_CFG_TEMPLATE = """
+set timeout=10
+set default="0"
+
+menuentry "HPSA assisted Oracle Solaris %(osVersion)s install" {
+    search --no-floppy --file --set=root /@/sol-x86/multiboot
+    set mod=/@/sol-x86/x86.miniroot
+    set kern=/@/sol-x86/multiboot
+    echo -n "Loading (${root})$kern:"
+    multiboot $kern $kern kernel/unix - install dhcp file:///jumpstart/config.tar
+    echo -n "Loading $mod:"
+    module $mod $mod
+}
+"""
+
+SOLARIS11_GRUB_CFG_TEMPLATE = """set timeout=10
+set default="0"
+
+menuentry "HPSA assisted Oracle Solaris %(osVersion)s install" {
+    search --no-floppy --file --set=root /@/platform/i86pc/kernel/amd64/unix
+    set kern=/@/platform/i86pc/kernel/amd64/unix
+    echo -n "Loading (${root})$kern: "
+    multiboot $kern $kern -B install=true,install_media=,install_service=,install_svc_address=,hpsaagw=%(gwIpPort)s,livemode=text
+    echo -n "Loading (${root})/platform/i86pc/amd64/boot_archive: "
+    module /@/platform/i86pc/amd64/boot_archive
+}
+"""
+
+LOG = logger.getIt("Install Solaris Grub")
+
+
+class InstallSolarisGrubOptionParser (OptionParser):
+
+    def defineOptions(self):
+        self.add_option("-o", "--os-version", dest="version",
+                        help="The Solaris OS version, valid values are: '10', '11.1', '11 11/11'")
+
+    def validateArgs(self, opt, args):
+        if not opt.version:
+            raise OptionValueError("Must specify an OS version argument")
+        elif not opt.version.startswith("11") and not opt.version.startswith("10"):
+            raise OptionValueError("Only Solaris 10 and Solaris 11 are supported")
+
+
+def getGrubTemplate(osVersion):
+    """Return GRUB template for the specified OS Version."""
+    if osVersion.startswith("10"):
+        return SOLARIS10_GRUB_CFG_TEMPLATE
+    if osVersion.startswith("11"):
+        return SOLARIS11_GRUB_CFG_TEMPLATE
+
+
+def writeGrubCfg(opts, agw, grubCfgDest):
+    LOG.info("Writing final grub.cfg file.")
+    g = open(grubCfgDest, "w")
+    g.write(getGrubTemplate(opts.version) % {
+            'osVersion': opts.version,
+            'gwIpPort': agw
+            })
+    g.close()
+
+
+@HandleShowErrorMessage("Install Solaris Grub", LOG)
+def main():
+    """Installs grub on stub partition."""
+
+    if not os.uname()[-1].startswith("i86"):
+        raise NotSupportedError("Installing grub is not supported on SPARC.")
+
+    opts, args = InstallSolarisGrubOptionParser().parse_args()
+
+    keys = helpers.getDataStore()
+    rawDevpath = keys.disk.device_path
+    stubMountpoint = keys.disk.device_mount
+    grubCfgDest = os.path.join(stubMountpoint, GRUB_CFG_DEST)
+    grubCfgDir = os.path.dirname(grubCfgDest)
+
+    if not os.path.isdir(grubCfgDir):
+        os.makedirs(grubCfgDir)
+
+    LOG.info("Determining Agent Gateway.")
+    agw = LocalServer.gateway2str(ThisLocalServer().getRandomAgentGateway())
+    if agw is None:
+        raise DiscoveryError("Could not determine the agent gateway")
+
+    grubCmd = "/usr/lib/grub2/bios/sbin/grub-install --grub-directory=%s --recheck --force --force-mbr %s" % (
+        grubCfgDir, rawDevpath)
+    process.runIt(grubCmd, log=LOG)
+
+    writeGrubCfg(opts, agw, grubCfgDest)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

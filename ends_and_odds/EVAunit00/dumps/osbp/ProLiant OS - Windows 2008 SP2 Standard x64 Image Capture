@@ -1,0 +1,86 @@
+[
+    {
+        "name": "Validate Custom Attributes", 
+        "parameters": "--custAttrNames \"WimFileName\""
+    }, 
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Unmap Network Drive", 
+        "parameters": "--driveLetter=Z"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "Prevent WIM File Overwrite", 
+        "parameters": "\"Z:\\Images\\@WimFileName@\""
+    }, 
+    {
+        "name": "ImageX", 
+        "parameters": "%SystemDrive%\\HPPROVTEMP"
+    }, 
+    {
+        "name": "Validate ImageX Package Contents", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Uninstall HP ProLiant Utilities", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Prepare Windows for Image Capture", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=winpe64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Adjust Windows System Disk Number on HP ProLiant Gen8", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Remap Windows Drives", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ImageX", 
+        "parameters": "X:\\Windows\\System32"
+    }, 
+    {
+        "name": "Validate ImageX Package Contents", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Unmap Network Drive", 
+        "parameters": "--driveLetter=Z"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "ImageX Configuration - Windows 2008 SP2 Exclusion List", 
+        "parameters": "x:\\wimscript.ini"
+    }, 
+    {
+        "name": "Windows Image Capture", 
+        "parameters": "--wimFilePath=\"Z:\\Images\\@WimFileName@\" --systemDiskNumber=@SystemDiskNumber:0@ --wimScript=x:\\wimscript.ini"
+    }
+]

@@ -1,0 +1,78 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=winpe64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Install and boot into local WinPE", 
+        "parameters": "--systemDiskNumber=@SystemDiskNumber:0@ --systemDrive=@SystemDrive:c@"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "Prepare Disks on HP ProLiant Gen8", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Configure Windows Partitioning Scheme for Legacy", 
+        "parameters": "X:\\Windows\\Temp\\diskpart_legacy.txt"
+    }, 
+    {
+        "name": "Configure Windows Partitioning Scheme for Uefi", 
+        "parameters": "X:\\Windows\\Temp\\diskpart_uefi.txt"
+    }, 
+    {
+        "name": "Partition Disk for Windows", 
+        "parameters": "--systemDiskNumber=@SystemDiskNumber:0@"
+    }, 
+    {
+        "name": "Windows 2012 DataCenter x64 en_us Unattend for CSI Test", 
+        "parameters": "x:\\Windows\\Temp\\Unattend.xml"
+    }, 
+    {
+        "name": "Inject Required Unattend.xml Settings", 
+        "parameters": "--WindowsPartitionID=Autodetect"
+    }, 
+    {
+        "name": "Inject Personalization Settings", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ProLiant Drivers for Windows 2012 - 2014.02.0", 
+        "parameters": "@SystemDrive:c@:\\$oem$"
+    }, 
+    {
+        "name": "Run Windows 2012 x64 Setup", 
+        "parameters": "\"z:\\Media\\WINDOWS\\win2012\\win2012-x64-en_us\\setup.exe\""
+    }, 
+    {
+        "name": "Integrate HP SA Agent", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

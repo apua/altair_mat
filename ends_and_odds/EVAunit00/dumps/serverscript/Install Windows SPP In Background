@@ -1,0 +1,652 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+"""
+
+import sys
+import os
+import subprocess
+
+from subprocess import Popen, PIPE, STDOUT
+from optparse import OptionParser
+
+DEBUG=@Debug:0@
+
+# The drive letter on which the media server file share is mounted.
+mediaServerDriveLetter = None
+
+# Get the Windows "Temp" directory.
+windowsSystemDrive = os.getenv("SystemDrive")
+windowsTempDir = windowsSystemDrive + "\\Windows\\Temp"
+
+# This is where we will copy the HP SUM applications to, so we can run
+# HP SUM from the target server instead of the remote media server
+# file share.
+localHpSumDir = windowsTempDir + "\\LocalHpSum"
+
+# The directory where we will stage our SPP installation scripts and
+# output files.
+icspTempDir = windowsTempDir + "\\icsp"
+hpSumScript = icspTempDir + "\\hpsum_script.bat"
+hpSumOutputFile = icspTempDir + "\\hpsum_output.txt"
+hpSumExitCodeFile = icspTempDir + "\\hpsum_exit_code.txt"
+sppInstallScript = icspTempDir + "\\spp_install.bat"
+sppOutputFile = icspTempDir + "\\spp_output.txt"
+
+sppDir = None
+sppVersionDir = None
+remoteHpSumDir= None
+
+# HP SUM 5.X uses "hpsum.exe", while HP SUM 6.X uses "hpsum.bat".
+hpSumExe = "hpsum.exe"
+hpSumBat = "hpsum.bat"
+masterDependencyXml = "masterdependency.xml"
+hpSumApp = None
+
+# The options we will pass to HP SUM.  The "/silent" option is required.
+# Additional options may be passed in to this script using the 
+# "--hpsum_options" parameter.
+hpSumOptions="/silent"
+
+# Parses the command line arguments.
+def parseArgs(args):
+    parser = OptionParser()
+    parser.add_option("--spp_version",
+            default = "latest",
+            dest = "sppVersion",
+            help = "The SPP version to install.")
+    parser.add_option("--hpsum_options",
+            default = "",
+            dest = "hpSumOptions",
+            help = "Additional options to pass to hpsum.")
+    parser.add_option("--media_server_drive_letter",
+            default = "z",
+            dest = "mediaServerDriveLetter",
+            help = "The drive letter on which the media server file share is mounted.")
+    options, args = parser.parse_args(args)
+    if args:
+        parser.error("Additional positional arguments are not supported")
+    return options, args
+
+##############################################################################
+# Writes an debug message to stdout.
+##############################################################################
+
+def writeDebugMessage(msg):
+
+    # Write the message to stdout so that it shows up in the job output.
+    if (DEBUG):
+        print msg
+
+##############################################################################
+# Writes an info message to stdout.
+##############################################################################
+
+def writeInfoMessage(msg):
+
+    # Write the message to stdout so that it shows up in the job output.
+    print msg
+
+##############################################################################
+# Writes an error message to stderr.
+##############################################################################
+
+def writeErrorMessage(msg):
+
+    # Write the message to stderr so that it shows up in the job output.
+    sys.stderr.write(msg)
+
+##############################################################################
+# Returns the latest SPP version, which is determined by the directory name
+# who comes first in descending sort order.
+##############################################################################
+
+def getLatestSppVersion():
+
+    writeDebugMessage("Searching for the latest SPP")
+
+    # Get the subdirectories under the "Media/spp" directory.
+    sppVersions = [name for name in os.listdir(sppDir) if os.path.isdir(os.path.join(sppDir, name))]
+
+    # Sort the directories in descending order.
+    sortedSppVersions = sorted(sppVersions, reverse=True)
+
+    if (len(sortedSppVersions) == 0):
+        raise Exception("No SPP versions were found under the '%s' directory." % sppDir)
+
+    writeDebugMessage("Found %d SPP versions under '%s'" % (len(sortedSppVersions),sppDir))
+    writeDebugMessage("Selected '%s' as latest SPP" % sortedSppVersions[0])
+
+    # Return the first directory, which should represent the latest SPP based
+    # on sort order, assuming the name convention is "YYYY.MM".
+    return sortedSppVersions[0]
+
+##############################################################################
+# Creates our temporary ICSP directory on which we will land our scripts that
+# run HP SUM.
+##############################################################################
+
+def createIcspTempDir():
+
+    writeDebugMessage("Creating %s" % icspTempDir)
+
+    dirExists = False;
+
+    # Check if "icsp" already exists, and is a directory, not a file.  If it's
+    # a file, remove it.
+    if (os.path.exists(icspTempDir)):
+        if (os.path.isdir(icspTempDir)):
+            dirExists = True
+        else:          
+            removeFile(icspTempDir)
+
+    # If the directory didn't already exist, then create it.
+    if (not dirExists):
+        cmdArgs = ["mkdir", icspTempDir]
+
+        retCode, output = executeCommand(cmdArgs)
+
+        if (retCode != 0):
+            raise Exception("An error occurred while creating directory '%s': %s" % (icspTempDir, output))
+
+##############################################################################
+# Create the "LocalHpSum" directory where we are going to copy the necessesary
+# HPSUM application files.  The firmware files and software packages will
+# remain on the media server.  The reason why we copy the HP SUM application
+# files locally, is because, otherwise, HP SUM might get a segmentation fault
+# when the NIC firmware is updated, due to loss of network connectivity with
+# the media server.  It's possible that not all pages are loaded into memory,
+# which is a problem if the NIC goes down and another page is requested.
+##############################################################################
+
+def createLocalHpSumDir():
+
+    writeDebugMessage("Creating %s" % localHpSumDir)
+
+    if (os.path.exists(localHpSumDir)):
+        if not (os.path.isdir(localHpSumDir)):
+            raise Exception("'%s' exists, but is not a directory." % localHpSumDir)
+    else:
+        cmdArgs = ["mkdir", localHpSumDir]
+
+        retCode, output = executeCommand(cmdArgs)
+
+        if (retCode != 0):
+            raise Exception("An error occurred while creating directory '%s': %s" % (localHpSumDir, output))
+
+##############################################################################
+# Copies the HP SUM 6.X application files locally to the target server.  The
+# reason for copying the files locally, is because HP SUM will core dump if
+# it's run remotely from the media server and the NIC firmware is updated,
+# causing the network connection to be lost.
+##############################################################################
+ 
+def copyHpSum6AppsToTargetServer():
+
+    global hpSumApp
+
+    createLocalHpSumDir()
+
+    fullPathToMasterDependency = remoteHpSumDir + "\\" + masterDependencyXml
+
+    # Copy the "masterdependency.xml" file locally to the target server.
+    cmdArgs = ["copy", "/Y", fullPathToMasterDependency, localHpSumDir]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode != 0):
+        raise Exception("An error occured while copying '%s' to '%s': %s" % (fullPathToMasterDependency, localHpSumDir, output))
+
+    fullPathToHpSumBat = remoteHpSumDir + "\\" + hpSumBat
+
+    writeDebugMessage("Copying HP SUM 6.X files locally to target server")
+
+    # Copy the "hpsum.bat" file locally to the target server.
+    cmdArgs = ["copy", "/Y", fullPathToHpSumBat, localHpSumDir]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode != 0):
+        raise Exception("An error occured while copying '%s' to '%s': %s" % (fullPathToHpSumBat, localHpSumDir, output))
+
+    # These are the subdirectories needed by HP SUM to run locally to the target server.
+    subDirs = [ "x64", "x86", "cygwin", "assets"]
+
+    # Copy the subdirectories needed by HP SUM locally to the target server.
+    for dirName in subDirs:
+        fullPathToRemoteSubDir = remoteHpSumDir + "\\" + dirName
+        fullPathToLocalSubDir = localHpSumDir + "\\" + dirName
+
+        cmdArgs = ["xcopy", "/s", "/y", "/i", "/q", fullPathToRemoteSubDir, fullPathToLocalSubDir]
+
+        retCode, output = executeCommand(cmdArgs)
+
+        if (retCode != 0):
+            raise Exception("An error occured while copying '%s' to '%s': %s" % (fullPathToRemoteSubDir, fullPathToLocalSubDir, output))
+
+##############################################################################
+# Gets the HP SUM application to call, which is different, depending on
+# whether HP SUM 6.X is being used or HP SUM 5.X is being used.
+##############################################################################
+
+def getHpSumApp():
+
+    hpSumAppToCall = None
+
+    # HP SUM 6.X uses "hpsum.bat".
+    fullPathToHpSumBat = remoteHpSumDir + "\\" + hpSumBat
+
+    # HP SUM 5.X uses "hpsum.exe".
+    fullPathToHpSumExe = remoteHpSumDir + "\\" + hpSumExe
+
+    # HP SUM 6.X uses "hpsum.bat", whereas HP SUM 5.X uses "hpsum.exe".
+    if (os.path.exists(fullPathToHpSumBat)):
+        writeDebugMessage("Found %s" % fullPathToHpSumBat)
+
+        # This is the executable that we'll call to install HP SUM 6.X.
+        hpSumAppToCall = hpSumBat
+    elif (os.path.exists(fullPathToHpSumExe)):
+        writeDebugMessage("Found %s" % fullPathToHpSumExe)
+
+        # This is the executable that we'll call to install HP SUM 5.X.
+        hpSumAppToCall = hpSumExe
+    else:
+        raise Exception("Could not find '%s' or '%s'" % (fullPathToHpSumBat, fullPathToHpSumExe))
+
+    return hpSumAppToCall
+
+##############################################################################
+# Removes the specified file.
+##############################################################################
+
+def removeFile(filePath):
+
+    writeDebugMessage("Removing file %s" % filePath)
+
+    cmdArgs = ["del", "/q", "/s", filePath]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode != 0):
+        raise Exception("An error occurred while removing file '%s': %s" % (filePath, output))
+
+##############################################################################
+# Removes the specified directory.
+##############################################################################
+
+def removeDir(dirPath):
+
+    writeDebugMessage("Removing directory %s" % dirPath)
+
+    cmdArgs = ["rmdir", "/q", "/s", dirPath]
+
+    retCode, output = executeCommand(cmdArgs)
+
+    if (retCode != 0):
+        raise Exception("An error occurred while removing directory '%s': %s" % (dirPath, output))
+
+##############################################################################
+# Removes the HP SUM temporary directory.
+##############################################################################
+
+def removeHpSumTempDir():
+    writeDebugMessage("Removing HP SUM temporary directory")
+
+    # HP SUM 5.X and HP SUM 6.X used different temporary directory, so lets
+    # check for both.
+    hpSum5TempDir = windowsTempDir + "\\hp_sum"
+    hpSum6TempDir = windowsTempDir + "\\HPSUM"
+
+    for tempDir in [ hpSum5TempDir, hpSum6TempDir]:
+        if (os.path.exists(tempDir)):
+            if (os.path.isdir(tempDir)):
+                removeDir(tempDir)
+            else:
+                removeFile(tempDir)
+
+##############################################################################
+# delimiter character (default = ' ').
+##############################################################################
+
+def listToString(list, delimeter=' '):
+
+    str = delimeter.join(list)
+
+    return str
+
+##############################################################################
+# Executes the specified command, which must be a list contaning the 
+# executable name and its arguments.
+##############################################################################
+
+def executeCommand(cmdArgs):
+
+    cmdAsString = listToString(cmdArgs)
+
+    writeDebugMessage("Executing => " + cmdAsString)
+
+    p = subprocess.Popen(cmdArgs, stdout=subprocess.PIPE, stderr=STDOUT, shell=True)
+
+    output = p.communicate()[0].strip()
+
+    retCode = p.poll()
+
+    p.stdout.close()
+
+    return retCode, output
+
+##############################################################################
+# Executes the specified command, which must be a list contaning the 
+# executable name and its arguments, and returns immediately, without
+# waiting for the process to finish.
+##############################################################################
+
+def executeCommandAndDetach(cmdArgs):
+
+    cmdAsString = listToString(cmdArgs)
+
+    writeDebugMessage("Executing => " + cmdAsString)
+
+    retCode = 0
+
+    try:
+        CREATE_NO_WINDOW=0x08000000
+        CREATE_NEW_PROCESS_GROUP=0x00000200
+        CREATE_BREAKAWAY_FROM_JOB=0x01000000
+
+        p = subprocess.Popen(cmdArgs, close_fds = True, creationflags=CREATE_NO_WINDOW|CREATE_NEW_PROCESS_GROUP|CREATE_BREAKAWAY_FROM_JOB)
+
+        retCode = p.poll()
+    except (Exception), why:
+        retCode = 1
+        sys.stderr.write("An error occured while executing '%s': %s" % (cmdAsString,str(why)))
+
+    return retCode
+
+##############################################################################
+# Checks if the specified directory is accessible.
+##############################################################################
+
+def checkIfDirIsAccessible(dirPath):
+
+    if (os.path.exists(dirPath)):
+        if not (os.path.isdir(dirPath)):
+            raise Exception("'%s' is not a directory." % dirPath)
+    else:
+        raise Exception("The directory '%s' does not exist or the file share is not mounted." % dirPath)
+
+##############################################################################
+# Checks if the SPP directory is accessible.
+##############################################################################
+
+def checkIfSppDirIsAccessible():
+
+    global sppDir
+
+    if (sppDir is not None):
+        try:
+            checkIfDirIsAccessible(sppDir)
+        except (Exception), why:
+            raise Exception("The SPP directory is not accessible: %s" % why)
+    else:
+        raise Exception("The sppDir variable is not set")
+
+##############################################################################
+# Checks if the SPP version directory is accessible.
+##############################################################################
+
+def checkIfSppVersionDirIsAccessible():
+
+    global sppVersionDir
+
+    if (sppVersionDir is not None):
+        try:
+            checkIfDirIsAccessible(sppVersionDir)
+        except (Exception), why:
+            raise Exception("The SPP version directory is not accessible: %s" % why)
+    else:
+        raise Exception("The sppVersionDir variable is not set")
+
+##############################################################################
+# Creates the SPP installation script that runs the HP SUM installation
+# script and captures its output to a file.
+##############################################################################
+
+def createSppInstallScript():
+
+    global hpSumScript
+    global hpSumOutputFile
+    global sppInstallScript
+
+    writeDebugMessage("Creating %s" % sppInstallScript)
+
+    # This is a Python here document containing the contents of the SPP 
+    # installation script.  All this script does is call the HP SUM installation
+    # script and capture its output to a file.
+    scriptContents = """
+call %s > %s
+""" % (hpSumScript,hpSumOutputFile)
+
+    # Write the file.
+    f = open( sppInstallScript, 'w')
+    f.write( scriptContents )
+    f.close()
+
+##############################################################################
+# Creates the HP SUM installation script that stops the SA agent, runs
+# HP SUM, and starts the SA agent again.
+##############################################################################
+
+def createHpSumScript():
+
+    global hpSumOptions
+    global localHpSumDir
+    global remoteHpSumDir
+    global mediaServerDriveLetter
+    global hpSumApp
+    global hpSumBat
+
+    writeDebugMessage("Creating %s" % hpSumScript)
+
+    # The 'hpSumApp' variable should have been set in the function that copies
+    # the HP SUM applications locally to the target server.
+    if (hpSumApp is None):
+        raise Exception("hpSumApp is not set")
+
+    # The HP SUM command we're going to run.
+    hpSumCommand = hpSumApp + " " + "/use_location" + " " + remoteHpSumDir + " " + hpSumOptions
+
+    # HP SUM 6.X uses "hpsum.bat" and must be run from a directory on the target server
+    # to prevent the application from crashing when the NIC firmware is updated and
+    # the media server is no longer accessible.
+    #
+    # HP SUM 5.X uses "hpsum.exe" and is not susceptible to crashing when the NIC
+    # firmware is updated.  We always ran it from the remote directory on the media
+    # server, so we will continue to run it that way.
+    if (hpSumApp == hpSumBat):
+        dirToExecuteHpSumFrom = localHpSumDir
+    else:
+        dirToExecuteHpSumFrom = remoteHpSumDir
+
+    # This is a Python here document containing the contents of the script that is
+    # going to stop the SA agent, run HP SUM, and start the SA agent.  The DOS
+    # variables use "%%", which is to escape the second "%", so that Python doesn't
+    # interpret it as a format character.
+    scriptContents = """
+@echo off
+
+echo TIME: %%DATE%% %%TIME%%
+
+echo Sleeping for 10 seconds to ensure that the build plan step has completed before stopping the SA agent
+
+ping -n 10 127.0.0.1 >nul
+
+echo TIME: %%DATE%% %%TIME%%
+
+echo Stopping Opsware Agent
+
+sc stop OpswareAgent
+
+if %%ERRORLEVEL%% NEQ 0 (
+    echo Failed to stop Opware Agent
+    exit 1
+)
+
+set dirToExecuteHpSumFrom=%s
+
+echo Changing directory to '%%dirToExecuteHpSumFrom%%'
+
+cd /D %%dirToExecuteHpSumFrom%%
+
+if %%ERRORLEVEL%% NEQ 0 (
+    echo Could not change directory to '%%dirToExecuteHpSumFrom%%'
+    exit 1
+)
+
+echo TIME: %%DATE%% %%TIME%%
+
+echo Starting hpsum
+
+call %s
+
+set hpSumRetCode=%%ERRORLEVEL%%
+
+echo hpsum exited with return code '%%hpSumRetCode%%'
+
+echo TIME: %%DATE%% %%TIME%%
+
+echo %%hpSumRetCode%% > %s
+
+echo Starting Opsware Agent
+
+sc start OpswareAgent
+
+if %%ERRORLEVEL%% NEQ 0 (
+    echo Failed to start Opware Agent
+    exit 1
+)
+
+echo TIME: %%DATE%% %%TIME%%
+
+echo Changing directory to SystemDrive
+
+REM Make sure we're not on the media server drive when we exit, in order
+REM to prevent any potential problem later on if the media server drive
+REM is attempted to be unmounted.  You can't unmount a drive if a process
+REM is using it.
+cd /D %%SYSTEMDRIVE%%\\
+
+""" % (dirToExecuteHpSumFrom,hpSumCommand,hpSumExitCodeFile)
+
+    # Write the file.
+    f = open( hpSumScript, 'w')
+    f.write( scriptContents )
+    f.close()
+
+##############################################################################
+# Runs the HP SUM installation.
+##############################################################################
+
+def runHpSum():
+
+    # Create the temporary directory that will contain our scripts and the
+    # output files produced by our scripts.
+    createIcspTempDir()
+
+    # Create our HP SUM script that stops the SA agent, runs HP SUM, and 
+    # starts the SA agent.
+    createHpSumScript()
+
+    # Create that script that calls our HP SUM script and captures its output
+    # to a file, for debugging purposes.
+    createSppInstallScript()
+
+    cmdArgs = [sppInstallScript]
+
+    retCode = executeCommandAndDetach(cmdArgs)
+    
+    return retCode
+
+##############################################################################
+# Main Routine.
+##############################################################################
+
+def main():
+
+    global hpSumApp
+    global hpSumBat
+    global hpSumOptions
+    global sppDir
+    global sppVersionDir
+    global remoteHpSumDir
+    global mediaServerDriveLetter
+
+    retCode = 0
+
+    options, remaining_args = parseArgs(sys.argv[1:])
+
+    try:
+        # Get the drive letter that the meda server file share is mounted on.
+        mediaServerDriveLetter = options.mediaServerDriveLetter.strip()
+
+        writeDebugMessage("Media Server Drive Letter => %s" % mediaServerDriveLetter)
+
+        # The directory on the media server where the SPPs are stored.
+        sppDir = mediaServerDriveLetter + ":" + "\\Media\\spp"
+
+        # Verify that the directory is accessible.  If the media server file share
+        # was manually mounted by the user, it may not be accessible to the build plan,
+        # even though you can see it mounted from Windows.  This could cause HP SUM
+        # to hang.
+        checkIfSppDirIsAccessible()
+
+        # Check which SPP to use. If it's "latest", select the latest SPP from the
+        # available SPPs under the "Media/spp" directory.  It is expected that the
+        # SPPs are stored under "Media/spp", with a directory name of "YYYY.MM",
+        # such that the latest SPP has the highest value, according to sort order.
+        if (options.sppVersion.lower() == "latest"):
+            writeInfoMessage("SPP version is 'latest'")
+            sppVersion = getLatestSppVersion()
+            writeInfoMessage("Latest SPP version is '%s'" % sppVersion)
+            sppVersionDir = sppDir + "\\" + sppVersion
+        else:
+            writeInfoMessage("SPP version is '%s'" % options.sppVersion)
+            sppVersionDir = sppDir + "\\" + options.sppVersion
+            checkIfSppVersionDirIsAccessible()
+
+        # The remote HP SUM directory is "hp\swpackages" under the SPP version
+        # directory.
+        remoteHpSumDir = sppVersionDir + "\\hp\\swpackages"
+
+        # Append any additional HP SUM options to the "/silent" option that we
+        # already require.
+        hpSumOptions += " " + options.hpSumOptions
+
+        writeInfoMessage("HP SUM options => %s" % hpSumOptions)
+
+        hpSumApp = getHpSumApp()
+
+        # Remove the old HP SUM temporary directory, if exists.
+        removeHpSumTempDir()
+
+        # If the HP SUM application is "hpsum.bat", than means we're using
+        # HP SUM 6.X, which must be run from the target server.  So, we must
+        # copy the necessary application files over from the media server to
+        # the target server.
+        if (hpSumApp == hpSumBat):
+            copyHpSum6AppsToTargetServer()
+
+        # Run HP SUM.
+        retCode = runHpSum()
+    except (Exception), why:
+        retCode = 1
+        sys.stderr.write("%s" % why)
+
+    return retCode
+
+if __name__ == "__main__":
+    sys.exit(main())

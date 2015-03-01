@@ -1,0 +1,87 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2009 Hewlett-Packard Development Company, L.P.
+ Inject multipath settings into the autoyast profile """
+
+import re
+import sys
+from osprov.profile import AutoYaST, ProfileError
+from osprov.util import process
+from osprov.osbp import ThisTargetServer, logger
+from osprov.errors import ShowErrorMessage
+from osprov import helpers
+
+LOG = logger.getIt("inject_multipath")
+
+BASE_AY_FILE = "/tmp/user.autoinst.xml"
+
+device_mapper_command = "/mnt/runtime/lib/udev/scsi_id -g -u %s"
+
+
+def initAutoYast(baseFile):
+    """ Initializes an autoyast object"""
+    return AutoYaST(baseFile)
+
+
+def injectMultipath(keys, ayobj):
+    """ Modifies the partitioning section by injecting the device mapper"""
+
+    partitioning = ayobj.createPath("profile/partitioning")
+    partitioning.setAttribute("config:type", "list")
+
+    # find the devices sections. If there exist devices we leave the configuration as is
+    drives = [drive for drive in partitioning.childNodes if drive.nodeName == "drive"]
+    devices = []
+    for drive in drives:
+        devices += [device for device in drive.childNodes if device.nodeName == "device"]
+    if len(devices) > 0:
+        pattern = re.compile('^/dev/mapper/[0-9a-f]+$')
+        valid = True
+        for device in devices:
+            match = pattern.match(device.childNodes[0].data)
+            if not match:
+                print "Device %s does not have a valid format!" % device.childNodes[0].data
+                valid = False
+                break
+        if valid:
+            print "Devices are in the correct format"
+        return valid
+
+    # find the drives section and configure the devices
+    # If there is just one drive use that to configure the device
+    # If there is more than one, do not do anything
+    if len(drives) > 1:
+        print "More than one drive section found. The profile will not be modified!"
+        return False
+    elif len(drives) == 0:
+        drive = ayobj.document.createElement("drive")
+        useall = ayobj.document.createElement("use")
+        ayobj.setNodeTextValue(useall, "all")
+        drive.appendChild(useall)
+        partitioning.appendChild(drive)
+    else:
+        drive = drives[0]
+
+    scsi_id = process.getStdout(device_mapper_command % keys.disk.device_path).split("\n")[0]
+    device = ayobj.createPath("profile/partitioning/drive/device")
+    ayobj.setNodeTextValue(device, "/dev/mapper/%s" % scsi_id)
+    return True
+
+
+def main():
+    """ Do the injection of the device mapper in the autoyast """
+    try:
+        ayobj = initAutoYast(BASE_AY_FILE)
+        keys = helpers.getDataStore()
+        injectMultipath(keys, ayobj)
+        open(BASE_AY_FILE, "w").write(str(ayobj))
+        print "Successfully injected required settings"
+    except (IOError, OSError, ShowErrorMessage, ProfileError), why:
+        LOG.exception(why)
+        sys.stderr.write("Failed to inject multipath settings.%s\n" % why)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

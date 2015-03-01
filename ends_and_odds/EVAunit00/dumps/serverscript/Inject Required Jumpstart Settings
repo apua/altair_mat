@@ -1,0 +1,228 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+Will install create the necessary files and will aggregate them into a .tar file
+needed in the Jumpstart installation process of Solaris 10 x86 over NFS. Contents of these files
+is present in the default jumpstart configuration template.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+import tarfile
+import shutil
+
+from osprov import helpers, media
+from osprov.decorators import HandleShowErrorMessage
+from osprov.errors import NotSupportedError, DiscoveryError
+from osprov.osbp import logger
+from osprov.server import ThisLocalServer
+from osprov.parsers.jumpstart import JumpstartParser
+from osprov.netconfig.solaris import NetworkInterface
+
+LOG = logger.getIt("Inject Required Jumpstart")
+
+
+def createSysidcfg(jumpstartDir, sysidcfgDict, parserObj, targetServer):
+    """ Creates the sysidcfg file in the jumpstart directory on the mounted path """
+    sysidcfgPath = os.path.join(jumpstartDir, "sysidcfg")
+    # verify that necessary items are in place & assemble file
+    mandatoryKeys = ["network_interface", "system_locale", "timezone", "timeserver", "nfs4_domain"]
+    for key in mandatoryKeys:
+        if not sysidcfgDict.has_key(key):
+            raise DiscoveryError(
+                "The following setting : %s is needed in order for the installation to work" % key)
+
+    # inject active network interface
+    macAddress = targetServer.getMACAddress()
+    networkIf = NetworkInterface(macAddress=macAddress)
+    deviceName = networkIf.getDeviceName()
+    LOG.debug("Discovered network interface %s with MAC address %s" % (deviceName, macAddress))
+
+    # delete network_interface with value primary, this is not supported when
+    # configuring another specific interface
+    if parserObj.data["sysidcfg"]["network_interface"].has_key('primary'):
+        LOG.debug("Discovered network_interface set to primary. Deleting it.")
+        del parserObj.data["sysidcfg"]["network_interface"]['primary']
+
+    # setting if a network interface is up the one used for communication
+    config = "{dhcp protocol_ipv6=no}\n"
+    if not parserObj.data["sysidcfg"]["network_interface"].has_key(deviceName):
+        parserObj.data["sysidcfg"]["network_interface"][deviceName] = config
+    elif "dhcp" not in parserObj.data["sysidcfg"]["network_interface"][deviceName]:
+        parserObj.data["sysidcfg"]["network_interface"][deviceName] = config
+    LOG.debug("Configured interface %s with %s" %
+              (deviceName, parserObj.data["sysidcfg"]["network_interface"][deviceName]))
+
+    content = parserObj.toString("sysidcfg")
+    writeToFile(sysidcfgPath, content)
+
+
+def createProfile(jumpstartDir, profileDict, parserObj):
+    """ Creates the install.input file in the jumpstart directory on the mounted path """
+    profilePath = os.path.join(jumpstartDir, "install.input")
+    # verify that necessary items are in place & assemble file
+    mandatoryKeys = ["install_type", "partitioning", "system_type"]
+    for key in mandatoryKeys:
+        if not profileDict.has_key(key):
+            raise DiscoveryError(
+                "The following setting : %s is needed in order for the installation to work" % key)
+    content = parserObj.toString("profile")
+    writeToFile(profilePath, content)
+
+
+def createRules(jumpstartDir):
+    """ Creates the rules file in the jumpstart directory on the mounted path """
+    rules = os.path.join(jumpstartDir, "rules")
+    content = "any - profile -"
+    writeToFile(rules, content)
+
+
+def createRulesok(jumpstartDir):
+    """ Creates the rules.ok file in the jumpstart directory on the mounted path """
+    rulesok = os.path.join(jumpstartDir, "rules.ok")
+    content = """probe arch
+probe disks
+probe domainname
+probe hostaddress
+probe hostname
+probe installed
+probe karch
+probe memsize
+probe model
+probe network
+probe osname
+probe rootdisk
+probe totaldisk
+any - begin = finish
+# version=2 checksum=20755
+"""
+    writeToFile(rulesok, content)
+
+
+def injectReqToBeginScript(jumpstartDir, parserObj, injectedValues):
+    """ Creates the begin (pre-script) file in the jumpstart directory on the mounted path """
+    begin = os.path.join(jumpstartDir, "begin")
+    content = """#!/bin/sh
+echo "Copying install.input profile ..."
+cp /jumpstart/install.input /tmp/install.input
+echo "Remounting root ..."
+mount -o remount,rw /
+echo "Setting up dns ..."
+cat %(dnsSource)s > /etc/resolv.conf
+cp /etc/nsswitch.dns /etc/nsswitch.conf
+echo "Mounting install media ..."
+nfspath=%(mediaSource)s
+mount -F nfs -o ro $nfspath /cdrom
+echo $nfspath > /tmp/.netmnt
+echo "Starting Opsware OS Provisioning agent ..."
+agwIpPort=%(agwIpPort)s
+echo "Contacting agent gateway at $agwIpPort..."
+/bin/sh /opt/opsware/agent/osprov/ogfs-agent-setup.sh $agwIpPort
+echo "Setup done, launching OGFS agent ..."
+echo "coglib.platform.lc_path: /opt/opsware/agent" >> /etc/opt/opsware/agent/agent.args
+/bin/sh /opt/opsware/agent/osprov/ogfs-agent-start.sh
+echo "" > /tmp/finish.flag
+""" % injectedValues
+    content += "\n" + parserObj.toString("begin")
+    parserObj.data["begin"] = content
+    writeToFile(begin, content)
+
+
+def injectReqFinishScript(jumpstartDir, parserObj):
+    """ Creates the finish (post-script) file in the jumpstart directory on the mounted path """
+    finish = os.path.join(jumpstartDir, "finish")
+    content = """#!/bin/sh
+echo "Adding kernel/unix to boot parameters ..."
+BASE=/a
+BOOT_OPTS="kernel/unix"
+export BOOT_OPTS
+if [ -f $BASE/boot/grub/menu.lst ]; then
+    perl -p -i -e 's#^kernel(.*)multiboot#kernel$1multiboot $ENV{"BOOT_OPTS"}#g' $BASE/boot/grub/menu.lst
+else
+    grep -v "setprop boot-file " $BASE/boot/solaris/bootenv.rc > \
+        /tmp/bootenv$$
+    echo "setprop boot-file '$BOOT_OPTS'" >> /tmp/bootenv$$
+    mv /tmp/bootenv$$ $BASE/boot/solaris/bootenv.rc
+fi
+
+%s
+
+echo "Stopping installation..."
+echo "" > /tmp/HPSAMonitoringStop.flag
+while [ -f /tmp/finish.flag ]; do sleep 1; done
+""" % parserObj.toString("finish")
+    parserObj.data["finish"] = content
+    writeToFile(finish, content)
+
+
+def createDestAndValues(targetServer):
+    """ Creates the jumpstart directory on the mounted path and determines the necessary values that will be injected """
+    keys = helpers.getDataStore()
+    stubMountpoint = keys.disk.device_mount
+    jumpstartDir = os.path.join(stubMountpoint, "jumpstart")
+    if not os.path.isdir(jumpstartDir):
+        os.makedirs(jumpstartDir)
+    LOG.debug("Jumpstart Configuration directory path : %s" % str(jumpstartDir))
+
+    # finding dns values
+    resolv_file = os.path.join(jumpstartDir, "resolv.conf")
+    shutil.copyfile("/etc/resolv.conf", resolv_file)
+
+    agwIp, agwPort = targetServer.getRandomAgentGateway()
+    urlMedia = media.parseUrl(keys.media.url)
+    injectedValues = {
+        'mediaSource': '%s:%s' % (urlMedia.netloc, urlMedia.path),
+        'agwIpPort': "%s:%s" % (agwIp, agwPort),
+        'dnsSource': "/jumpstart/resolv.conf"
+    }
+    LOG.debug("Determined values that will be injected : %s" % str(injectedValues))
+    return (jumpstartDir, injectedValues)
+
+
+def writeToFile(pathToFile, content):
+    fd = open(pathToFile, "wb+")
+    fd.write(content)
+    fd.close()
+    LOG.debug("File %s : \n%s" % (pathToFile, content))
+
+
+@HandleShowErrorMessage("Inject Required Jumpstart", LOG)
+def main():
+    """Creates necessary files for Jumpstart installation and injects required values"""
+    if not os.uname()[-1].startswith("i86"):
+        raise NotSupportedError("Injecting required jumpstart is not supported on SPARC.")
+
+    defaultJumpstart = "/tmp/default_jumpstart.txt"
+    targetServer = ThisLocalServer()
+
+    jumpstartParser = JumpstartParser.Readonly(open(defaultJumpstart))
+    jumpstartData = jumpstartParser.info()
+    LOG.debug("Parsed default jumpstart: \n%s" % str(jumpstartData))
+
+    (jumpstartDir, injectedValues) = createDestAndValues(targetServer=targetServer)
+
+    createSysidcfg(jumpstartDir=jumpstartDir, sysidcfgDict=jumpstartData[
+                   "sysidcfg"], parserObj=jumpstartParser, targetServer=targetServer)
+    createProfile(jumpstartDir=jumpstartDir,
+                  profileDict=jumpstartData["profile"], parserObj=jumpstartParser)
+
+    injectReqToBeginScript(
+        jumpstartDir=jumpstartDir, parserObj=jumpstartParser, injectedValues=injectedValues)
+    injectReqFinishScript(jumpstartDir=jumpstartDir, parserObj=jumpstartParser)
+
+    createRules(jumpstartDir=jumpstartDir)
+    createRulesok(jumpstartDir=jumpstartDir)
+
+    writeToFile(defaultJumpstart, jumpstartParser.extractFileContents())
+
+    LOG.info("Finished creating necessary files for Jumpstart installation")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

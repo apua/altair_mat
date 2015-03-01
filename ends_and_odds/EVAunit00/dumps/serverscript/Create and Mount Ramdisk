@@ -1,0 +1,102 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+This program will create a stub ramdisk (default 1 gB) and mount, default mount point /mnt/root
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+import sys
+
+from osprov.osbp import logger
+from osprov.util import process
+from osprov.optparse_ext import OptionParser
+from osprov.decorators import HandleShowErrorMessage
+from optparse import OptionValueError
+from osprov.errors import ShowErrorMessage
+from osprov import helpers
+from osprov.sysinfo import LinuxSysInfo
+
+LOG = logger.getIt("Create stub ramdisk")
+
+EC_SUCCESS = 0
+EC_NOT_ENOUGH_MEMORY = 10
+EC_MOUNT_POINT_EXISTS = 183
+
+
+class MemoryException(ShowErrorMessage):
+    DEFAULT_EC = EC_NOT_ENOUGH_MEMORY
+
+
+class MountException(ShowErrorMessage):
+    DEFAULT_EC = EC_MOUNT_POINT_EXISTS
+
+
+class CreateAndMountStubRamdiskStepOptionsParser(OptionParser):
+
+    """ An options' parser for this step. """
+
+    def defineOptions(self):
+        self.add_option(
+            "-s", "--size", type="int", dest="size", metavar="SIZE", default=1024,
+            help="The size of the ramdisk to be created (measured in mB)")
+        self.add_option(
+            "-m", "--mountPoint", type="string", dest="mountPoint", metavar="MOUNT_POINT", default="/mnt/root",
+            help="The path where the ramdisk will be mounted")
+
+    def validateArgs(self, opt, args):
+        if args:
+            raise OptionValueError("Additional positional arguments are not supported")
+        if opt.size < 1:
+            raise OptionValueError("Ramdisk size must be a positive, non zero integer")
+
+
+def checkMounts(mounts, mountPoint):
+    for key, values in mounts.items():
+        for mpoint in values:
+            if mountPoint in mpoint:
+                raise MountException(
+                    "There is already a device (%s) mounted at %s", (key, mountPoint))
+
+
+def checkIfMounted(mountPoint):
+    checkMounts(LinuxSysInfo().mounts, mountPoint)
+
+
+def createAndMountRamDisk(size, mountPoint):
+    """
+            Creates a ramdisk of size "size" and mounts it at "mountPoint"
+    """
+    freeRam = LinuxSysInfo.freeRamkB
+
+    if not freeRam > size * 1024:
+        raise MemoryException(
+            "Not enough memory on system! Requested %i but only %i Mb available" % (size, freeRam / 1024))
+    else:
+        checkIfMounted(mountPoint)
+
+    helpers.makeDirs(mountPoint)
+    process.runIt("mount -t tmpfs -o size=%sm tmpfs %s" % (size, mountPoint), log=LOG)
+
+    # Save relevant information in the datastore
+    LOG.info("savind mount point: %s" % mountPoint)
+    keys = helpers.getDataStore()
+    if keys.disk.device_mount == None:
+        keys.disk.device_mount = mountPoint
+        helpers.putDataStore(keys)
+
+
+@HandleShowErrorMessage("create stub ramdisk step", LOG)
+def main():
+    """Main entry point when executed as a script from the command line"""
+    parser = CreateAndMountStubRamdiskStepOptionsParser()
+    options, args = parser.parse_args()
+
+    createAndMountRamDisk(options.size, options.mountPoint)
+
+    return EC_SUCCESS
+
+if __name__ == "__main__":
+    sys.exit(main())

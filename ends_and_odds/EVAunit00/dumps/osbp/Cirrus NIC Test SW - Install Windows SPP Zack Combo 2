@@ -1,0 +1,38 @@
+[
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "Install Windows SMH_iLO-controller_IMA zack", 
+        "parameters": "--spp_\u200bversion=@SPP_VER@"
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=2 --atMost=60"
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "Install Windows WBEM zack", 
+        "parameters": "--spp_\u200bversion=@SPP_VER@"
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

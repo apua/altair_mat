@@ -1,0 +1,62 @@
+@echo off
+
+REM # %1 - .wim image file 
+REM # %2 - drive to be captured (C:)
+REM # %3 - path to wimscript.ini file [optional parameter]
+
+REM # if mandatory parameters are not provided, the script will return error
+if "%2"=="" (
+  echo Not enough parameters provided
+  exit /B 1
+)
+
+if "%2"=="C:" goto have_targetdrive
+if "%2"=="c:" goto have_targetdrive
+echo WARNING: Only C: drive capture is supported
+
+:have_targetdrive
+
+set wimscript=%SYSTEMDRIVE%\wimscript%RANDOM%.ini
+set excepted=0
+set wimFilePath=%1
+set drive=%2
+
+REM # no wimscript, we generate one
+if "%3"=="" (
+  copy nul %wimscript%
+  echo [ExclusionList]>> %wimscript%
+  call:InsertExclusionList
+  call:CaptureImage
+)
+
+REM # we have a wimscript: add -OR- insert to [ExclusionList]
+copy nul %wimscript%
+for /f "tokens=1* delims= " %%a in (%3) do (
+  echo %%a %%b>> %wimscript%
+  if "%%a"=="[ExclusionList]" (
+        call:InsertExclusionList
+        set excepted=1
+  )
+)
+
+REM # if exception wasn't inserted yet, we append it to end
+if "%excepted%"=="0" (
+  echo.>> %wimscript%
+  echo [ExclusionList]>> %wimscript%
+  call:InsertExclusionList
+)
+
+call:CaptureImage
+
+REM # function definitions
+:CaptureImage
+echo execute: imagex.exe /config %wimscript% /capture %drive% "%wimFilePath%" "OS"
+imagex.exe /config %wimscript% /check /verify /capture %drive% "%wimFilePath%" "OS"
+exit %errorlevel%
+goto:eof
+
+:InsertExclusionList
+echo "\Program Files\Opsware">> %wimscript%
+echo "\Program Files\Common Files\Opsware">> %wimscript%
+goto:eof
+

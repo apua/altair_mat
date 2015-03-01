@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2012 Hewlett-Packard Development Company, L.P.
+Clean up old MAC addresses from source VM
+"""
+
+import os
+import sys
+
+from osprov.osbp import logger
+from osprov import constants
+
+LOG = logger.getIt("cleanup_old_macs")
+
+
+def main():
+    # clean up files with old MAC addresses while still in maintenance mode
+    net_rules_path = constants.OGFS_SYSTEM_ROOT + '/etc/udev/rules.d/70-persistent-net.rules'
+    if os.path.exists(net_rules_path):
+        LOG.debug("Cleaning up file with old MAC address: " + net_rules_path)
+        os.unlink(net_rules_path)
+
+if __name__ == "__main__":
+    main()

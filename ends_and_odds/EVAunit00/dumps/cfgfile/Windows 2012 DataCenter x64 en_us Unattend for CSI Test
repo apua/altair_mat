@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+  <!-- (c) Copyright 2013 Hewlett-Packard Development Company, L.P. -->
+    <!-- This servicing section is required to ensure HP Software compatibility -->
+    <servicing>
+        <package action="configure">
+            <!-- Need SNMP & WMISnmpProvider to install SPP on pre-ProLiant Gen8 servers -->
+            <!-- assemblyIdentity is dependent on Windows 2008 R2 SP1 x64 -->
+            <assemblyIdentity name="Microsoft-Windows-ServerCore-Package" version="6.2.9200.16384" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="" />
+            <selection name="SNMP" state="true" />
+            <selection name="WMISnmpProvider" state="true" /> 
+            <selection name="Server-RSAT-SNMP" state="true" />
+            <selection name="Microsoft-Hyper-V" state="true" />
+            <selection name="Microsoft-Hyper-V-Management-Clients" state="true" />
+            <selection name="Microsoft-Hyper-V-Management-PowerShell" state="true" />                      
+            <selection name="ServerManager-Core-RSAT" state="true" />
+            <selection name="ServerManager-Core-RSAT-Role-Tools" state="true" />
+            <selection name="RSAT-Hyper-V-Tools-Feature" state="true" />  
+        </package>
+    </servicing>
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UserLocale>en-US</UserLocale>
+        </component>
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <ImageInstall>
+                <OSImage>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/NAME</Key>
+                            <Value>Windows Server 2012 SERVERDATACENTER</Value>
+                            <!-- Other Options are: SERVERSTANDARDCORE
+                                                    SERVERDATACENTER
+                                                    SERVERDATACENTERCORE -->
+                        </MetaData>
+                    </InstallFrom>
+                    <InstallTo>
+                        <DiskID>@SystemDiskNumber:0@</DiskID>
+                        <PartitionID>1</PartitionID>
+                    </InstallTo>
+                    <WillShowUI>OnError</WillShowUI>
+                </OSImage>
+            </ImageInstall>
+            <UserData>
+                <ProductKey>
+                    <WillShowUI>OnError</WillShowUI>
+                    <Key>@ProductKey_Win2012-DC-x64@</Key>
+                    <!-- Possible license keys:
+                      ProductKey_Win2012-Std-x64	Product keys for Windows OS 2012 x64, Standard
+                      ProductKey_Win2012-DC-x64	    Datacenter
+                      ProductKey_Win2012-Ess-x64	Essentials
+                      ProductKey_Win2012-Fnd-x64	Foundation
+                   -->  
+                </ProductKey>
+                <AcceptEula>true</AcceptEula>
+            </UserData>
+        </component>
+    </settings>
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <ProductKey>@ProductKey_Win2012-DC-x64@</ProductKey>
+                    <!-- Possible license keys:
+                      ProductKey_Win2012-Std-x64	Product keys for Windows OS 2012 x64, Standard
+                      ProductKey_Win2012-DC-x64	    Datacenter
+                      ProductKey_Win2012-Ess-x64	Essentials
+                      ProductKey_Win2012-Fnd-x64	Foundation
+                   -->  
+           <ComputerName>@ComputerName:*@</ComputerName>
+        </component>
+		<component name="Networking-MPSSVC-Svc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<DomainProfile_DisableNotifications>true</DomainProfile_DisableNotifications>
+			<DomainProfile_EnableFirewall>false</DomainProfile_EnableFirewall>
+			<PrivateProfile_DisableNotifications>true</PrivateProfile_DisableNotifications>
+			<PrivateProfile_EnableFirewall>false</PrivateProfile_EnableFirewall>
+			<PublicProfile_DisableNotifications>true</PublicProfile_DisableNotifications>
+			<PublicProfile_EnableFirewall>false</PublicProfile_EnableFirewall>
+		</component>
+    </settings>
+    <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-International-Core" processorArchitecture="x86" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UILanguageFallback>en-US</UILanguageFallback>
+            <UserLocale>en-US</UserLocale>
+        </component>
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+            </OOBE>
+            <UserAccounts>
+                <AdministratorPassword>
+                    <Value>@administrator@</Value>
+                    <PlainText>true</PlainText>
+                </AdministratorPassword>
+            </UserAccounts>
+        </component>
+    </settings>
+    <!-- The section below is used to provide ProLiant drivers
+         during installation.  It should not be remove, and it should
+		 be present in all Answer/Configuration Files -->
+    <settings pass="offlineServicing">
+        <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DriverPaths>
+                <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+                    <Path>@SystemDrive:c@:\$oem$</Path>
+                </PathAndCredentials>
+            </DriverPaths>
+        </component>
+    </settings>
+</unattend>

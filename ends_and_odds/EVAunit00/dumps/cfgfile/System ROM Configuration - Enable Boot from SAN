@@ -1,0 +1,9 @@
+<!-- This file enables Boot from SAN support:
+   - sets the HBA controller first in the boot order
+   - disables the embedded boot controller
+ (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+-->
+<Conrep version="0.00">
+   <Section name="SAN_Boot_Controller_Order">Fibre First</Section>
+   <Section name="SAN_Boot_Embedded_Controller">Disabled</Section>
+</Conrep>

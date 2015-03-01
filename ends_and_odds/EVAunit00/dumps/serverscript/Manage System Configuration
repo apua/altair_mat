@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+UTIL=conrep
+DIR="/tmp/sstk"
+MODE=$1
+FILE=$2
+
+TEMPLATEFILE=""
+if [ ! -z $3 ]; then
+	TEMPLATEFILE="-x$DIR/$3"
+else
+	TEMPLATEFILE="-x$DIR/conrep.xml"
+fi
+
+if [ ! -f "$DIR/$UTIL" ]; then
+	echo "$DIR/$UTIL can not be found" 1>&2
+	exit 1
+fi
+
+chmod +x "$DIR/$UTIL"
+
+##Run Conrep
+
+"$DIR/$UTIL" $MODE -f "$FILE" "$TEMPLATEFILE"
+rc=$?
+
+case $rc in
+   0 )
+		echo "$UTIL successful";;
+   127 )
+		echo "$UTIL failed ($rc): Missing library in automation" 1>&2;;
+   134 )
+		echo "$UTIL failed ($rc): Corrupted custom post message" 1>&2 ;;
+   * )
+		echo "$UTIL failed ($rc)" 1>&2 ;;
+esac
+exit $rc

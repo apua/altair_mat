@@ -1,0 +1,98 @@
+#!/usr/bin/python
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
+
+import sys
+
+from optparse import OptionParser
+from osprov.osbp import logger
+from osprov.errors import ShowErrorMessage
+
+LOG = logger.getIt('unmap_network_drive')
+
+############################################################################################
+# Our parser.
+############################################################################################
+
+class CustomParser(OptionParser):
+        """ a custom parser """
+        def __init__(self, *args, **kwargs):
+                OptionParser.__init__(self, *args, **kwargs)
+                self.add_option("--driveLetter",
+                                default=None,
+                                help="The drive letter of the network drive to be unmapped")
+
+############################################################################################
+# Unmaps the network drive that's associated with the specified drive letter.
+#
+# Parameters:
+#    driveLetter - The drive letter to be unmapped.
+############################################################################################
+
+def unmapNetworkDrive(driveLetter):
+
+	cmd = "net use " + driveLetter + ":" + " /delete"
+
+	p = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=STDOUT)
+
+	net_stdout = p.communicate()[0]
+
+	retCode = p.poll()
+
+	p.stdout.close()
+
+	if (retCode != 0):
+		raise ShowErrorMessage("The command '%s' failed : %s" % (cmd,net_stdout))
+
+############################################################################################
+# Returns true if the specified drive letter is assigned to a network drive; false otherwise.
+#
+# Parameters:
+#    driveLetter - The drive letter to be tested.
+############################################################################################
+
+def isNetworkDrive(driveLetter):
+
+	cmd = "net use " + driveLetter + ":"
+
+	p = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=STDOUT)
+
+	p.communicate()[0]
+
+	retCode = p.poll()
+
+	p.stdout.close()
+
+	if (retCode == 0):
+		return True
+	else:
+		return False
+
+############################################################################################
+# The main function.
+############################################################################################
+
+def main(argv):
+
+	args_parser = CustomParser()
+	options, remaining_args = args_parser.parse_args(sys.argv[1:])
+
+	if (options.driveLetter is None):
+		args_parser.error("The '--driveLetter=<drive letter>' option is required.")
+
+	try:
+		if (isNetworkDrive(options.driveLetter)):
+			unmapNetworkDrive(options.driveLetter)
+			print "Successfully unmapped network drive '%s'" % options.driveLetter
+		else:
+			print "There are no network drives mapped to '%s'" % options.driveLetter
+	except (ShowErrorMessage), why:
+		LOG.exception(why)
+		sys.stderr.write("Failed to unmap network drive : %s\n" % why)
+		return 1
+
+if __name__ == "__main__":
+	sys.exit(main(sys.argv))

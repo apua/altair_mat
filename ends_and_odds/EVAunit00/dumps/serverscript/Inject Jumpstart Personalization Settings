@@ -1,0 +1,69 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+Will inject the personalization settings into the necessary
+configuration files from the default jumpstart.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+from osprov import helpers, media
+from osprov.decorators import HandleShowErrorMessage
+from osprov.errors import DiscoveryError
+from osprov.osbp import logger
+from osprov.parsers.jumpstart import JumpstartParser
+from osprov.optparse_ext import OptionParser
+
+LOG = logger.getIt("Inject Jumpstart Personalization Settings")
+
+
+class InjectPersonalizationJumpstartOptionParser(OptionParser):
+
+    def defineOptions(self):
+        self.add_option("-b", "--bootOptions", dest="boot_options",
+                        default="", help="Specifies Solaris kernel arguments")
+
+
+def injectBootOptions(jumpstartDir, bootOptions, jumpstartParser):
+    """Injecting the Solaris kernel parameters"""
+    finishFilePath = os.path.join(jumpstartDir, "finish")
+    if not os.path.exists(finishFilePath):
+        raise DiscoveryError(
+            "The post-installation script was not found! There was a problem injecting the required settings.")
+    jumpstartParser.data["finish"] = jumpstartParser.data["finish"].replace(
+        """BOOT_OPTS="kernel/unix\"""", """BOOT_OPTS="kernel/unix %s\"""" % bootOptions)
+    writeToFile(finishFilePath, jumpstartParser.toString("finish"))
+
+
+def writeToFile(pathToFile, content):
+    fd = open(pathToFile, "wb+")
+    fd.write(content)
+    fd.close()
+    LOG.debug("File %s : \n%s" % (pathToFile, content))
+
+
+@HandleShowErrorMessage("Inject Jumpstart Personalization Settings", LOG)
+def main():
+    """Injecting personalized settings for installer and production Solaris10"""
+    options, args = InjectPersonalizationJumpstartOptionParser().parse_args()
+    keys = helpers.getDataStore()
+    stubMountpoint = keys.disk.device_mount
+    jumpstartDir = os.path.join(stubMountpoint, "jumpstart")
+    if not os.path.exists(jumpstartDir):
+        raise DiscoveryError(
+            "Jumpstart target location was not found! There was a problem injecting the required settings.")
+
+    defaultJumpstart = "/tmp/default_jumpstart.txt"
+    jumpstartParser = JumpstartParser.Readonly(open(defaultJumpstart))
+    jumpstartParser.info()
+    injectBootOptions(jumpstartDir=jumpstartDir,
+                      bootOptions=options.boot_options, jumpstartParser=jumpstartParser)
+
+if __name__ == "__main__":
+    sys.exit(main())

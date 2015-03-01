@@ -1,0 +1,164 @@
+@echo off
+
+:: (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+setlocal EnableDelayedExpansion EnableExtensions
+
+:: Drive letter to mount the media server, colon must be included
+set driveletter=z:
+
+:: ====================
+:: Determine what calling arguments
+:: ====================
+set opt=0
+set failonwarning=0
+set hpsumargs=/s /f:software cp019017.exe /continue_on_error FailedDependencies
+set log_dir=%SYSTEMDRIVE%\cpqsystem\hp\log
+:OptionsLoop
+  if [%1]==[] goto DetermineSPPVersion
+
+  if "%1"=="--spp_version" (
+     set sppversion=%2
+     set opt=0
+     goto OptionsShift
+  )
+
+  if "%1"=="--fail_on_warning" (
+     set failonwarning=1
+     goto OptionsShift
+  )
+
+  if "%opt%"=="1" (
+     set hpsumargs=%hpsumargs% %1
+     set log_dir=%1
+     goto OptionsShift
+  )
+
+  if "%1"=="--hpsum_options" (
+     set opt=1
+     goto OptionsShift
+  )
+
+  :OptionsShift
+  shift
+goto OptionsLoop
+
+
+:DetermineSPPVersion
+:: ====================
+:: Determine SPP Version to install
+:: ====================
+if "%sppversion%"=="" (
+goto SPPVersion
+) else (
+goto SetAssignMediaPath
+)
+goto RunHPSUM
+
+:SPPVersion
+   %driveletter%
+   cd \media\spp
+   set sppdir=
+   for /f "tokens=* delims=0" %%i in ('dir /b /a:d') do set sppdir=%%i
+   cd \media\spp\%sppdir%
+   set buildir=
+   for /f "tokens=* delims=0" %%i in ('dir /b /a:d') do set buildir=%%i
+   set sppversion=%buildir%
+   if "%sppversion%"=="" (
+      echo Did not find an SPP Version on the media server
+      set rc=999
+      goto End
+   )
+   cd \media\spp\%sppdir%\%sppversion%\hp\swpackages
+
+:SetAssignMediaPath
+   echo Enter SetAssignMediaPath
+   %driveletter%
+   cd \media\spp\@SPP_VER@\@BUILD_VER@\hp\swpackages
+   
+:RunHPSUM
+:: ====================
+:: Run HPSUM
+:: ====================
+
+echo SPP version to be installed is %sppdir%\%sppversion%
+echo Additional hpsum arguments are %hpsumargs%
+:: Must be run as currently running directory
+
+hpsum.exe %hpsumargs%
+
+set rc=%ERRORLEVEL%
+
+if %rc% GEQ 0 (
+ if %rc%==0 (
+  echo SPP hpsum ran successfully: return code %rc%
+  GOTO Success
+ )
+ if %rc%==1 ( 
+  echo The installation was successful,but a reboot is required: return code %rc%
+  GOTO Success
+ )
+ if %rc%==3 (
+  echo The component was current or not required: return code %rc%
+  GOTO Success
+ )
+ if %rc%==253 (
+  set rc=-3
+  )
+
+ if %rc%==254 (
+  set rc=-2
+ )
+ if %rc%==255 (
+  set rc=-1
+ ) 
+)
+
+if %rc% LSS 0 (
+ if %rc%==-1 (
+  echo A general failure occurred. For details, see the error log.
+  GOTO Fail
+ )
+if %rc%==-2 (
+  echo A bad input parameter was encountered.
+  GOTO Fail
+ )
+if %rc%==-3 (
+  if %failonwarning%==1 (
+   echo ERROR - One or more components failed to install
+   echo fail_on_warning is set
+   GOTO Fail
+  )
+  if %failonwarning%==0 GOTO FinishWithWarning
+ ) ELSE (
+GOTO Fail
+)  
+)
+
+
+:Success
+echo hpsum logs are located at %log_dir% unless specified otherwise by hpsum /logdir option
+:: Change return code to 0 for hpsum positive return codes
+set rc=0
+goto End
+
+:FinishWithWarning
+   echo SPP hpsum failed: error code %rc%
+   echo WARNING - One or more of the smart components failed to install. Depending on the system configuration,
+   echo this may be expected behavior. To verify the installation, check the hpsum logs are located at
+   echo %log_dir% unless specified otherwise by hpsum /logdir option.  
+   echo To fail the build plan when these warnings occur, specify the --fail_on_warning option to this step.
+set rc=0
+goto End
+
+:Fail
+   echo SPP hpsum failed: error code %rc%
+   echo %log_dir% unless specified otherwise by hpsum /logdir option.
+   goto End
+
+
+:End
+:: Return to system drive, so can unmount media server drive
+%SYSTEMDRIVE%
+net use %driveletter% /delete
+exit /B %rc%

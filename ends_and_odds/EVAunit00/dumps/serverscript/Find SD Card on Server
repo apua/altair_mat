@@ -1,0 +1,104 @@
+#!/usr/bin/python
+# (c) Copyright 2013,2014 Hewlett-Packard Development Company, L.P.
+
+import os
+import sys
+import re
+
+from osprov.osbp import logger
+from osprov.diskmgr import const
+from osprov.util import process
+from osprov.diskmgr.diskmanager import DiskManager, LinuxDiskManager
+from osprov.diskmgr.disk import Disk
+from osprov.diskmgr.disk import LinuxDisk
+from osprov.parsers.proc_partitions import ProcPartitionsParser
+
+from osprov.server import ThisLocalServer
+
+
+from osprov import helpers
+
+ID_BUS = re.compile("E: ID_BUS=*")
+ID_VENDOR = re.compile("E: ID_VENDOR=*")
+ID_MODEL = re.compile("E: ID_MODEL=Internal*")
+BOOT_DISK_CA = "boot_disk"
+
+LOG = logger.getIt("osprov.diskmgr")
+
+def setBootDiskCA(targetServer, deviceName):
+    # if device name specified, then set the CA for the 
+    # target server to it.  This will over ride the options in 
+    # the "Create Stub Partition" step and force the use of the 
+    # disk to be used as the target.
+    if deviceName:
+        serverRef = targetServer.getServerRef()
+        twistServer = targetServer.twistServer
+        twistServer.server.ServerService.setCustAttr(serverRef,
+            BOOT_DISK_CA, deviceName)   
+
+# Find all disks and then loop through them looking for 
+# any disks that match the criteria used to designate an 
+# embedded SD card.
+
+def getAllSDDisks():
+    # Find all disks.
+    disks = []
+    print "Finding all disks.."
+    procPartitions = ProcPartitionsParser(open(const.PROC_PARTITIONS, "r")).info()
+    for deviceName,major,minor,blocs in procPartitions:
+        if "loop" in deviceName:
+            continue
+        if LinuxDiskManager.mod_map.has_key(major):
+            if minor % LinuxDiskManager.mod_map[major] == 0:
+                disks.append(LinuxDisk(deviceName, major, minor))
+        elif minor == 0:
+            disks.append(LinuxDisk(deviceName, major, minor))
+    
+    if not disks:
+	# No disks found, just return.
+	print "No disks found at all!!"
+	return None
+
+    usbDisks = []
+    print "Looking for matching disks.."
+    for disk in disks:
+        hpilo = False
+        usb = False
+        sdcard = False
+        diskpath = disk.getDeviceFilePath()
+        devInfoOutput = process.getStdout(["udevadm", "info", "-q", "all", "-n",
+                diskpath], log=LOG)
+        for line in devInfoOutput.split('\n'):
+            match = ID_BUS.match(line)
+            if match and "usb" in line:
+                # Disk is a USB disk
+                usb = True
+            match = ID_VENDOR.match(line)
+            if match and "HP_iLO" in line:
+                # Disk is embedded
+                hpilo = True
+            match = ID_MODEL.match(line)
+            if match and "SD-CARD" in line:
+                # Disk is an SD card.
+                sdcard = True
+            
+        # if criteria met, add disk to list else drop it.
+        if usb and sdcard and hpilo:
+            print "  %s matched criteria" % diskpath
+            usbDisks.append(diskpath)
+        else:
+            print "  %s did not match criteria" % diskpath
+    
+    return usbDisks
+
+def main():
+    disks = getAllSDDisks()
+    if not disks:
+        print "No acceptable SD disks found"
+    else:
+        print "Setting boot_disk to %s" % disks[0]
+        targetServer = ThisLocalServer()
+        setBootDiskCA(targetServer, disks[0])
+        
+if __name__ == "__main__":
+    main()

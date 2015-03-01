@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+UTIL=rbsureset
+DIR="/tmp/sstk"
+
+if [ ! -f "$DIR/$UTIL" ]; then
+   echo "$DIR/$UTIL can not be found" 1>&2
+   exit 1
+fi
+
+chmod +x "$DIR/$UTIL"
+
+# Run Utility
+"$DIR/$UTIL"
+rc=$?
+
+case $rc in
+   0 )
+      echo "$UTIL successful";;
+   127 )
+      echo "$UTIL failed ($rc): Missing library in automation" 1>&2;;
+   * )
+      echo "$UTIL failed ($rc)" 1>&2 ;;
+esac
+exit $rc

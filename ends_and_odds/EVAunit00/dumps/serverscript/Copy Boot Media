@@ -1,0 +1,238 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+"""
+Copy the media needed to boot the target installer.
+
+Be smart and try to figure out the media that is needed.
+"""
+
+import os
+import sys
+import StringIO
+
+from osprov.osbp import logger
+from osprov.parsers.syslinux import Syslinux
+from osprov import media, helpers
+from osprov.errors import ShowErrorMessage, DiscoveryError
+from osprov.decorators import simplecache
+
+
+class CopyBootMedia(object):
+
+    """ Do everything needed to copy the media """
+
+    CFG_FILES = [
+        # Ubuntu support
+        "install/netboot/ubuntu-installer/amd64/boot-screens/syslinux.cfg",
+        "install/netboot/ubuntu-installer/i386/boot-screens/syslinux.cfg",
+        # Common locations for isolinux.cfgs in the supported platforms
+        "isolinux/isolinux.cfg",
+        "isolinux.cfg",
+        "boot/i386/loader/isolinux.cfg",
+        "boot/x86_64/loader/isolinux.cfg"
+    ]
+
+    def __init__(self, log=None):
+        """ Init the class """
+        if log is None:
+            self.log = logger.getIt(self.__class__.__name__)
+        else:
+            self.log = log
+        self.media = None
+
+    @property
+    @simplecache
+    def keys(self):
+        return helpers.getDataStore()
+
+    def discoverMediaObject(self, arg=None):
+        """ Figure out the type of media used and return the appropriate object type"""
+        if self.keys.media.url:
+            self.media = media.factor(self.keys.media.url, log=self.log)
+        else:
+            mediaServer = open("/tmp/osbp_info/media_server", "r").read().strip()
+            mediaPath = open("/tmp/osbp_info/media_path", "r").read().strip()
+            mediaMount = open("/tmp/osbp_info/media_mount", "r").read().strip()
+            url = "nfs://%s:%s/#%s" % (mediaServer, mediaPath, mediaMount)
+            self.log.debug(
+                "Being Backward compatible with old mount script. will use url %s" % url)
+            self.media = media.factor(url)
+        if arg:
+            if self.media.parsed_url.scheme == "nfs" and \
+                    os.path.isfile(os.path.join(self.media.basepath, arg[0])):
+                #  we can only support the iso if the media is presented using nfs
+                #  and we threat any files as supported
+                #  - This is only to be backwards compatibile,
+                # this would be better off unsupported
+                self.media = media.factor("iso://%s/%s" % (self.media.basepath, arg[0]))
+            else:
+                if not arg[0].lower().endswith(".iso"):
+                    # If it's not an iso, consider it a subdir
+                    self.media.subdir(arg[0])
+                # Just ignore an iso if we are not on NFS
+
+    def flattenSyslinuxCfg(self, cfgFile):
+        """ Flattens nested syslinux.cfg files that use the include statement.
+                If a file to be included is not found it is skipped.
+        """
+        result = Syslinux.readwrite(StringIO.StringIO())
+
+        if not self.media.exists(cfgFile):
+            return result
+
+        parser = Syslinux.readonly(self.media.open(cfgFile))
+        for key in parser.info():
+            if key.startswith("include"):
+                nestedCfg = key.split()[1]
+                nestedCfgPath = os.path.join(os.path.dirname(cfgFile), os.path.split(nestedCfg)[-1])
+                nestedParser = self.flattenSyslinuxCfg(nestedCfgPath)
+                for nestedKey, nestedValue in nestedParser.info().items():
+                    result.info()[nestedKey] = nestedValue
+            else:
+                result.info()[key] = parser.info()[key]
+        return result
+
+    def getConfigFile(self):
+        """ """
+        cfg_file = None
+        for each_file in self.CFG_FILES:
+            if self.media.exists(each_file):
+                cfg_file = each_file
+                break
+        if not cfg_file:
+            raise DiscoveryError("Found no isolinux config file. "
+                                 "Discovery of media files cannot be achieved. Make sure the media is "
+                                 "correct")
+        return cfg_file
+
+    def getBootFiles(self, bootLabel):
+        print "Adding kernel to be copied"
+        files = [bootLabel["kernel"]]
+        # hunt for additional files, initrd first
+        for param in bootLabel["append"].split(' '):
+            if param.startswith("initrd="):
+                print "Adding initrd(s) to files to be copied"
+                files.extend([x.strip() for x in param[len("initrd="):].split(',')])
+                break
+        return files
+
+    def getMBootFiles(self, bootLabel):
+        """ Get mboot.c32 style files """
+        files = []
+        if " --- " in bootLabel["append"]:
+            print "Adding mboot modules"
+            # might want to account for parameters too here
+            files.extend([x.strip() for x in bootLabel["append"].split(" --- ")])
+        return files
+
+    def getESXi5BootFiles(self, bootLabel, cfg_file):
+        """ Get boot files from nested boot configs """
+        files = []
+        where = bootLabel["append"].find("-c")
+        if where >= 0:
+            print "Adding modules from boot configuration file"
+            bootcfg_name = bootLabel["append"][where + 2:].strip().split(' ', 1)[0]
+            bootcfg_file = self.media.open(
+                os.path.join(os.path.dirname(cfg_file), bootcfg_name))
+            files.append(bootcfg_name)
+            bootcfg = Syslinux.Bootcfg.readonly(bootcfg_file).info()
+            files.append(bootcfg["kernel"])
+            files.extend(bootcfg["modules"])
+            # also retrieve the UEFI bootloader
+            files.append("/efi/boot/bootx64.efi")
+        return files
+
+    def discoverMediaFiles(self):
+        """ Check the install media  """
+        cfg_file = self.getConfigFile()
+        print "Found configuration at %s" % cfg_file
+        config = self.flattenSyslinuxCfg(cfg_file)
+        self.log.debug("Discovered syslinux cfg file: %s" % config)
+        # get the first label without a localboot option
+        # we will use that for discovery
+        name = config.first_non_local_label()
+        if name is None:
+            raise DiscoveryError("Cannot discover media files. "
+                                 "The %s config file has an unexpected configuration." % cfg_file)
+        values = config.info()["label " + name]
+        print "Will discover media using label %s" % name
+        # if we go this far, we have our name and value
+        # get a list of the media files
+        files = []
+        try:
+            files.extend(self.getBootFiles(values))
+            files.extend(self.getMBootFiles(values))
+            files.extend(self.getESXi5BootFiles(values, cfg_file))
+        except KeyError, why:
+            raise DiscoveryError("Cannot discover media files. "
+                                 "Unexpected isolinux configuration. Property %s not found" % why)
+        # normalize the files to the isolinux.cfg location
+        files = [helpers.pathMerge(cfg_file, x) for x in files]
+        return files, config
+
+    def discoverTarget(self):
+        """ discover the target partition """
+        target = self.keys.disk.device_mount
+        if not target:
+            raise DiscoveryError("Cannot determine target destination. "
+                                 "Was the stub partition created?")
+        return target
+
+    def copyFiles(self, target, files):
+        """ copy the files onto the stub partition """
+        for each in files:
+            print "Copying %s to %s" % (each, target)
+            ex = None
+            for i in xrange(5):
+                try:
+                    self.media.copyTo(each, target)
+                    break
+                except IOError, ex:
+                    self.log.warning(
+                        "Copy operation of file %s failed, retry %d of 5; exception follows" % (each, i + 1))
+                    self.log.exception(ex)
+            else:
+                raise ex
+
+    def main(self, args):
+        """ do the media copying  """
+        try:
+            self.discoverMediaObject(args[1:2])
+            print "Will copy from %s" % self.media
+            target = self.discoverTarget()
+            if not os.path.isdir(target):
+                print "Error: %s is not a directory. Can't copy media there." % target
+                print "There might be an issue with the stub partition."
+                return 1
+            files = None
+            if args:
+                if args[2:]:
+                    # old style parameters
+                    files = args[2:]
+            if not files:
+                files, config = self.discoverMediaFiles()
+                fd = open(os.path.join(target, "isolinux.cfg"), "w+b")
+                try:
+                    fd.write(config.format())
+                finally:
+                    fd.close()
+            self.copyFiles(target, files)
+            print "Successfully copied all boot media"
+        except DiscoveryError, why:
+            self.log.exception(why)
+            print "Auto discovery failed: %s" % why
+            return 3
+        except ShowErrorMessage, why:
+            self.log.exception(why)
+            print "Failed to copy boot media %s" % why
+            return why[1]
+        except (IOError, OSError), why:
+            self.log.exception(why)
+            print "Failed to copy boot media : %s. Is this the correct media?" % why
+            return 4
+
+
+if __name__ == "__main__":
+    sys.exit(CopyBootMedia().main(sys.argv))

@@ -1,0 +1,308 @@
+# (c) Copyright 2013, 2014 Hewlett-Packard Development Company, L.P.
+lang en_US.UTF-8
+keyboard us
+timezone --utc America/Chicago
+
+text
+
+install
+key --skip
+
+# Uncomment the line below if you do not wish to configure X on the
+# installed system.
+#skipx
+
+# Uncomment the line below to start X on boot.  This option should
+# only be used if X was installed.
+#xconfig --startxonboot
+
+network  --bootproto=dhcp
+
+authconfig --enableshadow --enablemd5
+rootpw --iscrypted "@encrypted_root_password:$1$7z4m7f1z$wliShMhVv2HuCAPmuiQzV1@"
+
+zerombr
+clearpart --all --initlabel 
+autopart
+
+bootloader --append="@kernel_arguments: @" --location=mbr
+
+# Disable firewall and selinux for SPP components
+firewall --disabled
+selinux --disabled
+# Port 1002 is needed for agent communication if the firewall is enabled
+# firewall --enable --port=1002:tcp
+
+%packages
+@Base
+
+# Needed to ensure Mellanox driver installed when required
+kmod-mellanox-mlnx-en
+
+@basic-desktop
+@x11
+@virtualization
+@virtualization-client
+@virtualization-platform
+@virtualization-tools
+
+# Install a VNC server to allow for "virt-manager" to be run from a VNC viewer.
+tigervnc-server
+
+# Components listed below are needed for mount to media server for HPSUM installation
+keyutils
+libtalloc
+cifs-utils
+
+# Components listed below are needed to run HPSUM and SPP components
+expat.i686
+expect
+fontconfig.i686
+freetype.i686
+libICE.i686
+libSM.i686
+libuuid.i686
+libXi.i686
+libX11.i686
+libXau.i686
+libxcb.i686
+libXcursor.i686
+libXext.i686
+libXfixes.i686
+libXi.i686
+libXinerama.i686
+libXrandr.i686
+libXrender.i686
+zlib.i686 
+libgcc.i686
+libstdc++.i686
+make
+net-snmp
+net-snmp-libs
+
+%post --log /tmp/icsp-networkconfig.log
+
+######################################################################
+# BEGIN KVM BRIDGE CONFIGURATION
+######################################################################
+
+echo "/sbin/ifconfig:"
+/sbin/ifconfig
+echo ""
+
+# Whether we're using DHCP or a static IP address, only one
+# interface should have been assigned an IPv4 address.  That
+# interface should be the interface for the Boot MAC address.
+INTERFACES=$(/sbin/ifconfig | grep eth | awk -F " " '{ print $1 }')
+ETH_NAME=""
+for i in $INTERFACES
+do
+    HAS_IP=$(ifconfig $i | grep "inet addr")
+    if [ -n "$HAS_IP" ]
+    then
+        ETH_NAME=$i
+        break
+    fi
+done
+
+if [ -z "${ETH_NAME}" ]
+then
+    ETH_NAME="eth0"
+fi
+
+# Get the MAC address of the interface.
+MAC=$(/sbin/ifconfig | grep ${ETH_NAME} | grep HWaddr | awk -F " " '{ print $5 }')
+
+echo "Interface selected as bridge: ${ETH_NAME}"
+echo "MAC of bridge interface ${ETH_NAME}: $MAC"
+echo ""
+
+# Regular expression to extract the number from the ethernet device name,
+# so that our ethernet device name and bridge name match.
+ETH_REGEX="eth([0-9]+)"
+
+if [[ "${ETH_NAME}" =~ ${ETH_REGEX} ]]
+then
+    ETH_NUM=${BASH_REMATCH[1]}
+else
+    echo "Could not extract number from device name '${ETH_NAME}'"
+    ETH_NUM=0
+fi
+
+# This is our bridge interface name.
+BRIDGE_NAME=br${ETH_NUM}
+
+ETH_DEVICE_FILE=/etc/sysconfig/network-scripts/ifcfg-${ETH_NAME}
+ETH_DEVICE_FILE_TEMP=/tmp/eth.out
+BRIDGE_DEVICE_FILE=/etc/sysconfig/network-scripts/ifcfg-${BRIDGE_NAME}
+
+# Display Ethernet Configuration File in its original state.
+echo -e "Before Creating Bridge:\n"
+echo "cat ${ETH_DEVICE_FILE}:"
+cat ${ETH_DEVICE_FILE}
+echo ""
+
+# These are the labels we want to copy from the Ethernet Configuration
+# File to the Bridge Configuration File.
+ETH_LABELS_TO_COPY_TO_BRIDGE=$(cat <<!
+BOOTPROTO
+ONBOOT
+IPADDR
+NETMASK
+GATEWAY
+DNS1
+DNS2
+DNS3
+IPV6INIT
+HOSTNAME
+!
+)
+
+# Copy the labels from the Ethernet Configuration File to the
+# Bridge Configuration File.
+for LABEL in ${ETH_LABELS_TO_COPY_TO_BRIDGE}
+do
+    # Only copy labels that exist in the Ethenet Configuration File.
+    LINE=$(grep -i "^${LABEL}=" ${ETH_DEVICE_FILE})
+
+    # The label exists, so copy it.
+    if [ $? -eq 0 ]
+    then
+        echo ${LINE} >> ${BRIDGE_DEVICE_FILE}
+    fi
+done
+
+# Assign the device name.
+echo "DEVICE=${BRIDGE_NAME}" >> ${BRIDGE_DEVICE_FILE}
+
+# This config file defines a bridge.
+echo "TYPE=Bridge" >> ${BRIDGE_DEVICE_FILE}
+
+# The NM_CONTROLLED=no should be added to the Ethernet interface to prevent
+# NetworkManager from altering the file. It can also be added to the bridge
+# configuration file in case future versions of NetworkManager support 
+# bridge configuration.
+echo "NM_CONTROLLED=no" >> ${BRIDGE_DEVICE_FILE}
+
+# An extra directive, DELAY=0, is added to prevent the bridge from waiting
+# while it monitors traffic, learns where hosts are located, and builds a 
+# table of MAC addresses on which to base its filtering decisions. The 
+# default delay of 30 seconds is not needed if no routing loops are possible.
+echo "DELAY=0" >> ${BRIDGE_DEVICE_FILE}
+
+ETH_LABELS_TO_KEEP=$(cat <<!
+DEVICE
+TYPE
+HWADDR
+ONBOOT
+IPV6INIT
+UUID
+MTU
+!
+)
+
+# Copy the labels that we want to keep in the Ethernet Configuration
+# File to a temporary file.
+for LABEL in ${ETH_LABELS_TO_KEEP}
+do
+    # Only copy labels that exist in the Ethenet Configuration File.
+    LINE=$(grep -i "^${LABEL}=" ${ETH_DEVICE_FILE})
+
+    # The label exists, so copy it.
+    if [ $? -eq 0 ]
+    then
+        echo ${LINE} >> ${ETH_DEVICE_FILE_TEMP}
+    fi
+done
+
+# The NM_CONTROLLED=no should be added to the Ethernet interface to prevent
+# NetworkManager from altering the file. It can also be added to the bridge
+# configuration file in case future versions of NetworkManager support 
+# bridge configuration.
+echo "NM_CONTROLLED=no" >> ${ETH_DEVICE_FILE_TEMP}
+
+# Tell the network interface that we're part of a bridge.
+echo "BRIDGE=${BRIDGE_NAME}" >> ${ETH_DEVICE_FILE_TEMP}
+
+# Create the new Ethernet Configuration File.
+cp ${ETH_DEVICE_FILE_TEMP} ${ETH_DEVICE_FILE}
+
+# Display Ethernet Configuration File after the bridge has been created.
+echo -e "After Creating Bridge:\n"
+echo "cat ${ETH_DEVICE_FILE}:"
+cat ${ETH_DEVICE_FILE}
+echo ""
+
+# Display Bridge Configuration File.
+echo "cat ${BRIDGE_DEVICE_FILE}:"
+cat ${BRIDGE_DEVICE_FILE}
+echo ""
+
+# Disable the NetworkManager in order to avoid getting "/etc/resolv.conf"
+# overwritten by it, thereby losing our DNS server information.
+# Our "ifcfg-brX" and "ifcfg-ethX" network scripts have "NM_CONTROLLED=no",
+# meaning that they are not under the control of the NetworkManager,
+# so the "DNS1=", "DNS2=", and "DNS3=" entries in those network scripts
+# were not going to get automatically copied to "/etc/resolv.conf" by
+# the NetworkManager, anyway.
+chkconfig NetworkManager off
+
+######################################################################
+# END KVM BRIDGE CONFIGURATION
+######################################################################
+
+######################################################################
+# BEGIN FIREWALL CONFIGURATION
+######################################################################
+
+# VNC server ports we'll need to open if the firewall is enabled.
+VNC_SERVER_PORTS="$(cat <<!
+# VNC server listens on the following TCP ports:\n\
+# => VNC server on display 0 will listen on TCP ports 5800, 5900 and 6000\n\
+# => VNC server on display 1 will listen on TCP ports 5801, 5901 and 6001\n\
+# => VNC server on display N will listen on TCP ports 580N, 590N and 600N\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 5800 -j ACCEPT\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 5900 -j ACCEPT\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 6000 -j ACCEPT\n\
+\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 5801 -j ACCEPT\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 5901 -j ACCEPT\n\
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 6001 -j ACCEPT\n
+!
+)"
+
+# Configure iptables to allow all traffic to be forwarded across the bridge.
+ALLOW_TRAFFIC_ACROSS_BRIDGE="-A FORWARD -m physdev --physdev-is-bridged -j ACCEPT"
+
+# Open up the port for the S.A. agent.
+SA_AGENT_PORT="-A INPUT -m state --state NEW -m tcp -p tcp --dport 1002 -j ACCEPT"
+
+IPTABLES_FILE="/etc/sysconfig/iptables"
+
+# If the firewall is enabled, then the "/etc/sysconfig/iptables" file
+# will exist and we can modify it.
+if [ -e ${IPTABLES_FILE} ]
+then
+    echo "${IPTABLES_FILE} exists"
+
+    # Display Ethernet Configuration File after the bridge has been created.
+    echo -e "${IPTABLES_FILE} Before Modification:\n"
+    echo "cat ${IPTABLES_FILE}:"
+    cat ${IPTABLES_FILE}
+    echo ""
+
+    sed -i -e '/:OUTPUT/a\\'"${ALLOW_TRAFFIC_ACROSS_BRIDGE}"'' ${IPTABLES_FILE}
+    sed -i -e '/:OUTPUT/a\\'"${VNC_SERVER_PORTS}"'' ${IPTABLES_FILE}
+    sed -i -e '/:OUTPUT/a\\'"${SA_AGENT_PORT}"'' ${IPTABLES_FILE}
+
+    echo -e "${IPTABLES_FILE} After Modification:\n"
+    echo "cat ${IPTABLES_FILE}:"
+    cat ${IPTABLES_FILE}
+    echo ""
+else
+    echo "${IPTABLES_FILE} does not exist"
+fi
+
+######################################################################
+# END FIREWALL CONFIGURATION
+######################################################################

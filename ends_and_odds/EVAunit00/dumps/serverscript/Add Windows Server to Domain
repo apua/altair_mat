@@ -1,0 +1,146 @@
+set DOMAIN=@DomainName@
+set DNSDOMAIN=@DomainFQDN@
+set DOMAINUSERROOT=@DomainUser@
+set DOMAINPASS=@DomainPassword@
+set KEY=@Key@
+set ENCYPTPASSWORD=@EncryptedDomainPassword@
+;@Findstr -bv ;@F "%~f0" |powershell.exe -ExecutionPolicy Unrestricted -NoLogo -NonInteractive -NoProfile -Command - & ;exit $LastExitCode
+
+#######################################################
+##        Check custom attributes
+## exit the script if any custom attribute is missing 
+##############################################################
+Function checkCA
+{
+    if (!$domain)
+    {
+        write-host "Please provide a value for custom attribute 'DomainName' to proceed"
+        Exit 3
+    }
+    elseif (!$dnsdomain)
+    {
+        write-host "Please provide a value for custom attribute 'DomainFQDN' to proceed"
+        Exit 3
+    }
+    elseif (!$domainuserroot)
+    {
+        write-host "Please provide a value for custom attribute 'DomainUser' to proceed"
+        Exit 3
+    }
+        
+}
+
+
+################################################################################
+#        Check DNS
+# check if DNS is configure. If DNS IP not found exit the script
+##################################################################################
+Function checkDNS
+{
+    $colItems = Get-WmiObject Win32_NetworkAdapterConfiguration -Namespace "root\CIMV2" | where{$_.IPEnabled -eq "True"}
+    if(!$colItems.DNSServerSearchOrder)
+    {
+        write-host "ERROR: The target server is not configured with any DNS servers. This is required for adding to a domain."
+        Exit 5
+    }
+    
+}
+
+######################################################################################
+#        getCredobj
+#######################################################################################
+Function getCredobj
+{
+    if ($key -and $encryptpassword)
+    {
+        $keyarr=$key.tocharArray()
+        $securepass = ConvertTo-SecureString -String $encryptpassword -key $keyarr
+        if ($?)
+        {
+        write-host "Created secure string successfully from encrypted string"
+        }
+        else
+        {
+        write-host "ERROR:Creating secure sting from encrypted string failed."
+        Exit 2
+        }
+    }
+    elseif ($domainpass)
+    {
+        #No Key/Encrypted password specified using domain password as plain text
+        #
+        $securepass = ConvertTo-SecureString  $domainpass -AsPlainText -force
+        if ($?)
+        {
+        write-host "Created secure string successfully"
+        }
+        else
+        {
+        write-host "ERROR: Creating secure string from plain text failed."
+        Exit 2
+        }
+    }
+    else
+    {
+        write-host "Error: "Please provide value for custom attribute Key/EncryptedDomainPassword or DomainPassword to proceed.
+        Exit 2
+    }
+    $cred = New-Object System.Management.Automation.PSCredential($domainUser,$securePass)
+    if ($?)
+    {
+        write-host "created DomainCred obj."
+        return $cred
+    }
+    else
+    {
+        write-host "Fail to create DomainCred obj."
+        Exit 2
+    }
+}
+
+######################################################################################
+#        Add-Computer
+#######################################################################################
+Function addComp
+{
+
+Add-Computer -DomainName $dnsdomain -Credential $domaincred 
+if ($?)
+    {
+    write-host "System moved to $DNSDomain Successfully"
+    }
+else
+    {
+    write-host "ERROR: Script failed to moved system under $DNSDomain. Please check more error details at %windir%\debug\NetSetup.txt on target"
+    Exit 1
+    }
+    
+}
+
+
+#################################
+##    Main
+############################
+
+$domain=$env:DOMAIN
+write-host "Your Domain: $domain"
+   
+$dnsdomain = $env:DNSDOMAIN
+write-host "Your DNS: $dnsdomain"
+
+$domainuserroot = $env:DOMAINUSERROOT
+write-host "User: $domainuserroot"
+
+$key=$env:KEY
+$domainpass = $env:DOMAINPASS
+$encryptpassword=$env:ENCYPTPASSWORD
+#Checking for customattribute
+checkCA
+checkDNS
+$domainuser = $domain+'\'+$domainuserroot 
+write-host "$domainuser"
+
+#get Credential object
+$domaincred=getCredobj
+#Call Add-Computer
+addComp

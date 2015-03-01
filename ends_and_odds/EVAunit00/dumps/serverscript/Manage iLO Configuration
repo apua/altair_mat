@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+# ======================================================================
+# Reads/Writes HP Manage iLO Configuration
+#
+# Capture parameters: -w ilooutput.xml
+# Deploy parameters: -f iloinput.xml 
+# ======================================================================
+
+UTIL=hponcfg
+DIR="/tmp/sstk"
+
+# To check the arguments
+
+if [ $# -lt 2 ]; then
+  echo "Missing Arguments"
+  exit 1
+fi
+MODE=$1
+FILE=$2
+shift 2
+
+if [ -f $DIR/$UTIL ];then
+ chmod +x $DIR/$UTIL
+else
+ echo "Missing $DIR/$UTIL file"
+ exit 1
+fi
+
+#Run hponcfg
+
+"$DIR/$UTIL" "$MODE" "$FILE"
+rc=$?
+
+case $rc in
+   0 )
+      echo "$UTIL successful";;
+   127 )
+      echo "$UTIL failed ($rc): Missing library in automation" 1>&2;;
+   134 )
+      echo "$UTIL failed ($rc): Corrupted custom post message" 1>&2 ;;
+   * )
+      echo "$UTIL failed ($rc)" 1>&2 ;;
+esac
+exit $rc

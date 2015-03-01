@@ -1,0 +1,153 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+""" (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+For legacy BIOS it installs extlinux boot loader needed by ESXi to boot off a local disk.
+
+For UEFI it deploys the boot loader from the ESXi OS media.
+"""
+import os
+import shutil
+import sys
+from optparse import OptionParser
+
+from osprov import helpers, netconfig
+from osprov.decorators import HandleShowErrorMessage
+from osprov.diskmgr.disk import LinuxDisk
+from osprov.osbp import logger
+from osprov.parsers.syslinux import Syslinux
+from osprov.errors import DiscoveryError
+from osprov.util import process
+from osprov.server.local import ThisLocalServer
+from osprov.wrappers.efibootmgr import EfiBootMgr, DiskBootEntry
+
+LOG = logger.getIt("install ESXi bootloader")
+
+
+def _open(filePath, mode='r'):
+    return open(filePath, mode)
+
+
+class InstallEsxiBootloader(object):
+
+    """ Install the extlinux boot loader   """
+
+    def __init__(self, log=LOG):
+        """ Init the class """
+        self.log = log
+        keys = helpers.getDataStore()
+        self.target = keys.disk.device_mount
+        if not self.target:
+            raise DiscoveryError("Cannot discover boot disk. "
+                                 "Was the stub partition created?")
+        self.bootDisk = keys.disk.device_path
+
+    def installExtlinux(self):
+        """ Install the mbr """
+        mbr = "/tmp/mbr.bin"
+        if not os.path.exists(mbr):
+            raise DiscoveryError("Cannot find the ESXi utilities. Was the zip installed?")
+        disko = _open(self.bootDisk, "wb")
+        mbro = _open(mbr, "rb")
+        disko.write(mbro.read())
+        disko.close()
+        mbro.close()
+        ext = "/tmp/extlinux"
+        os.chmod(ext, 0755)
+        process.runIt("/tmp/extlinux --install %s" % self.target, log=self.log, quiet=True)
+
+    def discoverAdditionalModules(self):
+        return [os.path.join("/usermod", x) for x in (os.listdir(os.path.join(self.target, "usermod")))]
+
+    def discoverBootCfg(self, isocfgLabel):
+        """ Returns the path to boot.cfg on the stub partition """
+        try:
+            where = isocfgLabel["append"].find("-c")
+        except KeyError:
+            raise DiscoveryError("Failed to discover boot modules")
+        if where >= 0:
+            bootCfg = isocfgLabel["append"][where + 2:].strip().split(' ', 1)[0]
+            bootCfg = os.path.join(self.target, bootCfg)
+        else:
+            bootCfg = None
+        return bootCfg
+
+    def configureExtlinux(self, isocfgLabel, additionalModules, kernelArguments, withBootCfg):
+        """ Configure the bootloader  """
+        extcfg = Syslinux.readwrite(
+            _open(os.path.join(self.target, "extlinux.conf"), "w+b"), writeback=True)
+        extcfg.info()["default"] = "esxi"
+        extcfg.info()["prompt"] = 0
+        extcfg.info()["timeout"] = 100
+
+        kernelArguments = " " + kernelArguments.strip()
+
+        if not withBootCfg:
+            modules = isocfgLabel["append"].split(" --- ")
+            modules.extend(additionalModules)
+            modules[0] += kernelArguments
+            isocfgLabel["append"] = " --- ".join(modules)
+        extcfg.info()["label esxi"] = isocfgLabel
+        return extcfg
+
+    def configureBootCfg(self, bootCfg, additionalModules=[], kernelopts=""):
+        bootcfg = Syslinux.Bootcfg.readwrite(bootCfg, writeback=True)
+        bootcfg.info()["modules"].extend(additionalModules)
+        bootcfg.info()["kernelopt"] += " " + kernelopts
+        return bootcfg
+
+    @HandleShowErrorMessage("install ESXi boot loader", log=LOG)
+    def main(self, args):
+        parser = OptionParser()
+        parser.add_option("-k", "--kernel_arguments", dest="kernel_args", default="",
+                          help="add additional kernel arguments FILE", metavar="FILE")
+        (options, rest) = parser.parse_args(args[1:])
+        del rest
+
+        print "Installing boot loader on %s" % self.bootDisk
+
+        isocfg = Syslinux.readonly(_open(os.path.join(self.target, "isolinux.cfg")))
+        isocfgLabel = isocfg.info()[("label %s" % isocfg.first_non_local_label())]
+        additionalModules = self.discoverAdditionalModules()
+
+        localServer = ThisLocalServer()
+        macAddress = netconfig.macToBootIf(localServer.getMACAddress(()))
+        # Installer configuration:
+        # - use the profile embedded in the initrd
+        # - use the network interface the server booted into the server pool
+        # - pass additional kernel arguments
+        kernelArguments = "ks=file:///usr/ks.cfg BOOTIF=%s %s" % (macAddress, options.kernel_args)
+
+        # ESXi5+ uses another boot loader + a boot.cfg file
+        bootCfgPath = self.discoverBootCfg(isocfgLabel)
+        if bootCfgPath:
+            self.configureBootCfg(_open(bootCfgPath), additionalModules, kernelArguments)
+
+        if "msdos" == LinuxDisk(self.bootDisk).partitionTableType:
+            print "Found msdos partition table, configuring for BIOS boot"
+            self.installExtlinux()
+            self.configureExtlinux(
+                isocfgLabel, additionalModules, kernelArguments, bootCfgPath is not None)
+        else:
+            print "Found gpt partition table, configuring for UEFI boot"
+            bootLoaderPath = os.path.join(self.target, "bootx64.efi")
+            if not bootCfgPath or not os.path.isfile(bootCfgPath) or not os.path.isfile(bootLoaderPath):
+                raise DiscoveryError("Failed to discover ESXi boot files."
+                                     "This media is not suitable for a UEFI installation.")
+            # deploy the files for UEFI boot
+            bootDir = os.path.join(self.target, "efi/boot")
+            helpers.makeDirs(bootDir)
+            shutil.copy2(bootCfgPath, bootDir)
+            shutil.copy2(bootLoaderPath, bootDir)
+            # configure the UEFI boot entries
+            osInstallerBootEntry = DiskBootEntry("HPSA Assisted OS Installer", disk=self.bootDisk)
+            efibootmgr = EfiBootMgr(log=LOG)
+            efibootmgr.bootOneTime(osInstallerBootEntry)
+            print("Configured boot to: %s" % osInstallerBootEntry)
+
+        print "Successfully installed the boot loader"
+
+if __name__ == "__main__":
+    sys.exit(InstallEsxiBootloader().main(sys.argv))

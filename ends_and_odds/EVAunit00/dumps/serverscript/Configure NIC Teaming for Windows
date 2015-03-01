@@ -1,0 +1,64 @@
+set  SEARCHFIELD=%1
+set  SEARCHPATTERN=%*
+
+;@Findstr -bv ;@F "%~f0" |powershell.exe -ExecutionPolicy Unrestricted -NoLogo -NonInteractive -NoProfile -Command  - & goto:eof
+
+## -------------------------------------------------------------------------------
+## Create-NICTeam
+## -------------------------------------------------------------------------------
+
+Function Create-NicTeam ([string[]] $Members, [string]$TeamName)
+{
+$ListofTeams = Get-NetLbfoTeam
+if ($ListofTeams)
+{
+foreach ( $Team in $ListofTeams)
+{
+if ($Team.Name -eq $TeamName)
+{
+write-host "Team $TeamName already exists - No action needed"
+return
+}
+}
+}
+if ( $ListofNetworkNames.Count -gt 1)
+{
+write-host " Creating new team $TeamName"
+
+New-NetLBfoTeam -AsJob -Name $TeamName -TeamMembers $Members -TeamingMode SwitchIndependent -LoadBalancingAlgorithm TransportPorts -confirm:$false
+return
+}
+else
+{
+write-host " There is less than 2 members in the Team list for $TeamName. Cannot create team"
+}
+}
+## -------------------------------------------------------------------------------
+## Main Entry
+## -------------------------------------------------------------------------------
+
+$field=$env:SEARCHFIELD
+if ( $field -gt 0){write-host "Parameter value found."}else{write-host "Parameter value Not found. Exiting"}
+ 
+$value=$env:SEARCHPATTERN
+if ( $value -gt 0){$valueSplit = $value.split(",")}else{write-host "Parameter value Not found. Exiting"}
+
+if ( $valueSplit.count -gt 1){$NetArray=$valueSplit[1..($valueSplit.count-1)]}else{write-host " Network Adapter input Not found. Exiting"}
+
+
+write-host "Field used: $field"
+write-host "Network Adapter used: $NetArray"
+
+$TeamMembers = @()
+$TeamName = "Team-by-"+"$field"
+$value="*"+"$value"+"*"
+$NetAdapters = @()
+$ListofNetworkNames = @()
+
+
+$(ForEach($Element in $NetArray) {Get-NetAdapter | where $field -like $Element}) | set-variable NetAdapters
+echo $NetAdapters
+
+if ( $NetAdapters.Count -gt 0){write-host " Network Adapter found."}else{write-host " Network Adapter Not found. Exiting"}
+Foreach ($Net in $NetAdapters){$ListofNetworkNames += $Net.Name}
+if ($ListofNetworkNames.Count -gt 0){Create-NicTeam -Members $ListofNetworkNames -TeamName $TeamName}

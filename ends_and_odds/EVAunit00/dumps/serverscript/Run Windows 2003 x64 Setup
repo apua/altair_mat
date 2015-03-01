@@ -1,0 +1,33 @@
+@echo off
+setlocal
+set SIG=WINPE64
+set ANSWER=X:\Windows\Temp\Unattend.txt
+set ARGS=/noreboot /unattend:%ANSWER% /syspart:@SystemDrive:C@: /tempdrive:@SystemDrive:C@: /debug3:%SystemDrive%\install.log
+set | find "opswbasig=%SIG%" > NUL
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Target server must be running %SIG% but it is not
+    exit /B 1
+)
+if X%1==X (
+    set SETUP=z:\i386\winnt32.exe
+) else (
+    set SETUP=%1
+)
+if not exist %SETUP% (
+    echo %SETUP% missing! Cannot install Windows.
+    exit /B 2
+)
+if not exist %ANSWER% (
+    echo %ANSWER% missing! Cannot install Windows.
+    exit /B 3
+)
+
+%SETUP% %ARGS%
+
+if %ERRORLEVEL% == 0 (
+    echo Windows setup completed successfully
+    exit
+) else (
+    echo ERROR: Windows setup exited status %ERRORLEVEL%
+    exit /B %ERRORLEVEL%
+)

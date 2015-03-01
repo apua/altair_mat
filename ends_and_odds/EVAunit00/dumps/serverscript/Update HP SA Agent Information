@@ -1,0 +1,100 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2012 Hewlett-Packard Development Company, L.P.
+Integrates the HP SA Agent into a server
+
+This consists of:
+
+ * Copying the MID and crypto into place
+ * Updating the gateway information
+"""
+import glob
+import optparse
+import os
+import stat
+import shutil
+import string
+import sys
+import time
+import stat
+
+from osprov import constants, helpers
+from osprov.server import ThisLocalServer
+from osprov.errors import ShowErrorMessage
+from osprov.errors import NotFoundError
+from osprov.server.local import linux, winpe
+
+LOCAL_SERVER = ThisLocalServer()
+
+# backup timestamp
+BACKUP_TIMESTAMP = string.replace(time.ctime(time.time()), ':', '-')
+
+
+def backupAndReplaceFile(sourceFile, destFile):
+
+    if not os.path.exists(sourceFile):
+        raise NotFoundError("Unable to find HP SA Agent file (" + sourceFile +
+                            ").  Guest Customization is only supported when HP SA Agent is previously installed.")
+
+    # backup and delete existing file
+    if os.path.exists(destFile):
+        # chmod to writable
+        os.chmod(destFile, stat.S_IWRITE | stat.S_IREAD)
+        shutil.copy(destFile, destFile + ".backup_" + BACKUP_TIMESTAMP)
+        os.remove(destFile)
+
+    # copy new file
+    shutil.copy(sourceFile, destFile)
+    print "Copy " + sourceFile + " to " + destFile
+
+    if os.stat(destFile)[stat.ST_SIZE] == 0:
+        raise ShowErrorMessage("file %s copied over was size 0" % destFile)
+
+
+def copyMidCryptoGateway():
+    """Copies the essential identity files from the OGFS Agent to the real OS filesystem.
+
+    Server is expected to already be agent-managed.
+
+    This include the unique machine identifier (MID) and the device-specific
+    crypto certificates.
+    """
+
+    sourceMidFile = LOCAL_SERVER.MID_FILE
+    sourceGatewayFile = os.path.join(os.path.dirname(sourceMidFile), "opswgw.args")
+    sourceCryptoDir = LOCAL_SERVER.CRYPTO_DIR
+
+    if isinstance(LOCAL_SERVER, linux.LinuxSOSLocalServer):
+        mountPath = constants.OGFS_SYSTEM_ROOT
+        destMidFile = mountPath + sourceMidFile
+        destGatewayFile = mountPath + sourceGatewayFile
+        destCryptoDir = mountPath + sourceCryptoDir
+    else:
+        mountPath = helpers.getSystemDrive("@SystemPartition:C@")
+        destMidFile = mountPath + sourceMidFile[1:]
+        destGatewayFile = mountPath + sourceGatewayFile[1:]
+        destCryptoDir = mountPath + sourceCryptoDir[1:]
+
+    backupAndReplaceFile(sourceMidFile, destMidFile)
+    backupAndReplaceFile(sourceGatewayFile, destGatewayFile)
+
+    # replace old crypto files with new crypto files
+    for srcCryptoFile in glob.glob(sourceCryptoDir + "/*.*"):
+        dstCryptoFile = destCryptoDir + "/" + os.path.basename(srcCryptoFile)
+        backupAndReplaceFile(srcCryptoFile, dstCryptoFile)
+
+    print "This server's unique MID and crypto material successfully installed, and gateway value updated"
+
+
+def error(message):
+    sys.stderr.write(message + "\n")
+
+try:
+    copyMidCryptoGateway()
+except ShowErrorMessage, ex:
+    error(ex.args[0])
+    sys.exit(ex.args[1])

@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "LinuxPE add-on packages", 
+        "parameters": ""
+    }, 
+    {
+        "name": "ProLiant Scripting Toolkit for Linux x64", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Erase Server Disk", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Smart Array Configuration - Delete RAID Logical Volumes", 
+        "parameters": "/tmp/sstk/hpssacli/acuinput.ini"
+    }, 
+    {
+        "name": "Manage Smart Array Configuration", 
+        "parameters": "-i /tmp/sstk/hpssacli/acuinput.ini -internal -reset -nofail"
+    }, 
+    {
+        "name": "Reset System Configuration", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot to Apply BIOS Changes and Power Off", 
+        "parameters": "--serviceOS=linux64 --force --wait 180"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=linux64"
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Reset Server Lifecycle To Unprovisioned", 
+        "parameters": ""
+    }
+]

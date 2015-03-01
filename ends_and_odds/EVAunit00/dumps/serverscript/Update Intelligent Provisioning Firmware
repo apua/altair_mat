@@ -1,0 +1,179 @@
+#!/bin/bash
+
+#(c) Copyright 2014 Hewlett-Packard Development Company, L.P.
+
+mountPoint=/mnt/media
+if [ ! -d "$mountPoint" ];
+then
+   mountPoint=/mnt/ms
+fi
+
+ipFolder="$mountPoint/Media/ip/"
+ipVersion=
+
+if [ ! -d "$mountPoint/Media/ip" ]; then
+   echo "The 'Media/ip' directory was not found on the Media Server." 1>&2
+   echo "Make sure that this directory exists and that a subdirectory containing the extracted Intelligent Provisioning media also exists." 1>&2
+   exit 2
+fi
+
+
+#Create /tmp/ip
+ipInitrd=/tmp/ip
+mkdir -p $ipInitrd
+
+##############################################################################
+# This function determines which version of the IP to install.  Unless a
+# specific IP version is specifed, the latest IP, as determined by the
+# sort order, is used.
+##############################################################################
+
+findIPVersion()
+{
+    if [ "$ipVersion" == "" ] || [ "$ipVersion" == "latest" ]
+    then
+        ipVersion=$(find "${ipFolder}" -mindepth 1 -maxdepth 1 -type d -printf %f\\n | sort | tail -1)
+
+        if [ "$ipVersion" == "" ]
+        then
+            echo "No IP directories were found under '${ipFolder}'" 1>&2
+            echo "Check your media server and verify that there is at least one directory under the '/Media/ip' directory which contains the IP files" 1>&2
+            echo "IP directories are typically named using the IP version, for example '1.60'" 1>&2
+            return 1
+        fi
+    fi
+
+    ipVersionDir=${ipFolder}/${ipVersion}
+
+    # Check for a valid Intelligent Provisioning firmware directory.
+    if [ ! -e "${ipVersionDir}" ]
+    then
+        echo "'${ipVersionDir}' does not exist" 1>&2
+        return 1
+    elif [ ! -d "${ipVersionDir}" ]
+    then
+        echo "'${ipVersionDir}' is not a directory" 1>&2
+        return 1
+    fi
+    
+    echo "IP folder to use: $ipVersion"
+    return 0
+}
+
+extractInitrd() {
+#Extract IP's initrd.img into /tmp/ip
+  cd $ipInitrd
+  xz -d < "$ipFolder/$ipVersion/system/initrd.img" | cpio -id
+  if [ $? != 0 ]; then
+     echo "Unable to access files from Intelligent Provisioning media"
+     return 1
+  fi
+
+}
+
+#Clean iLO blob store
+updateBlob() {
+    touch /tmp/nothing
+    cd /tmp
+        hpblob -w -k SSLOCALE -f /tmp/nothing
+        hpblob -w -k SSEULA -f /tmp/nothing
+        hpblob -w -k SSERS -f /tmp/nothing
+        hpblob -w -k SSOPTIN -f /tmp/nothing
+        echo = "<network><device>eth0</device><mode>dhcp</mode><staticip></staticip><staticmask></staticmask><staticgateway></staticgateway><staticdns></staticdns><repo_type>0</repo_type><repo_url></repo_url><proxyip></proxyip><proxyport></proxyport></network>" > /tmp/net
+        hpblob -w -k SSNETWORK -f /tmp/net
+
+    cd $ipFolder/$ipVersion/system
+
+    temp=$(ls HPIP*|cut -d'.' -f1)
+    ipversion=${temp:4}
+    buildate=$(ls HPIP*|cut -d'.' -f2)
+    buildver=$(ls HPIP*|cut -d'.' -f3)
+    echo "<ip><version>$ipversion</version><build_date>$buildate</build_date><build_ver>$buildver</build_ver></ip>" > /tmp/ver.xml
+    hpblob -w -k SMARTSTART_FLASH -f /tmp/ver.xml
+    cd $ipInitrd
+}
+
+#Enable ilo devices
+enableiLOdevices() {
+  xmlsmif < $ipInitrd/etc/gaiusmount.xml > /dev/null
+  if [ "$?" -ne "0" ]; then
+     echo "Unable to enable iLO Devices"
+     return 1
+  fi
+}
+
+
+##############################################################################
+# Main Routine
+##############################################################################
+
+echo "Parameters to script => ${*}"
+
+# Parse the command line arguments.
+lastOpt=
+for arg in $*
+do
+    optName=`echo $arg | awk -F'=' '{print $1;}'`
+    optValue=${arg:$((${#optName}+1))}
+
+    if [ "${optName}" == "--ip_version" ]; then
+
+        if [[ ! "${optValue}" =~ [^[:space:]] ]]
+        then
+            echo "Missing argument to '--ip_version'" 1>&2
+            exit 1
+        fi
+
+        ipVersion=${optValue}
+
+        lastOpt=
+    else
+        echo "invalid option '${optName}'" 1>&2
+        exit 1
+    fi
+done
+
+#Locate the IP Version to use
+findIPVersion
+if [ $? -ne 0 ]
+then
+  exit 1
+fi
+
+# Extract the IP provided initrd to get needed files
+extractInitrd
+if [ $? -ne 0 ]
+then
+  exit 2
+fi
+
+#Do necessary soft links
+export PATH=$PATH:$ipInitrd/bin
+export LD_LIBRARY_PATH=$ipInitrd/usr/lib64
+
+#simple hack to avoid unwanted plymouth not found error messages
+echo > $ipInitrd/bin/plymouth
+chmod 755 $ipInitrd/bin/plymouth
+
+#Enable iLO Devices
+enableiLOdevices
+if [ $? -ne 0 ]
+then
+  exit 2
+fi
+
+#Update HP Blob store to reset values
+#No error checking done here
+updateBlob
+
+
+#Start the actual Update process
+gaius $ipFolder/$ipVersion/ip/gaius.img.gz $ipFolder/$ipVersion/ip/vid.img.gz
+if [ $? != 0 ]; then
+   echo "Updating Intelligent Provisioning failed..."
+   exit 9
+fi
+sync
+
+exit 0
+

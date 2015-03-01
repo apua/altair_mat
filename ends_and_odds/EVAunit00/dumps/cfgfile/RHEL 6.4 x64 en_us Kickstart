@@ -1,0 +1,61 @@
+# (c) Copyright 2013, 2014 Hewlett-Packard Development Company, L.P.
+lang en_US.UTF-8
+keyboard us
+timezone --utc America/Chicago
+text 
+install
+key --skip
+skipx
+network  --bootproto=dhcp
+
+authconfig --enableshadow --enablemd5
+rootpw --iscrypted "@encrypted_root_password:$1$7z4m7f1z$wliShMhVv2HuCAPmuiQzV1@"
+
+zerombr
+clearpart --all --initlabel 
+autopart
+
+bootloader --append="@kernel_arguments: @" --location=mbr
+
+# Disable firewall and selinux for SPP components
+firewall --disabled
+# Port 1002 is needed for agent communication if the firewall is enabled
+# firewall --enable --port=1002:tcp
+selinux --disabled
+
+%packages
+@Base
+
+# Needed to ensure Mellanox driver installed when required
+kmod-mellanox-mlnx-en
+
+# Components listed below are needed for mount to media server for HPSUM installation
+keyutils
+libtalloc
+cifs-utils
+
+# Components listed below are needed to run HPSUM and SPP components
+expat.i686
+expect
+fontconfig.i686
+freetype.i686
+libICE.i686
+libSM.i686
+libuuid.i686
+libXi.i686
+libX11.i686
+libXau.i686
+libxcb.i686
+libXcursor.i686
+libXext.i686
+libXfixes.i686
+libXi.i686
+libXinerama.i686
+libXrandr.i686
+libXrender.i686
+zlib.i686 
+libgcc.i686
+libstdc++.i686
+make
+net-snmp
+net-snmp-libs

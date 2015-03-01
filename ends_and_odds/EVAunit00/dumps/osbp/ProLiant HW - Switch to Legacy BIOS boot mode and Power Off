@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Control Server Boot Mode", 
+        "parameters": "--bootmode=LEGACY"
+    }
+]

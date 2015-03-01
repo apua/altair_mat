@@ -1,0 +1,1546 @@
+#!/usr/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+############################################################################################
+# Configures the boot device by applying the configuration specified in the HBA_Config 
+# multi-line custom attribute to the QLogic or Emulex HBA.
+#
+# The HBA_Config custom attribute should contain the following tag/value pairs; one per line.
+#
+# BootWWPN-HBA0 - Target Controller's WWPN. This is required.
+# BootLUN-HBA0 - The LUN.  This is required.
+# WWPN-HBA0 - The HBA's WWPN.  This is optional.  If not specified, the configuration will
+#             be applied to first HBA.
+# SelectBootEnable-HBA0 - Set to "1" to enable selectable boot on QLogic or disable AutoScan
+#                         on Emulex. Set to "0" to disable selectable boot on QLogic and
+#                         enable AutoScan on Emulex. This is optional.  The default value
+#                         is "1".
+# HostAdapterBiosEnable-HBA0 - Set to "1" to enable the host adapter BIOS or "0" to disable.
+#                              This is optional. The default value is "1".
+#
+# To configure a second HBA, use "-HBA1" in the tag names.
+#
+# Optional Parameters:
+#
+# --displayHbaOnly - Show the HBAs on the target server, but don't apply the configuration.
+#
+############################################################################################
+
+import sys
+import re
+import subprocess
+import os.path
+from subprocess import Popen, PIPE, STDOUT
+from optparse import OptionParser
+from osprov.osbp import logger
+from osprov.errors import ShowErrorMessage
+
+# The QLogic and Emulex utilities.
+QLOGIC_CMD = "/opt/hba/qlogic/sbin/QConvergeConsoleCLI/qaucli"
+EMULEX_CMD = "/opt/hba/emulex/sbin/ocmanager/hbacmd"
+
+HBA_CONFIG_CA_NAME = "HBA_Config"
+HBA_CONFIG_CA_VALUE = """@HBA_Config@"""
+
+# These are the tags that appear in the "HBA_Config" custom attribute.
+BOOT_WWPN_HBA_TAG = "BootWWPN-HBA"
+BOOT_WWNN_HBA_TAG = "BootWWNN-HBA"
+BOOT_LUN_HBA_TAG = "BootLUN-HBA"
+WWPN_HBA_TAG = "WWPN-HBA"
+SELECT_BOOT_ENABLE_TAG = "SelectBootEnable-HBA"
+HOST_ADAPTER_BIOS_ENABLE_TAG = "HostAdapterBiosEnable-HBA"
+
+QLOGIC_DEFAULT_SELECTABLE_BOOT_ENABLE = "1"
+EMULEX_DEFAULT_AUTOSCAN_ENABLE = "0"
+DEFAULT_HOST_ADAPTER_BIOS_ENABLE = "1"
+
+EMULEX = 0
+QLOGIC = 1
+
+DEBUG=@Debug:0@
+
+LOG = logger.getIt('manage_hba_qlogic_configuration')
+
+############################################################################################
+# Class to parse command line arguments.
+############################################################################################
+
+def parseArgs(args):
+	""" parse and normalise arguments for the script """
+	parser = OptionParser()
+	parser.add_option("--displayHbaOnly",
+			action = "store_true",
+			dest = "displayHbaOnly",
+			help = "Only display the HBAs, but don't apply configuration.")
+	options, args = parser.parse_args(args)
+	if args:
+		parser.error("Additional positional arguments are not supported")
+	return options, args
+
+############################################################################################
+# Class to hold some basic information about the target SAN controller that the HBA is
+# connected to.
+############################################################################################
+
+class TargetSanInfo:
+
+	def __init__(self):
+		self.targetWWNN = None
+		self.targetWWPN = None
+		self.linkStatus = None
+		self.numLuns = None
+
+	def setTargetWWNN(self, targetWWNN):
+		self.targetWWNN = targetWWNN.upper().replace("-", ":")
+
+	def setTargetWWPN(self, targetWWPN):
+		self.targetWWPN = targetWWPN.upper().replace("-", ":")
+
+	def setNumLuns(self, numLuns):
+		self.numLuns = numLuns
+
+	def getTargetWWNN(self):
+		return self.targetWWNN
+
+	def getTargetWWPN(self):
+		return self.targetWWPN
+
+	def getNumLuns(self):
+		return self.numLuns
+
+###########################################################################
+# A class to hold some basic information about the boot device that the
+# HBA is configured to boot from.
+###########################################################################
+
+class BootDevice:
+
+	def __init__(self, targetWWPN, lun):
+		self.targetWWPN = targetWWPN.upper().replace("-",":")
+		self.lun = lun
+
+	def setTargetWWPN(self, targetWWPN):
+		self.targetWWPN = targetWWPN.upper().replace("-",":")
+
+	def setLun(self, lun):
+		self.lun = lun
+
+	def getTargetWWPN(self):
+		return self.targetWWPN
+
+	def getLun(self):
+		return self.lun
+
+###########################################################################
+# A class to hold some basic QLogic HBA information.
+#
+# Set setter methods for the WWPN will convert the WWPN to uppercase and
+# change the delimiter to a ":".  QLogic WWPNs use a "-" delimeter and
+# the Emulex WWPNs use a ":" delimeter.  So, for comparison purposes we
+# will use upper case characters and a ":" delimeter, but when running
+# a QLogic command that requires the WWPN, we will change the delimeter
+# back to "-", as the QLogic utility does not accept a ":".
+###########################################################################
+
+class HBAInfo:
+
+	def __init__(self):
+		self.model = None
+		self.portNum = None
+		self.hbaInstance = None
+		self.hbaWWPN = None
+		self.linkStatus = None
+		self.targetSanInfoList = None
+		self.selectableBootEnable = None
+		self.hostAdapterEnableBios = None
+		self.primaryBootDevice = None
+
+	def setModel(self, model):
+		self.model = model
+
+	def setInstance(self, hbaInstance):
+		self.hbaInstance = hbaInstance
+
+	def setPortNum(self, portNum):
+		self.portNum = portNum
+
+	def setHbaWWPN(self, hbaWWPN):
+		self.hbaWWPN = hbaWWPN.upper().upper().replace("-",":")
+
+	def setLinkStatus(self, linkStatus):
+		self.linkStatus = linkStatus
+
+	def addTargetSanInfo(self, targetSanInfo):
+		if (self.targetSanInfoList is None):
+			self.targetSanInfoList = []
+
+		self.targetSanInfoList.append(targetSanInfo)
+
+	def setTargetSanInfoList(self, targetSanInfoList):
+		self.targetSanInfoList = targetSanInfoList
+
+	def setSelectableBootEnable(self, selectableBootEnable):
+		self.selectableBootEnable = selectableBootEnable
+
+	def setHostAdapterEnableBios(self, hostAdapterEnableBios):
+		self.hostAdapterEnableBios = hostAdapterEnableBios
+
+	def setPrimaryBootDevice(self, primaryBootDevice):
+		self.primaryBootDevice = primaryBootDevice
+
+	def getModel(self):
+		return self.model
+
+	def getHbaInstance(self):
+		return self.hbaInstance
+
+	def getPortNum(self):
+		return self.portNum
+
+	def getHbaWWPN(self):
+		return self.hbaWWPN
+
+	def getLinkStatus(self):
+		return self.linkStatus
+
+	def getTargetSanInfoList(self):
+		return self.targetSanInfoList
+
+	def getSelectableBootEnable(self):
+		return self.selectableBootEnable
+
+	def getHostAdapterEnableBios(self):
+		return self.hostAdapterEnableBios
+
+	def getPrimaryBootDevice(self):
+		return self.primaryBootDevice
+
+###########################################################################
+# A class to hold the user-specified settings that are to be applied to
+# the HBA.
+###########################################################################
+
+class UserHBA:
+
+	def __init__(self):
+		self.tagNum = None
+		self.hbaWWPN = None
+		self.targetWWPN = None
+		self.targetWWNN = None
+		self.lun = None
+		self.selectableBootEnable = None
+		self.hostAdapterBiosEnable = None
+
+	def setTagNum(self, tagNum):
+		self.tagNum = tagNum
+
+	def setHbaWWPN(self, hbaWWPN):
+		self.hbaWWPN = hbaWWPN.upper().replace("-",":")
+
+	def setTargetWWPN(self, targetWWPN):
+		self.targetWWPN = targetWWPN.upper().replace("-",":")
+
+	def setTargetWWNN(self, targetWWNN):
+		self.targetWWNN = targetWWNN.upper().replace("-",":")
+
+	def setLun(self, lun):
+		self.lun = lun
+
+	def setSelectableBootEnable(self, selectableBootEnable):
+		self.selectableBootEnable = selectableBootEnable
+
+	def setHostAdapterEnableBios(self, hostAdapterBiosEnable):
+		self.hostAdapterBiosEnable = hostAdapterBiosEnable
+
+	def getTagNum(self):
+		return self.tagNum
+
+	def getHbaWWPN(self):
+		return self.hbaWWPN
+
+	def getTargetWWPN(self):
+		return self.targetWWPN
+
+	def getTargetWWNN(self):
+		return self.targetWWNN
+
+	def getLun(self):
+		return self.lun
+
+	def getSelectableBootEnable(self):
+		return self.selectableBootEnable
+
+	def getHostAdapterEnableBios(self):
+		return self.hostAdapterBiosEnable
+
+###########################################################################
+# Returns a string representation of the list.
+#
+# Parameters:
+#    list - The list to be converted to a string.
+#    delimeter - The character to use as the delimeter (default = ' ').
+###########################################################################
+
+def listToString(list, delimeter=' '):
+
+	str = delimeter.join(list)
+
+	return str
+
+###########################################################################
+# Executes the specified command.
+#
+# Parameters:
+#    cmdArgs - The command to be executed, specified as a list.
+#
+###########################################################################
+
+def executeCommand(cmdArgs):
+
+	cmdAsString = listToString(cmdArgs)
+
+	if (DEBUG):
+		print "Executing => ", cmdAsString
+
+	p = subprocess.Popen(cmdArgs, stdout=subprocess.PIPE, stderr=STDOUT)
+
+	output = p.communicate()[0].strip()
+
+	retCode = p.poll()
+
+	p.stdout.close()
+
+	return retCode, output
+
+###########################################################################
+# Returns the string "as-is", if it's value is not "None", otherwise
+# it returns an empty string so that when it gets displayed, we don't
+# see "None" in the output.  The keyword "None" means that the variable
+# has no value (e.g. null) in Python.
+###########################################################################
+
+def toDisplayValue(str):
+
+	displayStr = ""
+
+	if (str is not None):
+		displayStr = str
+
+	return displayStr
+
+###########################################################################
+# Displays the HBAs found on the system.
+###########################################################################
+
+def showHBAs(hbaList):
+
+	fmtStrHdr  = "%-4s %-4s %-23s %-12s %-7s %-10s %-23s %-3s"
+	fmtStrBody = "%4s %4s %-23s %-12s %7s %10s %-23s %3s"
+
+	print fmtStrHdr % ("", "", "", "Link", "Enable", "Selectable", "Primary Boot", "")
+	print fmtStrHdr % ("HBA#", "Port", "HBA WWPN", "Status", "BIOS", "Boot", "Port Name", "LUN")
+	print fmtStrHdr % ("----", "----", "-----------------------", "------------", "-------", "----------", "-----------------------", "---")
+
+	if (hbaList is None):
+		return
+
+	hbaNum = 0
+
+	for hba in hbaList:
+
+		portNum = toDisplayValue(hba.getPortNum())
+
+		hbaWWPN = toDisplayValue(hba.getHbaWWPN())
+
+		linkStatus = toDisplayValue(hba.getLinkStatus())
+
+		enableBios = toDisplayValue(hba.getHostAdapterEnableBios())
+
+		selectableBoot = toDisplayValue(hba.getSelectableBootEnable())
+
+		if (hba.getPrimaryBootDevice() is not None):
+			primaryBootDevice = hba.getPrimaryBootDevice()
+
+			primaryBootPortName = toDisplayValue(primaryBootDevice.getTargetWWPN())
+
+			lun = toDisplayValue(primaryBootDevice.getLun())
+		else:
+			primaryBootPortName = ""
+			lun = ""
+
+		print fmtStrBody % (hbaNum, portNum, hbaWWPN, linkStatus, enableBios, selectableBoot, primaryBootPortName, lun)
+
+		hbaNum += 1
+
+##################################################################################
+#
+# BEGIN QLOGIC-SPECIFIC CODE
+#
+##################################################################################
+
+##################################################################################
+# Enables/Disables the BIOS on the QLogic HBA.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which to enable/disable the BIOS.
+#    enable - Set to "1" to enable or "0" to disable.
+##################################################################################
+
+def qlogicSetEnableBios(hbaWWPN, enable):
+
+	# Since the "HostAdapterBiosEnable-HBA" tag is optional, we'll default
+	# it to enabled if the user didn't specify it in the "HBA_Config" C.A.
+	if (enable is None):
+		enable = DEFAULT_HOST_ADAPTER_BIOS_ENABLE
+
+	if (DEBUG):
+		if (enable):
+			print "Enabling BIOS on QLogic HBA ..."
+		else:
+			print "Disabling BIOS on QLogic HBA ..."
+
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-n", hbaWWPN.replace(":","-"), "EB", enable]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Returns the value of the Enables Host HBA BIOS setting on the QLogic HBA.
+##################################################################################
+
+def qlogicGetEnableBios(hbaWWPN):
+
+	cmdArgs = [QLOGIC_CMD, "-c", hbaWWPN.replace(":","-")]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	enableBiosPattern = re.compile(r"^Enable Host HBA BIOS\s*:\s+([\S]+)\s*$")
+
+	enableBios = None
+
+	for line in output.splitlines():
+		result = enableBiosPattern.search(line)
+
+		if result:
+			enableBios = result.group(1)
+
+			if (enableBios.lower() == "enabled"):
+				enableBios = "1"
+			else:
+				enableBios = "0"
+
+			break
+
+	return enableBios
+
+##################################################################################
+# Enables/Disables the Selectable Boot on the QLogic HBA.
+#
+# +--------------------------------------------------------------------------+
+# | Enable |    WWPN/LUN    | Device Boot                                    |
+# |--------------------------------------------------------------------------|
+# |   No   |        X       | BIOS configures the first disk drive it finds  |
+# |        |                | as boot device.                                |
+# |--------------------------------------------------------------------------|
+# |   Yes  | None specified | BIOS configures the first disk drive it finds  |
+# |        |                | that is also a LUN 0 as boot device.           |
+# |--------------------------------------------------------------------------|
+# |   Yes  |    Specified   | BIOS scans through the specified Boot WWPN/LUN |
+# |        |                | list until it finds a disk drive.  This is     |
+# |        |                | configured as boot device.                     |
+# +--------------------------------------------------------------------------+
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which to set the selectable boot.
+#    enable - Set to "1" to enable or "0" to disable.
+##################################################################################
+
+def qlogicSetSelectableBootEnable(hbaWWPN, enable):
+
+	# Since the "SelectBootEnable-HBA" tag is optional, we'll default
+	# it to enabled if the user didn't specify it in the "HBA_Config" C.A.
+	if (enable is None):
+		enable = QLOGIC_DEFAULT_SELECTABLE_BOOT_ENABLE
+
+	if (enable == "0"):
+		if (DEBUG):
+			print "Disabling Selectable Boot on QLogic HBA ..."
+		enableArg = "disable"
+	else:
+		if (DEBUG):
+			print "Enabling Selectable Boot on QLogic HBA ..."
+		enableArg = "enable"
+
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-e", hbaWWPN.replace(":","-"), enableArg]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Sets the primary boot device (Target WWPN/LUN) on the QLogic HBA.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which the primary boot device is to be set.
+#    targetWWNN - The target's World Wide Node Name (The ID of the SAN).
+#    targetWWPN - The target's World Wide Port Name (The ID of the Controller)
+#                 that is to be set as the primary boot device.
+#    lunId - The LUN ID on the Target WWPN that is to be set as the primary boot
+#            device.
+##################################################################################
+
+def qlogicSetPrimaryBootDevice(hbaWWPN, targetWWNN, targetWWPN, lunId):
+
+	# The QLogic utility requires the target WWNN parameter for some reason.
+	# If the user didn't specify it in the "BootWWNN-HBA" tag, then default
+	# it to all zeroes and hope it works.
+	if (targetWWNN is None):
+		targetWWNN = "00-00-00-00-00-00-00-00"
+
+		if (DEBUG):
+			print "No targetWWNN was specified for targetWWPN '%s'.  Defaulting to '%s'." % (targetWWPN,targetWWNN) 
+
+	# Set first boot device (primary) to the specified target WWPN and LUN.
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-e", hbaWWPN.replace(":","-"), targetWWNN.replace(":","-"), targetWWPN.replace(":","-"), lunId, "prim"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Returns the primary boot device (Target WWPN/LUN) for the QLogic HBA with the
+# specified WWPN.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA that we want the primary boot device for.
+##################################################################################
+
+def qlogicGetPrimaryBootDevice(hbaWWPN):
+
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-e", hbaWWPN.replace(":","-"), "view"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	selectableBootPattern = re.compile(r"^Selectable Boot\s*:\s+([\S]+)\s*$")
+	bootDevicePattern = re.compile(r"^([\S]{2}-[\S]{2}-[\S]{2}-[\S]{2}-[\S]{2}-[\S]{2}-[\S]{2}-[\S]{2})\s+([\d]+)\s*$")
+
+	selectableBoot = None
+	targetWWPN = None
+	lun = None
+
+	for line in output.splitlines():
+		result = selectableBootPattern.search(line)
+
+		if result:
+			selectableBoot = result.group(1)
+
+			if (selectableBoot.lower() == "enabled"):
+				selectableBoot = "1"
+			else:
+				selectableBoot = "0"
+
+		# The first boot device we find is the primary one,
+		# so if there's a match, then break out of the loop.
+		result = bootDevicePattern.search(line)
+
+		if result:
+			targetWWPN = result.group(1)
+			lun = result.group(2)
+			break
+
+	primaryBootDevice = BootDevice(targetWWPN, lun)
+
+	return selectableBoot, primaryBootDevice
+
+##################################################################################
+# Configures the Emulex HBA specified by "hba" with the user-supplied HBA
+# configuration specified by "userHba".
+#
+# Parameters:
+#    userHba - The user-supplied HBA configuration from the "HBA_Config" custom
+#              attribute.
+#    hba - The QLogic HBA to which the user-supplied HBA configuration is to be
+#          applied.
+##################################################################################
+
+def qlogicConfigureHBA(userHba, hba):
+
+	# When this setting is disabled, the ROM BIOS on the HBA is disabled,
+	# freeing space in upper memory.  This setting must be enabled if you
+	# are booting from an FC disk drive attached to the HBA.
+	qlogicSetEnableBios(hba.getHbaWWPN(), userHba.getHostAdapterEnableBios())
+
+	# Enable the Boot From SAN.
+	qlogicSetSelectableBootEnable(hba.getHbaWWPN(), userHba.getSelectableBootEnable())
+
+	# Tell the HBA what the primary target WWPN and LUN it should boot from.
+	qlogicSetPrimaryBootDevice(hba.getHbaWWPN(), userHba.getTargetWWNN(), userHba.getTargetWWPN(), userHba.getLun())
+
+##################################################################################
+# Returns a list of the QLogic HBAs found on the system.
+##################################################################################
+
+def qlogicGetHBAs():
+
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-t"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	hbaInstancePattern = re.compile(r"^HBA\s+Instance\s+([\d]+)\s*:\s+([\S]+)\s+Port\s+([\d]+)\s+WWPN\s+([\S]+)\s+.*$")
+	linkStatusPattern = re.compile(r"^Link\s*:\s+(\S{1}.*\S*)\s*$")
+	targetPathPattern = re.compile(r"^Path\s*:\s+([\S]+)\s*$")
+	targetWWNNPattern = re.compile(r"^Node Name\s*:\s+([\S]+)\s*$")
+	targetWWPNPattern = re.compile(r"^Port Name\s*:\s+([\S]+)\s*$")
+	numLunsPattern = re.compile(r"^LUN Count\(s\)\s*:\s+([\S]+)\s*$")
+
+	hbaList = []
+
+	hba = None
+	targetSanInfo = None
+
+	for line in output.splitlines():
+		result = hbaInstancePattern.search(line)
+
+		if result:
+			if (hba is not None):
+				if (targetSanInfo is not None):
+					hba.addTargetSanInfo(targetSanInfo)
+					targetSanInfo = None
+				hbaList.append(hba)
+
+			hbaInstance = result.group(1)
+			model = result.group(2)
+			portNum = result.group(3)
+			hbaWWPN = result.group(4)
+
+			hba = HBAInfo()
+			hba.setInstance(hbaInstance)
+			hba.setModel(model)
+			hba.setPortNum(portNum)
+			hba.setHbaWWPN(hbaWWPN)
+
+			enableBios = qlogicGetEnableBios(hbaWWPN)
+
+			selectableBoot, primaryBootDevice = qlogicGetPrimaryBootDevice(hbaWWPN)
+
+			hba.setSelectableBootEnable(selectableBoot)
+			hba.setHostAdapterEnableBios(enableBios)
+			hba.setPrimaryBootDevice(primaryBootDevice)
+
+			continue
+
+		result = linkStatusPattern.search(line)
+
+		if result:
+			linkStatus = result.group(1)
+
+			if (hba is not None):
+				hba.setLinkStatus(linkStatus)
+			continue
+
+		# When we see "Path", that signals the start of the
+		# target information.  Each HBA port may show one or
+		# more targets, so we must collect each target
+		# information and add it to the HBA record.
+		result = targetPathPattern.search(line)
+
+		if result:
+			if (hba is not None):
+				if (targetSanInfo is not None):
+					hba.addTargetSanInfo(targetSanInfo)
+				targetSanInfo = TargetSanInfo()
+			continue
+
+		# Check if the line contains the target WWNN (Node Name).
+		result = targetWWNNPattern.search(line)
+
+		if result:
+			targetWWNN = result.group(1)
+
+			if (targetSanInfo is not None):
+				targetSanInfo.setTargetWWNN(targetWWNN)
+			continue
+
+		# Check if the line contains the target WWPN (Port Name).
+		result = targetWWPNPattern.search(line)
+
+		if result:
+			targetWWPN = result.group(1)
+
+			if (targetSanInfo is not None):
+				targetSanInfo.setTargetWWPN(targetWWPN)
+			continue
+
+		# Check if the line contains the number of LUNs on target.
+		result = numLunsPattern.search(line)
+
+		if result:
+			numLuns = result.group(1)
+
+			if (targetSanInfo is not None):
+				targetSanInfo.setNumLuns(numLuns)
+			continue
+
+	if (hba is not None):
+		if (targetSanInfo is not None):
+			hba.addTargetSanInfo(targetSanInfo)
+
+		hbaList.append(hba)
+
+	return hbaList
+
+##################################################################################
+# Performs a simple test to check if there's a QLogic HBA card installed.  Returns
+# True if there is, false otherwise.  This is needed because the "qaucli" command
+# will report an error if there are no HBAs.
+##################################################################################
+
+def qlogicTestForHBA():
+
+	cmdArgs = [QLOGIC_CMD, "-pr", "fc", "-g"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode == 0):
+		return True
+	else:
+		if (DEBUG):
+			print "retCode => ", retCode
+			print "output => ", output
+
+		return False
+
+##################################################################################
+#
+# END QLOGIC-SPECIFIC CODE
+#
+##################################################################################
+
+##################################################################################
+#
+# BEGIN EMULEX-SPECIFIC CODE
+#
+##################################################################################
+
+##################################################################################
+# Enables/Disables the BIOS on the Emulex HBA.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which to enable/disable the BIOS.
+#    enable - Set to "1" to enable or "0" to disable.
+##################################################################################
+
+def emulexSetEnableBios(hbaWWPN, enable, hbaModel):
+
+	# Since the "HostAdapterBiosEnable-HBA" tag is optional, we'll default
+	# it to enabled if the user didn't specify it in the "HBA_Config" C.A.
+	if (enable is None):
+		enable = DEFAULT_HOST_ADAPTER_BIOS_ENABLE
+
+	if (enable == "0"):
+		if (DEBUG):
+			print "Disabling BIOS on Emulex HBA ..."
+		enableArg = "D"
+	else:
+		if (DEBUG):
+			print "Enabling BIOS on Emulex HBA ..."
+		enableArg = "E"
+
+	cmdArgs = [EMULEX_CMD, "EnableBootCode", hbaWWPN, enableArg]
+
+	retCode, output = executeCommand(cmdArgs)
+	
+	if (retCode == 251):
+		 
+		print "Could not enable the boot code on HBA with model %s." % hbaModel
+		print "This is expected if the HBA is an Emulex OneConnect-based adapter, as the boot code will always be enabled on these adapters."
+	else:
+	    if (retCode != 0):
+		    raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Enables/Disables the Boot From SAN on the Emulex HBA.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which to enable the Boot From SAN.
+#    enable - Set to "1" to enable or "0" to disable.
+##################################################################################
+
+def emulexSetEnableBootFromSan(hbaWWPN, enable):
+
+	# We do not have a tag on the "HBA_Config" custom attribute to
+	# specifically set the boot from SAN, so we use the value of the
+	# "HostAdapterBiosEnable-HBA" tag.  If it is not set, then we
+	# use its default value.
+	if (enable is None):
+		enable = DEFAULT_HOST_ADAPTER_BIOS_ENABLE
+
+	if (DEBUG):
+		if (enable == "0"):
+			print "Disabling Boot From SAN on Emulex HBA ..."
+		else:
+			print "Enabling Boot From SAN on Emulex HBA ..."
+
+	# Set first boot device to the specified target WWPN.
+	cmdArgs = [EMULEX_CMD, "SetBootParams", hbaWWPN, "X86", "EnableBootFromSAN", enable]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Sets the primary boot device (Target WWPN/LUN) on the Emulex HBA.
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA on which the primary boot device is to be set.
+#    targetWWPN - The target's World Wide Port Name (The ID of the Controller)
+#                 that is to be set as the primary boot device.
+#    lunId - The LUN ID on the Target WWPN that is to be set as the primary boot
+#            device.
+##################################################################################
+
+def emulexSetPrimaryBootDevice(hbaWWPN, targetWWPN, lun):
+
+	if (DEBUG):
+		print "Setting Primary Boot Device on Emulex HBA ..."
+
+	# Set first boot device (primary) to the specified target WWPN and LUN.
+	cmdArgs = [EMULEX_CMD, "SetBootParams", hbaWWPN, "X86", "targetwwpn", targetWWPN, "bootdev", "0"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	# Set first boot device to the specified target WWPN.
+	cmdArgs = [EMULEX_CMD, "SetBootParams", hbaWWPN, "X86", "lun", lun, "bootdev", "0"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+##################################################################################
+# Returns values of the "EnableAdapterBoot", "EnableBootFromSAN" parameters,
+# along with the primary boot device (TargetWWPN/LUN).
+#
+# Parameters:
+#    hbaWWPN - The WWPN of the HBA whose boot parameters we wish to retrieve.
+##################################################################################
+
+def emulexGetBootParams(hbaWWPN):
+
+	cmdArgs = [EMULEX_CMD, "GetBootParams", hbaWWPN, "X86"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		if (DEBUG):
+			print "No boot parameters found for HBA WWPN '%s'" % hbaWWPN
+		return None, None, None, None
+
+	enableAdapterBootPattern = re.compile(r"^\s*EnableAdapterBoot\s+(\d+)\s+(\S{1}.*\S*)\s*$")
+	enableBootFromSanPattern = re.compile(r"^\s*EnableBootFromSAN\s+(\d+)\s+(\S{1}.*\S*)\s*$")
+	autoScanPattern = re.compile(r"^\s*AutoScan\s+(\d+)\s+(\S{1}.*\S*)\s*$")
+	bootDevicePattern = re.compile(r"^\s*\d+\s+(\d+)\s+\S+\s+([\S]{2}:[\S]{2}:[\S]{2}:[\S]{2}:[\S]{2}:[\S]{2}:[\S]{2}:[\S]{2})\s*$")
+
+	enableAdapterBoot = None
+	enableBootFromSan = None
+	autoScan = None
+	targetWWPN = None
+	lun = None
+
+	for line in output.splitlines():
+
+		result = enableAdapterBootPattern.search(line)
+
+		if result:
+			enableAdapterBoot = result.group(1)
+			continue
+
+		result = enableBootFromSanPattern.search(line)
+
+		if result:
+			enableBootFromSan = result.group(1)
+			continue
+
+		result = autoScanPattern.search(line)
+
+		if result:
+			autoScan = result.group(1)
+			continue
+
+		# Once we find the primary boot device (targetWWPN/LUN)
+		# for this HBA then we're done, since it is one of the
+		# last pieces of data in the output.
+		result = bootDevicePattern.search(line)
+
+		if result:
+			lun = result.group(1)
+			targetWWPN = result.group(2)
+			break
+
+	primaryBootDevice = BootDevice(targetWWPN,lun)
+
+	return enableAdapterBoot, enableBootFromSan, autoScan, primaryBootDevice
+
+###########################################################################
+# Enables/Disable the AutoScan.  If being enabled, we only implement the
+# first option, which is "Any first device".
+#
+# Auto scan options:
+#    Autoscan disabled - default
+#    Any first device - The first adapter issues a Name Server Inquiry and
+#                       the first D_ID from the inquiry becomes the boot
+#                       device.  The adapter attempts to log in to a public
+#                       loop first.  If it fails, it logs in to a private
+#                       loop.  The first successfully scanned device
+#                       becomes the boot device.  This device only is
+#                       exported to the multi-boot menu.
+#    First LUN 0 device
+#    First NOT LUN 0 device (device other than LUN 0)
+#
+###########################################################################
+
+def emulexSetAutoScanEnable(hbaWWPN, enable):
+
+	# Since the "SelectBootEnable-HBA" tag is optional, we'll default
+	# AutoScan to disabled if the user didn't specify it in the
+	# "HBA_Config" C.A.
+	if (enable is None):
+		enable = EMULEX_DEFAULT_AUTO_SCAN_ENABLE
+
+	if (DEBUG):
+		if (enable == "0"):
+			print "Disabling AutoScan on Emulex HBA ..."
+		else:
+			print "Enabling AutoScan on Emulex HBA ..."
+
+	# Set Auto Scan value.
+	cmdArgs = [EMULEX_CMD, "SetBootParams", hbaWWPN, "X86", "AutoScan", enable]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+###########################################################################
+# Returns the state of the HBA port (e.g. "Operational", "Link Down", etc).
+###########################################################################
+
+def emulexGetPortState(hbaWWPN):
+
+	portState = None
+
+	cmd = [EMULEX_CMD, "PortAttrib", hbaWWPN]
+
+	retCode, output = executeCommand(cmd)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	portStatePattern = re.compile(r"^Port State\s*:\s+(\S{1}.*\S*)\s*$")
+
+	for line in output.splitlines():
+		result = portStatePattern.search(line)
+
+		if result:
+			portState = result.group(1)
+
+	return portState
+
+##################################################################################
+# Returns a list of the Emulex HBAs found on the system.
+##################################################################################
+
+def emulexGetHBAs():
+
+	cmd = [EMULEX_CMD, "ListHBAs", "local"]
+
+	retCode, output = executeCommand(cmd)
+
+	if (retCode != 0):
+		raise ShowErrorMessage("An error occurred while executing '%s' : %s" % (listToString(cmdArgs), output))
+
+	portWWNPattern = re.compile(r"^Port WWN\s*:\s+([\S]+)\s*$")
+	portMACPattern = re.compile(r"^Permanent MAC\s*:\s+([\S]+)\s*$")
+	portTypePattern = re.compile(r"^Port Type\s*:\s+([\S]+)\s*$")
+	portNumberPattern = re.compile(r"^Port Number\s*:\s+([\S]+)\s*$")
+	modelPattern = re.compile(r"^Model\s*:\s+([\S]+)\s*$")
+
+	hbaList = []
+
+	hba = None
+
+	ignoreHba = False
+
+	for line in output.splitlines():
+		# The line containing the WWPN will usually mark the beginning of a
+		# new Emulex adapter record.  Not all Emulex adapters are HBAs or CNAs,
+		# however.  Some Emulex adapters are NICs, which will start with the
+		# MAC address line.  We'll check for NICs further down.
+		result = portWWNPattern.search(line)
+
+		if result:
+			# Ok, so we've encountered the start of an HBA record.
+			# This code checks if we have a pending HBA record that
+			# needs to be added to the list of HBAs before we create
+			# the new HBA record.
+			if (hba is not None):
+				if (not ignoreHba):
+					hbaList.append(hba)
+
+			ignoreHba = False
+
+			hbaWWPN = result.group(1)
+
+			if (DEBUG):
+				print "Found HBA with WWPN '%s'" % hbaWWPN
+
+			hba = HBAInfo()
+			hba.setHbaWWPN(hbaWWPN)
+
+			portState = emulexGetPortState(hbaWWPN)
+
+			hba.setLinkStatus(portState)
+
+			enableAdapterBoot, enableBootFromSan, autoScan, primaryBootDevice = emulexGetBootParams(hbaWWPN)
+
+			# If an HBA does not have any boot parameters, then we
+			# ignore it.  Perhaps it is not a Fibre Channel HBA.
+			if (enableAdapterBoot is not None):
+				# In Emulex, having AutoScan disabled, is equivalent
+				# of having SelectableBoot enabled in QLogic, and
+				# vice versa.  Although, when enabled, AutoScan may
+				# have 3 different values, we only implement the
+				# first value, which is to boot from any first device.
+				if (autoScan == "0"):
+					selectableBootEnable = "1"
+				else:
+					selectableBootEnable = "0"
+
+				hba.setSelectableBootEnable(selectableBootEnable)
+				hba.setHostAdapterEnableBios(enableAdapterBoot)
+				hba.setPrimaryBootDevice(primaryBootDevice)
+			else:
+				if (DEBUG):
+					print "Ignoring HBA '%s' because it has no boot parameters" % hbaWWPN
+				ignoreHba = True
+		else:
+			# Is this a MAC address instead of a WWPN?
+			result = portMACPattern.search(line)
+
+			# Skip over Emulex adapters which are NICs, not HBAs, such as the "554FLB".
+			if result:
+				# Ok, so we've encountered the start of a NIC record,
+				# which we don't care about. This code checks if we 
+				# have a pending HBA record that needs to be added to
+				# the list of HBAs.
+				if (hba is not None):
+					if (not ignoreHba):
+						hbaList.append(hba)
+
+				portMAC = result.group(1)
+
+				# This is a NIC, not an HBA, so ignore all the remaining
+				# lines until we hit the start of the next record.
+				ignoreHba = True
+
+				# We're not creating a new HBA record, because this
+				# is a NIC, not an HBA.
+				hba = None
+
+				if (DEBUG):
+					print "Ignoring NIC with MAC address '%s'" % portMAC
+
+		if (not ignoreHba):
+			result = portTypePattern.search(line)
+
+			if result:
+				portType = result.group(1)
+
+                                # This is an Emulex NIC, not an HBA.
+				if (portType == "NIC"):
+					if (DEBUG):
+						print "Ignoring NIC device"
+
+					ignoreHba = True
+
+		if (not ignoreHba) and (hba is not None):
+			result = portNumberPattern.search(line)
+
+			if result:
+				portNum = result.group(1)
+
+				hba.setPortNum(portNum)
+
+			result = modelPattern.search(line)
+
+			if result:
+				model = result.group(1)
+
+				hba.setModel(model)
+
+	if (hba is not None):
+		if (not ignoreHba):
+			hbaList.append(hba)
+
+	return hbaList
+
+##################################################################################
+# Configures the Emulex HBA specified by "hba" with the user-supplied HBA
+# configuration specified by "userHba".
+#
+# Parameters:
+#    userHba - The user-supplied HBA configuration from the "HBA_Config" custom
+#              attribute.
+#    hba - The Emulex HBA to which the user-supplied HBA configuration is to be
+#          applied.
+##################################################################################
+
+def emulexConfigureHBA(userHba, hba):
+
+	# Enables/disables the boot code on the adapter.  If the boot code is
+	# disabled, the adapter will not boot from SAN, regardless of the value
+	# for the EnableBootFromSan boot param.  If it is enabled, the adapter
+	# boot from the SAN if the EnableBootFromSan parameter is also enabled.
+	emulexSetEnableBios(hba.getHbaWWPN(), userHba.getHostAdapterEnableBios(), hba.getModel())
+
+	# Enable the Boot From SAN if the Host Adapter Enable BIOS is set.
+	emulexSetEnableBootFromSan(hba.getHbaWWPN(), userHba.getHostAdapterEnableBios())
+
+	# Set the "AutoScan" option in Emulex does the opposite of what the
+	# "SelectableBoot" option does in QLogic, we have to enable "AutoScan"
+	# if "SelectableBoot" is disabled and vice versa.
+	if (userHba.getSelectableBootEnable() == "0"):
+		autoScan = "1"  # Boot from first successfully scanned device.
+	else:
+		autoScan = "0"  # Boot from primary target WWPN/LUN in device list.		
+
+	emulexSetAutoScanEnable(hba.getHbaWWPN(), autoScan)
+
+	# Tell the HBA what the primary target WWPN and LUN it should boot from.
+	emulexSetPrimaryBootDevice(hba.getHbaWWPN(), userHba.getTargetWWPN(), userHba.getLun())
+
+##################################################################################
+# Performs a simple test to check if there's a Emulex HBA card installed.  Returns
+# True if there is, false otherwise.  This is needed because the "hbacmd" command
+# will report an error if there are no HBAs.
+##################################################################################
+
+def emulexTestForHBA():
+
+	cmdArgs = [EMULEX_CMD, "ListHBAs", "local"]
+
+	retCode, output = executeCommand(cmdArgs)
+
+	if (retCode == 0):
+		return True
+	else:
+		if (DEBUG):
+			print "retCode => ", retCode
+			print "output => ", output
+
+		return False
+
+##################################################################################
+#
+# END EMULEX-SPECIFIC CODE
+#
+##################################################################################
+
+##################################################################################
+# Searches the list of user-specified HBA configuration settings and returns the
+# record, if any, that matches the specified tag number.
+#
+# For example, tags with the same tag number, such as "BootWWPN-HBA0", 
+# "BootLUN-HBA0", "WWPN-HBA0", etc, are all stored in the same record, so that if
+# we encounter "SelectBootEnable-HBA0" as we're parsing the "HBA_Config" custom
+# attribute, it can be added to the same record.
+##################################################################################
+
+def findUserHbaByTagNumber(userHbaList, tagNum):
+
+	userHbaToReturn = None
+
+	for userHba in userHbaList:
+		if (userHba.getTagNum() == tagNum):
+			userHbaToReturn = userHba
+			break
+
+	return userHbaToReturn
+
+##################################################################################
+# Searches the list of HBAs and returns the one whose WWPN matches the specified
+# WWPN.
+##################################################################################
+
+def getHbaByWWPN(hbaList, hbaWWPN):
+
+	for hba in hbaList:
+		if (hba.getHbaWWPN() is not None):
+			if (hba.getHbaWWPN() == hbaWWPN):
+				return hba
+
+	return None
+
+##################################################################################
+# Returns the HBA whose order in the list matches the specified HBA number.
+#
+# For example, if "hbaNumber" is 0, it returns the first HBA in the list. If
+# "hbaNumber" is 1, then it returns the second HBA in the list, and so on.
+##################################################################################
+
+def getHbaByHbaNumber(hbaList, hbaNumber):
+
+	count = 0
+
+	for hba in hbaList:
+		if (count == hbaNumber):
+			return hba
+		else:
+			count += 1
+
+	return None
+
+##################################################################################
+# Returns True if the specified WWPN or WWNN is in one of the two acceptable
+# formats, False otherwise.
+##################################################################################
+
+def validateWWN(value):
+	# The WWPN and WWNN can be in only one of these two formats:
+	#
+	#     XX:XX:XX:XX:XX:XX:XX:XX
+	#
+	#     or
+	#
+	#     XX-XX-XX-XX-XX-XX-XX-XX
+	wwnPattern = re.compile(r"^[0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}$")
+
+	isValid = False
+
+	result = wwnPattern.search(value)
+
+	if result:
+		isValid = True
+
+	return isValid
+
+##################################################################################
+# Parses the "HBA_Config" custom attribute and returns a list of user-specified
+# HBA configuration settings.
+##################################################################################
+
+def getUserHbaListFromCustomAttribute():
+
+	commentPattern = re.compile(r"^#.*")
+	tagPattern = re.compile(r"^([\S-]+)(\d)+$")
+
+	userHbaList = []
+
+	# Parse the custom attribute by line.
+	for line in HBA_CONFIG_CA_VALUE.splitlines():
+
+		# Skip comment line.
+		result = commentPattern.search(line)
+
+		if result:
+			continue
+
+		# Skip empty lines.
+		if len(line.strip()) == 0:
+			continue
+
+		# Get the tag/value pair.
+		tagVal = line.split("=")
+
+		# The left-hand side of the "=" sign will contain the tag name and tag number.
+		tag = tagVal[0].strip()
+
+		# Verify that the value is not empty.
+		if (len(tagVal) > 1) and (len(tagVal[1].strip())) > 0:
+			value = tagVal[1].strip()
+		else:
+			raise ShowErrorMessage("Custom attribute '%s' has tag '%s' with no value" % (HBA_CONFIG_CA_NAME,tag))
+
+		# The tag name must end in a number.
+		result = tagPattern.search(tag)
+
+		if result:
+			# Get the tag name.
+			tagName = result.group(1)
+
+			# Get the tag number, which represents the HBA #.
+			tagNum = int(result.group(2))
+		else:
+			raise ShowErrorMessage("Custom attribute '%s' has an invalid tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+
+		# Only tags numbers from "0" to "4" are supported.
+		if (tagNum < 0) or (tagNum > 3):
+			raise ShowErrorMessage("Custom attribute '%s' has an invalid tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+
+		foundHba = True
+
+		# Check if we have already created a record to hold the
+		# user-specified configuration for this HBA number.
+		userHba = findUserHbaByTagNumber(userHbaList, tagNum)
+
+		# We don't have a record to store this HBA's configuration,
+		# so create one.
+		if (userHba is None):
+			userHba = UserHBA()
+			foundHba = False
+
+		# Validate the tag names. Issue an error if it's not one
+		# of the valid tag names or if we encounter a duplicate
+		# tag name.
+		if (tagName == BOOT_WWPN_HBA_TAG):
+			if (userHba.getTargetWWPN() is None):
+				if (validateWWN(value)):
+					userHba.setTargetWWPN(value)
+				else:
+					raise ShowErrorMessage("Custom attribute '%s' has an invalid value '%s' for tag '%s'" % (HBA_CONFIG_CA_NAME,value,tag))
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		elif (tagName == BOOT_WWNN_HBA_TAG):
+			if (userHba.getTargetWWNN() is None):
+				if (validateWWN(value)):
+					userHba.setTargetWWNN(value)
+				else:
+					raise ShowErrorMessage("Custom attribute '%s' has an invalid value '%s' for tag '%s'" % (HBA_CONFIG_CA_NAME,value,tag))
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		elif (tagName == BOOT_LUN_HBA_TAG):
+			if (userHba.getLun() is None):
+				userHba.setLun(value)
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		elif (tagName == WWPN_HBA_TAG):
+			if (userHba.getHbaWWPN() is None):
+				if (validateWWN(value)):
+					userHba.setHbaWWPN(value)
+				else:
+					raise ShowErrorMessage("Custom attribute '%s' has an invalid value '%s' for tag '%s'" % (HBA_CONFIG_CA_NAME,value,tag))
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		elif (tagName == SELECT_BOOT_ENABLE_TAG):
+			if (userHba.getSelectableBootEnable() is None):
+				if (value == "0") or (value == "1"):
+					userHba.setSelectableBootEnable(value)
+				else:
+					raise ShowErrorMessage("Custom attribute '%s' has tag '%s' with invalid value '%s'" % (HBA_CONFIG_CA_NAME,tag, value))
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		elif (tagName == HOST_ADAPTER_BIOS_ENABLE_TAG):
+			if (userHba.getHostAdapterEnableBios() is None):
+				if (value == "0") or (value == "1"):
+					userHba.setHostAdapterEnableBios(value)
+				else:
+					raise ShowErrorMessage("Custom attribute '%s' has tag '%s' with invalid value '%s'" % (HBA_CONFIG_CA_NAME,tag, value))
+			else:
+				raise ShowErrorMessage("Custom attribute '%s' has duplicate tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+		else:
+			raise ShowErrorMessage("Custom attribute '%s' has an invalid tag '%s'" % (HBA_CONFIG_CA_NAME,tag))
+
+		# If we didn't already have an entry for this HBA in the list
+		# then add it.
+		if (not foundHba):
+			userHba.setTagNum(tagNum)
+			userHbaList.append(userHba)
+
+	if (len(userHbaList) > 0):
+		# Verify that the "BootWWPN-HBA" and "BootLUN-HBA" tags were specified
+		# for each user-supplied HBA configuration in the "HBA_Config"
+		# custom attribute.
+		for hba in userHbaList:
+			if (hba.getTargetWWPN() is None):
+				missingTag = BOOT_WWPN_HBA + str(hba.getTagNum())
+				raise ShowErrorMessage("Custom attribute '%s' is missing tag '%s'" % (HBA_CONFIG_CA_NAME, missingTag))
+			elif (hba.getLun() is None):
+				missingTag = BOOT_LUN_HBA + str(hba.getTagNum())
+				raise ShowErrorMessage("Custom attribute '%s' is missing tag '%s'" % (HBA_CONFIG_CA_NAME, missingTag))
+	else:
+		raise ShowErrorMessage("Custom attribute '%s' does not contain any HBAs to configure" % HBA_CONFIG_CA_NAME)
+
+	return userHbaList
+
+##################################################################################
+# Configures the HBAs specified by "hbaList" with the user-supplied HBA
+# configuration specified by "userHbaList".
+#
+# For each user-supplied HBA configuration, if the user specified the
+# "WWPN-HBA" tag in the "HBA_Config" custom attribute, then the configuration
+# parameters will be applied to the HBA whose WWPN matches the value specified
+# in the "WWPN-HBA" tag.  If the "WWPN-HBA" tag was not specified, then the
+# configuration parameters will be applied to the HBA whose order in the HBA list
+# matches the tag number of the "BOOT-WWPN" tag, which can be "0" or "1". For
+# example, if the tag number is "0", then the configuration parameters will be
+# applied to the first HBA in the list.  If the tag number is "1", then the
+# configuration parameters will be applied to the second HBA in the list.
+#
+# Parameters:
+#    adapterId - Used to identify the manufacturer of the HBA.  Can be either
+#                EMULEX or QLOGIC.
+#    userHbaList - The user-supplied list of HBA configurations from the
+#                  "HBA_Config" custom attribute.
+#    hbaList - The Emulex or QLogic HBAs to which the user-supplied HBA
+#              configuration is to be applied.
+##################################################################################
+
+def configureHBAs(adapterId, userHbaList, hbaList):
+
+	for userHba in userHbaList:
+		# If the user provided the HBA's WWPN, then we'll apply the
+		# boot settings to that HBA.  Otherwise, we'll apply it to
+		# the adapter whose order in the list matches the number of
+		# the tag.  In other words, BootWWPN-HBA0 will get applied
+		# to the first adapter and BootWWPN-HBA1 will get applied
+		# to the second adapter.
+		if (userHba.getHbaWWPN() is not None):
+			hba = getHbaByWWPN(hbaList, userHba.getHbaWWPN())
+
+			if (hba is None):
+				raise ShowErrorMessage("Cannot configure HBA #%s because the server does not have an HBA with WWPN '%s'" % (userHba.getTagNum(), userHba.getHbaWWPN()))
+		else:
+			if (DEBUG):
+				print "No WWPN-HBA tag was specified for HBA #%s" % userHba.getTagNum()
+
+			hba = getHbaByHbaNumber(hbaList, userHba.getTagNum());
+
+			if (hba is None):
+				raise ShowErrorMessage("Cannot configure HBA #%s because the server has %s HBA(s)" % (userHba.getTagNum(), len(hbaList)))
+
+			if (DEBUG):
+				print "HBA #%s has WWPN '%s'" % (userHba.getTagNum(), hba.getHbaWWPN())
+
+		if (adapterId == EMULEX):
+			emulexConfigureHBA(userHba, hba)
+		elif (adapterId == QLOGIC):
+			qlogicConfigureHBA(userHba, hba)
+		else:
+			raise ShowErrorMessage("Invalid adapter ID '%d' passed to configureHBAs()" % adapterId)
+
+##################################################################################
+# Main Routine
+##################################################################################
+
+def main():
+
+	options, remaining_args = parseArgs(sys.argv[1:])
+
+	# Both the Emulex and QLogic packages must be installed on the
+	# system, regardless of whether the HBA exists or not.
+	if (not os.path.exists(EMULEX_CMD)):
+		msg  = "'%s' does not exist" % EMULEX_CMD
+		msg += "\n"
+		msg += "Please verify that the package containing the Emulex utilities is in your Build Plan."
+		LOG.exception(msg)
+		sys.stderr.write("%s\n" % msg)
+		return 1
+	elif (not os.path.exists(QLOGIC_CMD)):
+		msg  = "'%s' does not exist" % QLOGIC_CMD
+		msg += "\n"
+		msg += "Please verify that the package containing the QLogic utilities is in your Build Plan."
+		LOG.exception(msg)
+		sys.stderr.write("%s\n" % msg)
+		return 1
+
+	# Count the number of HBAs we find on the system.  If we don't find
+	# at least one HBA, then we will issue an error.
+	hbaCount = 0
+
+	try:
+		# Test if there's an Emulex HBA card on the system.
+		if (emulexTestForHBA()):
+			# Fetch the Emulex HBAs.
+			emulexHbaList = emulexGetHBAs()
+		else:
+			emulexHbaList = None
+
+		if (emulexHbaList is not None) and (len(emulexHbaList) != 0):
+			print "Emulex HBAs:\n"
+			showHBAs(emulexHbaList)
+			print "\n"
+
+			if (not options.displayHbaOnly):
+				# Parse the "HBA_Config" custom attribute and extract
+				# the HBA configuration information.
+				userHbaList = getUserHbaListFromCustomAttribute()
+
+				# Configure the Emulex HBAs with the user-specified
+				# HBA configuration settings.
+				configureHBAs(EMULEX, userHbaList, emulexHbaList)
+
+				# Fetch the Emulex HBAs again.
+				emulexHbaList = emulexGetHBAs()
+
+				print "Emulex HBAs After Applying Configuration:\n"
+				showHBAs(emulexHbaList)
+				print "\n"
+
+			hbaCount += 1
+
+		# Test if there's an QLogic HBA card on the system.
+		if (qlogicTestForHBA()):
+			# Fetch the QLogic HBAs.
+			qlogicHbaList = qlogicGetHBAs()
+		else:
+			qlogicHbaList = None
+
+		if (qlogicHbaList is not None) and (len(qlogicHbaList) != 0):
+			print "QLogic HBAs:\n"
+			showHBAs(qlogicHbaList)
+			print "\n"
+
+			if (not options.displayHbaOnly):
+				# Parse the "HBA_Config" custom attribute and extract
+				# the HBA configuration information.
+				userHbaList = getUserHbaListFromCustomAttribute()
+
+				# Configure the QLogic HBAs with the user-specified
+				# HBA configuration settings.
+				configureHBAs(QLOGIC, userHbaList, qlogicHbaList)
+
+				# Fetch the QLogic HBAs again.
+				qlogicHbaList = qlogicGetHBAs()
+
+				print "QLogic HBAs After Applying Configuration:\n"
+				showHBAs(qlogicHbaList)
+				print "\n"
+
+			hbaCount += 1
+
+		# Issue an error if no HBAs are installed on the system.
+		if (hbaCount == 0):
+			msg = "No Emulex or QLogic HBAs found"
+			LOG.exception(msg)
+			sys.stderr.write("%s\n" % msg)
+			return 1
+
+	except (ShowErrorMessage), why:
+		LOG.exception(why)
+		sys.stderr.write("%s\n" % why)
+		return 1
+
+if __name__ == "__main__":
+	sys.exit(main())

@@ -1,0 +1,82 @@
+[
+    {
+        "name": "Validate Custom Attributes", 
+        "parameters": "--custAttrNames \"WimFileName ProductKey_Win2008R2-Std-x64\""
+    }, 
+    {
+        "name": "Check iLO Service", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Verify Supported Boot Modes", 
+        "parameters": "--optimized=disabled --secure=disabled"
+    }, 
+    {
+        "name": "Boot", 
+        "parameters": "--serviceOS=winpe64"
+    }, 
+    {
+        "name": "Decommission Server", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--maintenance --atLeast=3 --atMost=20"
+    }, 
+    {
+        "name": "Prepare Disks on HP ProLiant Gen8", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Configure Windows Partitioning Scheme for Legacy", 
+        "parameters": "X:\\Windows\\Temp\\diskpart_legacy.txt"
+    }, 
+    {
+        "name": "Configure Windows Partitioning Scheme for Uefi", 
+        "parameters": "X:\\Windows\\Temp\\diskpart_uefi.txt"
+    }, 
+    {
+        "name": "Partition Disk for Windows", 
+        "parameters": "--systemDiskNumber=@SystemDiskNumber:0@"
+    }, 
+    {
+        "name": "Set Media Source", 
+        "parameters": "@__OPSW-Media-WinUser@@__OPSW-Media-WinPassword@@__OPSW-Media-WinPath@#z"
+    }, 
+    {
+        "name": "ImageX", 
+        "parameters": "X:\\Windows\\System32"
+    }, 
+    {
+        "name": "Validate ImageX Package Contents", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Windows Image Deploy", 
+        "parameters": "--wimFilePath=\"Z:\\Images\\@WimFileName@\" --systemDiskNumber=@SystemDiskNumber:0@"
+    }, 
+    {
+        "name": "Windows 2008 R2 SP1 Standard x64 en_us Unattend", 
+        "parameters": "@SystemDrive:C@:\\Windows\\Panther\\unattend.xml"
+    }, 
+    {
+        "name": "Inject Required Unattend.xml Settings", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Inject Personalization Settings", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Integrate HP SA Agent", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Reboot", 
+        "parameters": ""
+    }, 
+    {
+        "name": "Wait for HP SA Agent", 
+        "parameters": "--production --atLeast=3 --atMost=30"
+    }
+]

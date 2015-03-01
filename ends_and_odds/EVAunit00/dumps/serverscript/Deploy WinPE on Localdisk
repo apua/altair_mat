@@ -1,0 +1,151 @@
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+ """
+
+import os
+import sys
+import random
+from StringIO import StringIO
+from pytwist.com.opsware.search import Filter
+from optparse import OptionError
+from osprov.optparse_ext import OptionParser
+from osprov.osbp import logger
+from osprov.server import ThisLocalServer
+from osprov.decorators import HandleShowErrorMessage
+from osprov.util import process
+from osprov.errors import DiscoveryError, NotFoundError
+from osprov.helpers import getMyServerRef
+from osprov.netconfig.helpers import getNetconfig
+from osprov.parsers.netconfig import getActiveInterface, Netconfig, NetworkInformation
+
+
+
+LOG = logger.getIt("Deploy WinPE on localdisk")
+
+WINPE_VERSIONS = { "2.1": None,
+                   "3.1": "OPSWwinpex64-ogfs-enabled.iso",
+                   "4.0": None,
+                 }
+RESPONSE_FILE = "hpsa_response_file.txt"
+HPSA_NETCONFIG = """@hpsa_netconfig@"""
+
+class DeployWinpeOptionsParser(OptionParser):
+    """ An option parser for this step. """
+
+    def defineOptions(self):
+        """ definition of options """
+        self.add_option("--systemDiskNumber", type="int", default=0,
+                        help="system disk number where Windows is installed (default disk number is '0').")
+        self.add_option("--systemDrive", type="string", default="C",
+                        help="system drive letter where WinPE will be copied")
+        self.add_option("--winpeVersion", type="string", default="3.1",
+                        help="WinPE version which will be downloaded (default value is '3.1').")
+
+    def returnValidWinPEVersions():
+        validVersions = ""
+        for ver in WINPE_VERSIONS.keys():
+            if WINPE_VERSIONS[ver] is not None:
+                validVersions = validVersions + " " + ver
+        return validVersions
+
+    def validateArgs(self, opt, args):
+        """ options validation """
+        if opt.winpeVersion not in WINPE_VERSIONS.keys():
+                raise OptionError("Invalid WinPE version was requested: %s. Supported WinPE version: %s" %
+                (opt.winpeVersion, self.returnValidWinPEVersions()), "winpeVersion")
+        if WINPE_VERSIONS[opt.winpeVersion] is None:
+                raise OptionError("Requested WinPE version is not supported :" + opt.winpeVersion, "winpeVersion")
+
+def downloadIso(targetServer, isoName, destinationDrive):
+    unitFilter = Filter()
+    unitFilter.setObjectType("software_unit")
+    filterExpression = "( (PackageVO.fileName EQUAL_TO %s) & \
+(UnitVO.unitType EQUAL_TO UNKNOWN) & \
+(PackageVO.fileType EQUAL_TO UNKNOWN) )"
+    unitFilter.setExpression(filterExpression % isoName)
+    twistServer = targetServer.twistServer
+    ref = twistServer.pkg.UnitService.findUnitRefs(unitFilter)
+    if not ref:
+        raise NotFoundError("Iso file named %s was not found" % isoName)
+    elif len(ref) > 1:
+        raise DiscoveryError("More than one iso named %s was found" % isoName)
+
+    from coglib import reconcile
+    ret = reconcile.retrieveFile(str(ref[0].id), destinationDrive+":\\winpe.iso", destinationDrive+":\\", "theword")
+
+def unpackIso(destinationDrive):
+    unIsoCmdLine = "7z.exe x %s:\\winpe.iso -y -o%s:\\" % (destinationDrive, destinationDrive) # "7z x c:\\winpe.iso -y -oc:\"
+    newEnv = os.environ
+    newEnv["PATH"] = newEnv["PATH"] + ";%s\\tools" % newEnv["SYSTEMDRIVE"]
+    process.runIt(unIsoCmdLine, quiet=True, checkExitCode=(0,), env=newEnv, log=LOG)
+
+def buildRespNetInfo(interface):
+    """ pick only what's needed from the static info """
+    respstring="protocol=static \n"
+    # the mandatory single value keys - get first value if it's a list
+    for key in ["mac", "ip", "gw", "mask"]:
+        if isinstance(interface[key], list):
+            value=interface[key][0]
+        else:
+            value=interface[key]
+        respstring += "%s0=%s \n" % (key,value)
+    # optional key dns
+    if interface.has_key("dns"):
+        respstring += "%s0=%s \n" % ("dns", ", ".join(interface["dns"]))
+    return respstring
+
+def storeStaticNetworkInfo(targetSrv, destinationDrive):
+    # store core(gateway) ip:port
+    gateways = targetSrv.getAllAgentGateways()
+    agwIpPort = random.choice(gateways)
+    agwIP = str(agwIpPort[0])
+    agwPort = str(agwIpPort[1])
+    responseConf = "agwIpPort=%s:%s\n" % (agwIP, agwPort)
+    responseConf += "mid=%s\n" % str(getMyServerRef().id)
+    # save static info if is the case
+    netinfo = getNetconfig(HPSA_NETCONFIG, "False", LOG)
+    if not netinfo:
+        print "No static network configuration present. Using DHCP configuration."
+        macAddr = targetSrv.getMACAddress().lower()
+        netConfDict = {0: {'mac':macAddr, 'protocol':'dhcp'}}
+        parser = Netconfig.Writable(StringIO(""))
+        parser.data = NetworkInformation(netConfDict)
+        responseConf += parser.format()
+    else:
+        # check if we have a match
+        activeKey, activeInterface = getActiveInterface(targetSrv, netinfo)
+        if not activeInterface.has_key("index"):
+            netinfo[activeKey]["index"] = activeKey
+        else:
+            netinfo[activeKey]["index"] = netinfo[activeKey]["index"][0]
+        if not hasattr(activeInterface, "mac"):
+            print "Warning: Your network configuration lacks a MAC address. "\
+                "Network device selection will be up to the Service OS Windows PE."
+        else:
+            activeInterfaceInfo=buildRespNetInfo(activeInterface)
+            print "Will save the following network configuration to be used \n" \
+                "when booted from the stub partition:\n%s\n" % activeInterfaceInfo
+            responseConf += activeInterfaceInfo
+    respfile = open(os.path.join("%s:" % destinationDrive, RESPONSE_FILE), "a")
+    respfile.write(responseConf)
+    respfile.close()
+
+@HandleShowErrorMessage("Create Stub Partition")
+def main():
+    opt, remainingArgs = DeployWinpeOptionsParser().parse_args()
+    targetServer = ThisLocalServer()
+    downloadIso(targetServer, WINPE_VERSIONS[opt.winpeVersion], opt.systemDrive)
+    unpackIso(opt.systemDrive)
+
+    # if static provisioning -> drop hpsa_response_file.txt file
+    storeStaticNetworkInfo(targetServer, opt.systemDrive)
+
+    # set bootloader
+    process.runIt("bootsect.exe /nt60 %s: /force /mbr" % opt.systemDrive, quiet=True, checkExitCode=(0,), log=LOG)
+
+if __name__ == "__main__":
+    sys.exit(main())

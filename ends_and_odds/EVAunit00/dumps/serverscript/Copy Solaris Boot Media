@@ -1,0 +1,109 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+
+"""
+Copy the media needed to boot the target installer.
+
+Be smart and try to figure out the media that is needed
+"""
+
+import os
+import sys
+
+from osprov.osbp import logger
+from osprov import media, helpers
+from osprov.errors import ShowErrorMessage, DiscoveryError, NotSupportedError
+from osprov.decorators import HandleShowErrorMessage
+
+LOG = logger.getIt("Copy Boot Media")
+
+
+class CopyBootMedia(object):
+
+    """ Do everything needed to copy the media """
+
+    def __init__(self):
+        self.keys = helpers.getDataStore()
+        self.media = None
+
+    def discoverMediaObject(self):
+        """Figure out the type of media used and set the appropriate object type"""
+        if self.keys.media.url:
+            self.media = media.factor(self.keys.media.url, log=LOG)
+            self.discoverOSVersion()
+        else:
+            raise DiscoveryError(
+                "Media source not set. You might be missing the 'Set Media Source' step in your Build Plan.")
+
+    def discoverOSVersion(self):
+        """Figure out if multiboot is present in the media source. Based on that set OSVersion."""
+        multibootLoc = "boot/multiboot"
+        if self.media.exists(multibootLoc):
+            self.osVersion = "Solaris 10"
+        else:
+            self.osVersion = "Solaris 11"
+        LOG.debug("Discovered OS Version : %s" % self.osVersion)
+
+    def discoverMediaFilesX86(self):
+        """Discover files needed for booting"""
+        if self.osVersion.endswith("10"):
+            multibootPath = "boot/multiboot"
+            minirootPath = "boot/x86.miniroot"
+            return [multibootPath, minirootPath]
+        else:
+            platformName = os.uname()[-1]
+            kernelPath = "platform/%s/kernel/amd64/unix" % platformName
+            baPath = "platform/%s/amd64/boot_archive" % platformName
+            solariszPath = "solaris.zlib"
+            solarismisczPath = "solarismisc.zlib"
+            imginfoPath = ".image_info"
+            return [kernelPath, baPath, solariszPath, solarismisczPath, imginfoPath]
+
+    def discoverMediaFilesSPARC(self):
+        raise NotSupportedError("Not available yet on SPARC.")
+
+    def discoverMediaFiles(self):
+        """Check the install media."""
+        if os.uname()[-1].startswith("i86"):
+            return self.discoverMediaFilesX86()
+        else:
+            return self.discoverMediaFilesSPARC()
+
+    def discoverTarget(self):
+        """Discover the target partition."""
+        target = self.keys.disk.device_mount
+        if not target:
+            raise DiscoveryError("Can't determine target destination. "
+                                 "Was the stub partition created?")
+        if self.osVersion.endswith("10"):
+            ret = os.path.join(target, "sol-x86")
+        else:
+            ret = os.path.join(target, "bootfiles")
+        helpers.makeDirs(ret)
+        LOG.debug("Target partition path %s" % ret)
+        return ret
+
+    def copyFiles(self, target, files):
+        """ Copy the files onto the stub partition """
+        for each in files:
+            print "Copying %s to %s" % (each, target)
+            self.media.copyTo(each, target)
+
+    @HandleShowErrorMessage("Copy Solaris Boot Media", LOG)
+    def main(self):
+        """ Do the media copying."""
+        self.discoverMediaObject()
+        print "Will copy from %s" % self.media
+        target = self.discoverTarget()
+        if not os.path.isdir(target):
+            raise ShowErrorMessage("Error: %s is not a directory. Can't copy media there." % target +
+                                   "\nThere might be an issue with the stub partition.")
+        files = self.discoverMediaFiles()
+        self.copyFiles(target, files)
+        print "Successfully copied all boot media"
+
+
+if __name__ == "__main__":
+    sys.exit(CopyBootMedia().main())

@@ -1,0 +1,14 @@
+; (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+; [Control]
+Action = Configure
+Method = Custom
+
+; [Controller]
+Controller = All
+ClearConfigurationWithDataLoss = Yes
+
+; [Array]
+
+; [LogicalDrive]
+
+; [HBA]

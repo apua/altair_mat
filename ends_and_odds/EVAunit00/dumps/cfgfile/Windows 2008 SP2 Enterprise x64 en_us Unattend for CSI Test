@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <!-- (c) Copyright 2013 Hewlett-Packard Development Company, L.P. -->
+  <!-- This servicing section is required to ensure HP Software compatibility -->
+  <servicing>
+      <package action="configure">
+          <!-- Need SNMP & WMISnmpProvider to install SPP on pre-ProLiant Gen8 servers -->
+
+          <assemblyIdentity name="Microsoft-Windows-Foundation-Package" version="6.0.6001.18000" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="" />
+          <selection name="SNMP" state="true" />
+          <selection name="WMISnmpProvider" state="true" />
+      </package>
+  </servicing>
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UserLocale>en-US</UserLocale>
+        </component>
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <ImageInstall>
+                <OSImage>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/NAME</Key>
+                            <Value>Windows Longhorn SERVERENTERPRISE</Value>
+                            <!-- Other Options are: SERVERSTANDARD
+                                                    SERVERDATACENTER
+                                                    SERVERWEBSERVER -->
+						    
+                         </MetaData>
+                    </InstallFrom>
+                    <InstallTo>
+                        <DiskID>@SystemDiskNumber:0@</DiskID>
+                        <PartitionID>1</PartitionID>
+                    </InstallTo>
+                    <WillShowUI>OnError</WillShowUI>
+                </OSImage>
+            </ImageInstall>
+            <UserData>
+                <ProductKey>
+                       
+                    <WillShowUI>OnError</WillShowUI>
+		    <Key>@ProductKey_Win2008-Ent-x64@</Key>
+                     <!-- Possible license keys:
+                      ProductKey_Win2008-Std-x64    Product keys for Windows OS 2008 x64, Standard
+                      ProductKey_Win2008-Ent-x64    Enterprise	
+                      ProductKey_Win2008-DC-x64     Datacenter
+                      ProductKey_Win2008-Web-x64    Webserver
+                   -->  
+                         
+                </ProductKey>
+                <AcceptEula>true</AcceptEula>
+               
+            </UserData>
+
+        </component>
+    </settings>
+    
+     <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserAccounts>
+                <AdministratorPassword>
+                    <Value>@administrator@</Value> 
+                    <PlainText>True</PlainText>
+                </AdministratorPassword>
+            </UserAccounts>
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+            </OOBE>
+            <RegisteredOrganization>HP</RegisteredOrganization>
+            <RegisteredOwner>guest</RegisteredOwner>
+        </component>
+        <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UILanguageFallback>en-US</UILanguageFallback>
+            <UserLocale>en-US</UserLocale>
+        </component>
+    </settings>
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          
+            <ComputerName>@ComputerName:Server2008SP2@</ComputerName>
+      </component>
+    </settings>
+ 
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <ComputerName>@ComputerName:Server2008SP2@</ComputerName>
+        </component>
+    </settings>
+
+    <!-- The section below is used to provide ProLiant drivers
+         during installation.  It should not be remove, and it should
+		 be present in all Answer/Configuration Files -->
+    <settings pass="offlineServicing">
+        <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DriverPaths>
+                <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+                    <Path>@SystemDrive:c@:\$oem$</Path>
+                </PathAndCredentials>
+            </DriverPaths>
+        </component>
+    </settings>
+</unattend>

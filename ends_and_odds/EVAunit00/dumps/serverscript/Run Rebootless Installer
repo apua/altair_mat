@@ -1,0 +1,164 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+"""
+This program will prepare OS installer for use with kexec
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+import os
+import sys
+
+from osprov.osbp import logger
+from osprov.optparse_ext import OptionParser
+from osprov.errors import DiscoveryError
+from osprov.parsers.syslinux import Syslinux
+from osprov.decorators import HandleShowErrorMessage
+from osprov import helpers
+from osprov.util import process
+from osprov.server import ThisLocalServer
+from osprov.sysinfo import LinuxSysInfo
+
+from osprov.constants import DEFAULT_INITRD_DIR
+from osprov.constants import DEFAULT_SA_INITRD_MASK
+
+LOG = logger.getIt("Prepare OS Installer")
+
+
+class PrepareOSInstallerOptionsParser(OptionParser):
+
+    """ An options' parser for this step. """
+
+    def defineOptions(self):
+        self.add_option(
+            "-k", "--kernel_arguments", type="string", dest="kernel_arguments", metavar="KERNEL_ARGUMENTS", default="",
+            help="Kernel arguments to be given to the OS Installer kernel, must be enclosed in quotes (""). Any quotes in arguments must be escaped")
+
+
+def getKernelImage(stub_path, cfgFile):
+    """ gets the name of the kernel image based on the "isolinux.cfg" file """
+    if not stub_path:
+        raise DiscoveryError("Cannot discover boot disk mount point: %s. "
+                             "Was the stub partition/ramdisk created?" % stub_path)
+
+    cfgFile.seek(0)
+    isocfg = Syslinux.readonly(cfgFile)
+    isocfg_label = isocfg.info()["label " + isocfg.first_non_local_label()]
+
+    kernel = os.path.basename(isocfg_label["kernel"])
+    if not kernel:
+        raise DiscoveryError("Failed to discover the boot kernel")
+
+    kernelPath = os.path.join(stub_path, kernel)
+    if not os.path.exists(kernelPath):
+        raise DiscoveryError("Failed to discover the boot kernel: %s" % kernelPath)
+
+    return kernel
+
+
+def getInitrdImage(stub_path, cfgFile):
+    """ gets the name of the initrd image based on the "solinux.cfg" file """
+    if not stub_path:
+        raise DiscoveryError("Cannot discover boot disk mount point: %s. "
+                             "Was the stub partition/ramdisk created?" % stub_path)
+
+    cfgFile.seek(0)
+    isocfg = Syslinux.readonly(cfgFile)
+    isocfg_label = isocfg.info()["label " + isocfg.first_non_local_label()]
+
+    initrd = ""
+    appendLine = isocfg_label["append"].split(' ')
+    for each in appendLine:
+        if '=' in each:
+            key, value = [x.strip() for x in each.split('=', 1)]
+            if key == "initrd":
+                initrd = os.path.basename(value)
+    if not initrd:
+        raise DiscoveryError("Failed to discover the initrd")
+
+    initrdPath = os.path.join(stub_path, initrd)
+    if not os.path.exists(initrdPath):
+        raise DiscoveryError("Failed to discover the initrd: %s" % initrdPath)
+
+    return initrd
+
+
+def getEmbededInitrds(stub_path):
+    """ get embeded initrds images names """
+    if not stub_path:
+        raise DiscoveryError("Cannot discover boot disk mount point: %s. "
+                             "Was the stub partition/ramdisk created?" % stub_path)
+    embInitrd = helpers.findFiles(
+        path=os.path.join(stub_path, DEFAULT_INITRD_DIR), mask=DEFAULT_SA_INITRD_MASK)
+    embededInitrd = []
+    if embInitrd:
+        for eachrd in embInitrd:
+            embededInitrd.append(os.path.join(os.path.sep, DEFAULT_INITRD_DIR, eachrd))
+        embededInitrd = helpers.numericalSort(embededInitrd)
+    return embededInitrd
+
+
+def concatFiles(srcFile, destFile):
+    """ concatenates one file to dest """
+    buflen = 1024 * 1024 * 2
+    while True:
+        data = srcFile.read(buflen)
+        if data:
+            destFile.write(data)
+        else:
+            break
+
+
+def concatInitrds(stub_path):
+    """ Concatenates localrds created from embed initrd to the OS Installer initrd """
+    # strip first "/" for path.join to work
+    localrds = [x.lstrip("/") for x in getEmbededInitrds(stub_path)]
+
+    for localrd in localrds:
+        localrdFile = open(os.path.join(stub_path, localrd), 'rb')
+        isolinuxFile = open(os.path.join(stub_path, "isolinux.cfg"))
+        initrdFile = open(os.path.join(stub_path, getInitrdImage(stub_path, isolinuxFile)), 'ab')
+
+        concatFiles(localrdFile, initrdFile)
+
+        isolinuxFile.close()
+        localrdFile.close()
+        initrdFile.close()
+
+
+def getKernelSetupParams():
+    """ get kernel parameters for OS Installer """
+    defaultParams = "ks=file:/user.ks.cfg hpsa_monitoring_agent=1 ip=dhcp noipv6"
+    localServer = ThisLocalServer()
+    mac = localServer.getMACAddress().lower()
+
+    defaultParams += " ksdevice=%s" % mac
+    return defaultParams
+
+
+def runRebootlessInstaller(kernel_arguments):
+    stub_path = helpers.getDataStore().disk.device_mount
+    concatInitrds(stub_path)
+
+    isolinuxFile = open(os.path.join(stub_path, "isolinux.cfg"))
+    process.runIt(
+        'kexec -l %s --initrd=%s --command-line="%s"' % (os.path.join(stub_path, getKernelImage(stub_path, isolinuxFile)),
+                                                         os.path.join(stub_path, getInitrdImage(stub_path, isolinuxFile)), getKernelSetupParams() + " " + kernel_arguments), log=LOG)
+    isolinuxFile.close()
+    process.runIt(
+        '/opt/opsware/agent/pylibs/cogbot/etc/opsware-agent stop ; kexec -e', shell=True, log=LOG)
+
+
+@HandleShowErrorMessage("Prepare OS Installer step", LOG)
+def main():
+    """Main entry point when executed as a script from the command line"""
+    parser = PrepareOSInstallerOptionsParser()
+    options, args = parser.parse_args()
+
+    LOG.info('given args: %s' % options.kernel_arguments)
+    runRebootlessInstaller(options.kernel_arguments.replace('"', '\\"'))
+
+if __name__ == "__main__":
+    sys.exit(main())

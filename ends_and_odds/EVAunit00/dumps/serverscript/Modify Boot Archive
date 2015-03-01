@@ -1,0 +1,118 @@
+#!/opt/opsware/agent/bin/python
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# ex: set tabstop=4 :
+# Please do not change the two lines above. See PEP 8, PEP 263.
+#
+
+"""
+This program will unpack, resize and modify the Solaris boot_archive to include
+all necessary files for automated installation.
+
+(c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+"""
+
+import os
+import sys
+import shutil
+
+from osprov.osbp import logger
+from osprov import helpers
+from osprov.decorators import HandleShowErrorMessage
+from osprov.server.local import ThisLocalServer
+from osprov.wrappers.boot_archive import BootArchive
+
+LOG = logger.getIt("Modify Boot Archive")
+
+NET_ASSEMBLY_PATH = "/usr/share/opsware/net-assembly-osprov"
+MANIFEST_LOCATOR_PATH = "/usr/share/opsware/manifest-locator-osprov"
+AGENT_STARTER_NAME = "hpsa-ogfs-autodl.sh"
+SOS_AGENT_STARTER_LOCATION = os.path.join("/lib/svc/hpsa-ogfs", AGENT_STARTER_NAME)
+AI_XML_PATH = "/tmp/ai.xml"
+SC_XML_PATH = "/tmp/sc.xml"
+AGENT_INSTALLER_REPO_PATH = "/tmp/hpsa-repo/repo"
+
+NET_ASSEMBLY_TARGET = "lib/svc/method/net-assembly"
+MEDIA_ASSEMBLY_TARGET = "lib/svc/method/media-assembly"
+MANIFEST_LOCATOR_TARGET = "lib/svc/method/manifest-locator"
+
+HPSA_DIR = "hpsa"
+
+
+@HandleShowErrorMessage("Modify Boot Archive", LOG)
+def main():
+    """Main method, does all modifications."""
+
+    # Temporary: check if x86, if not, fail. SPARC will be implemented in the future.
+    if not os.uname()[-1].startswith("i86"):
+        raise NotImplementedError("Module not available yet on SPARC.")
+
+    bootArchiveObj = BootArchive(
+        log=LOG, thisLocalServer=ThisLocalServer(), dataStoreKeys=helpers.getDataStore(), osVersion="11")
+    # Check if we need to include an hpsa-agent-installer repo, and determine its size
+    if os.path.isdir(AGENT_INSTALLER_REPO_PATH):
+        extrasize = helpers.dirSize(AGENT_INSTALLER_REPO_PATH)
+    else:
+        extrasize = 0
+
+    bootArchiveObj.unpack()
+    bootArchiveObj.grow(200 + (extrasize >> 20))
+    bootArchiveObj.mount()
+
+    hpsaDir = os.path.join(bootArchiveObj.mountpoint, HPSA_DIR)
+    netAssemblyTarget = os.path.join(bootArchiveObj.mountpoint, NET_ASSEMBLY_TARGET)
+    mediaAssemblyTarget = os.path.join(bootArchiveObj.mountpoint, MEDIA_ASSEMBLY_TARGET)
+    manifestLocatorTarget = os.path.join(bootArchiveObj.mountpoint, MANIFEST_LOCATOR_TARGET)
+    helpers.makeDirs(hpsaDir)
+
+    # Modifications per-se
+    # Replace default startup methods
+    shutil.copy2(NET_ASSEMBLY_PATH, netAssemblyTarget)
+    print "Copied %s to %s" % (NET_ASSEMBLY_PATH, netAssemblyTarget)
+    shutil.copy2(NET_ASSEMBLY_PATH, mediaAssemblyTarget)
+    print "Copied %s to %s" % (NET_ASSEMBLY_PATH, mediaAssemblyTarget)
+    shutil.copy2(MANIFEST_LOCATOR_PATH, manifestLocatorTarget)
+    print "Copied %s to %s" % (MANIFEST_LOCATOR_PATH, manifestLocatorTarget)
+
+    # Copy boot files
+    shutil.copy2(
+        os.path.join(bootArchiveObj.bootfilesPath, "solaris.zlib"), bootArchiveObj.mountpoint)
+    shutil.copy2(
+        os.path.join(bootArchiveObj.bootfilesPath, "solarismisc.zlib"), bootArchiveObj.mountpoint)
+    shutil.copy2(
+        os.path.join(bootArchiveObj.bootfilesPath, ".image_info"), bootArchiveObj.mountpoint)
+
+    # Copy AI manifests
+    shutil.copy2(AI_XML_PATH, hpsaDir)
+    shutil.copy2(SC_XML_PATH, hpsaDir)
+
+    # Copy mid and crypto
+    destMIDpath = os.path.join(
+        bootArchiveObj.mountpoint, bootArchiveObj.localServer.MID_FILE.lstrip("/"))
+    destCryptoDir = os.path.join(
+        bootArchiveObj.mountpoint, bootArchiveObj.localServer.CRYPTO_DIR.lstrip("/"))
+    helpers.makeDirs(os.path.join(bootArchiveObj.mountpoint, os.path.dirname(destMIDpath)))
+    shutil.copy2(bootArchiveObj.localServer.MID_FILE, destMIDpath)
+    shutil.rmtree(destCryptoDir, ignore_errors=True)
+
+    helpers.makeDirs(os.path.dirname(destCryptoDir))
+    shutil.copytree(bootArchiveObj.localServer.CRYPTO_DIR, destCryptoDir)
+
+    # Include agent starter
+    agentStarterDestination = os.path.join(hpsaDir, AGENT_STARTER_NAME)
+    f = open(agentStarterDestination, "w")
+    f.write(bootArchiveObj.localServer.getOgfsAgentStartupScript())
+    f.flush()
+    f.close()
+    shutil.copymode(SOS_AGENT_STARTER_LOCATION, agentStarterDestination)
+
+    # Include hpsa-agent-installer repo if present
+    if extrasize:
+        dest = os.path.join(bootArchiveObj.mountpoint, "hpsa/repo")
+        shutil.copytree(AGENT_INSTALLER_REPO_PATH, dest)
+
+    bootArchiveObj.umount()
+    bootArchiveObj.repack()
+    bootArchiveObj.cleanup()
+
+if __name__ == "__main__":
+    sys.exit(main())

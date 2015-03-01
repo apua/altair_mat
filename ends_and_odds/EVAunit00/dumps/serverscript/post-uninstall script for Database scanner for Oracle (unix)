@@ -1,0 +1,4 @@
+RMFOLDER=/opt/opsware/dbscanner.oracle
+if [ -d $RMFOLDER ]; then
+  rm -rf $RMFOLDER
+fi 

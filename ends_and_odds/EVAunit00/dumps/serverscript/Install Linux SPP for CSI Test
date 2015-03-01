@@ -1,0 +1,179 @@
+#!/bin/sh
+
+# (c) Copyright 2013 Hewlett-Packard Development Company, L.P.
+
+# Globals
+# Media Server mount point location
+mountpoint=/mnt/media
+if [ ! -d "$mountpoint" ]
+then
+    mountpoint=/mnt/ms
+fi
+
+
+hpsumargs=
+sppversion=
+buildver=
+
+#Flag to be used in case --fail_on_warning is specified.
+failonwarning=0
+#Flag to be used in case -logdir is specified.
+logdir_specified=0
+#Variable to save the new logdir specified.
+new_logdir="/var/hp/log"
+
+# ====================
+# Determine SPP Version to install
+# Globals set:  sppversion
+# ====================
+FindSPPVersion ()
+{       
+   if [ "@SPP_VER@" == "" ]; then
+   
+      sppversion=$(find "$mountpoint/Media/spp" -mindepth 1 -maxdepth 1 -type d -printf %f\\n | sort | tail -1)
+
+      if [ "$sppversion" == "" ]; then
+         echo "Did not find an SPP Version on the media server"
+         return 999
+      fi
+
+      if [ ! -d "$mountpoint/Media/spp/$sppversion" ]; then
+         echo "$mountpoint/Media/spp/$sppversion is not a directory"
+         return 999
+      fi  
+
+      buildver=$(find "$mountpoint/Media/spp/$sppversion" -mindepth 1 -maxdepth 1 -type d -printf %f\\n | sort | tail -1)
+      echo "buildver is : $buildver"
+
+      if [ "$buildver" == "" ]; then
+         echo "Did not find an BUILD Version on the media server"
+         return 999
+      fi
+
+      if [ ! -d "$mountpoint/Media/spp/$sppversion/$buildver" ]; then
+         echo "$mountpoint/Media/spp/$sppversion/$buildver is not a directory"
+         return 999
+      fi
+
+   else
+      
+      if [ "@BUILD_VER@" == "" ]; then
+         echo "Please enter BUILD_VER in custom attribute"
+         return 999
+      else
+         sppversion=@SPP_VER@
+         buildver=@BUILD_VER@         
+      fi
+      
+   fi
+   return 0
+}
+
+# ====================
+# Run HPSUM
+# Globals used:  hpsumargs, sppversion
+# ====================
+RunHPSUM ()
+{
+   if [ ! -d "$mountpoint/Media/spp/$sppversion/$buildver" ]; then
+      echo "$mountpoint/Media/spp/$sppversion/$buildver does not exist"
+      return 999
+   fi
+
+   echo "SPP version to be installed is $sppversion"
+   echo "Build version to be installed is $buildver"
+   echo "Additional hpsum arguments are $hpsumargs"
+   # Must be run as currently running directory
+   echo "Enter directory $mountpoint/Media/spp/$sppversion/$buildver/hp/swpackages"
+   cd $mountpoint/Media/spp/$sppversion/$buildver/hp/swpackages
+
+   ./hpsum /current_credential /silent /On_failed_dependency: Omit_Component
+   rc=$?
+    if [ $rc -gt 3 ] || [ $rc -lt 0 ]; then
+        echo "SPP hpsum failed: error code $rc"
+        if [[ $rc -lt 0 ]]; then
+            rc=$(( 256 + $rc ))
+        fi
+      	  case "$rc" in
+	      255)
+    		  echo "A general failure occurred. For details, see the error log.";;
+	      254)
+    		  echo "A bad input parameter was encountered.";;
+              253)
+                  if [ $failonwarning -eq 1 ];then
+			echo "ERROR - One or more components failed to install"
+                        echo "fail_on_warning is set"
+       		  else
+			echo "WARNING - One or more of the smart components failed to install."
+			echo "Depending on your system configuration, this may be expected behavior."
+			echo "To verify the installation, check the hpsum logs located at $new_logdir unless specified otherwise by hpsum -logdir option."
+			echo "To fail the build plan when these warnings occur, specify the --fail_on_warning option to this step."
+			return 0
+		  fi
+			;;
+	  esac
+    
+    echo "hpsum logs are located at $new_logdir unless specified otherwise by hpsum -logdir option."
+    return $rc
+    fi
+}
+
+# ====================
+# Unmount media server
+# Globals used:  mountpoint
+# ====================
+UnmountMediaServer()
+{
+   # Unmount media server drive
+   cd /
+   umount "$mountpoint"
+   return 0
+}
+
+# ====================
+# MAIN
+# ====================
+
+# Determine what calling arguments
+# Globals set:  hpsumargs, sppversion
+
+opt=0
+for i in $*
+do
+    # Get string to left of =
+    leftstr=${i%=*}
+    # Get string to right of =
+    rightstr=${i##*=}
+    case "$leftstr" in
+        "--spp_version")
+            sppversion=$rightstr;;
+    "--hpsum_options")
+        hpsumargs=$rightstr;;
+    "--fail_on_warning")
+       failonwarning=1;;
+    *)
+        if [ $i == "-logdir" ];then
+            logdir_specified=1
+            hpsumargs="$hpsumargs $i"
+        elif [ $logdir_specified -eq 1 ]; then
+            hpsumargs="$hpsumargs \"$i\""
+            new_logdir="\"$i\""
+            logdir_specified=0
+        else
+            hpsumargs="$hpsumargs $i"
+        fi
+        ;;
+    esac
+done
+
+
+FindSPPVersion
+returncode=$?
+
+if [ $returncode -eq 0 ]; then
+    RunHPSUM
+    returncode=$?
+fi
+UnmountMediaServer
+
+exit $returncode
