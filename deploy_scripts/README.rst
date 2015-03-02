@@ -38,8 +38,13 @@ recipe - feature mapping
 
 `set_network.py`
     Set IPs and disable built-in DHCP server.
+    After setting network, it should self-reboot automatically.
 
     There is no way has been found yet.
+
+`change_adminpass.py`
+    Altair Combined Appliance has default password,
+    it should be changed rather than set from first boot.
 
 `dump_info.py`
     Dump OSBPs and customized settings.
