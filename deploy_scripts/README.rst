@@ -10,7 +10,20 @@ but the deploying steps are clearly now.
 Another information follows: https://rndwiki2.atlanta.hp.com/confluence/display/csitestdevel/Deploying+Altair
 
 
-Below is the "recipe - feature" mapping:
+requirement
+-----------
+
+:[x]: `paramiko` and dependency
+      it is bad for Windows, consider `pscp.exe` and `plink.exe`
+
+:[v]: `requests`
+
+:[v]: `urllib3`
+      which dependent on `requests` 
+
+
+recipe - feature mapping
+------------------------
 
 `check_env.py`
     Check if environment is OK or not.
