@@ -41,10 +41,7 @@ recipe - feature mapping
     It is hard to implement now.
 
 `set_network.py`
-    Set IPs and disable built-in DHCP server.
-    After setting network, it should self-reboot automatically.
-
-    There is no way has been found yet.
+    Set IPs and disable built-in DHCP server through vmtools.
 
 `change_adminpass.py`
     Altair Combined Appliance has default password,
