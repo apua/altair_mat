@@ -62,3 +62,5 @@ recipe - feature mapping
 `take_snapshot.py`
     Optional. Shutdown, take a snapshot, and turn on.
 
+`shutdown_appliance.py`
+    Optional. Just shutdown appliance.
