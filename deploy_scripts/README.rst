@@ -14,6 +14,7 @@ requirement
 -----------
 
 :[x]: `paramiko` and dependency
+
       it is bad for Windows, consider `pscp.exe` and `plink.exe`
 
 :[v]: `requests`
@@ -21,6 +22,7 @@ requirement
 :[v]: `urllib3`
       which dependent on `requests` 
 
+:[ ]: `pyvmomi`
 
 recipe - feature mapping
 ------------------------
