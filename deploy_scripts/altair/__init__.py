@@ -1,0 +1,2 @@
+class Altair(object):
+    pass
