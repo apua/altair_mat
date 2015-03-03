@@ -32,7 +32,7 @@ recipe - feature mapping
 
 .. Downloading sources would be manual and has no script.
 
-`build_env.py`
+`build_settings.py`
     Dump OSBPs and customized settings to help users setting credentials.
 
     The settings and OSBPs should put in the same directory with the scripts.
