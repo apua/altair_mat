@@ -32,6 +32,8 @@ recipe - feature mapping
 
 .. Downloading sources would be manual and has no script.
 
+.. Added WinPE might has to be automatical
+
 `build_settings.py`
     Dump OSBPs and customized settings to help users setting credentials.
 
