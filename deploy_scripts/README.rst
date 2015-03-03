@@ -28,8 +28,12 @@ recipe - feature mapping
 `check_env.py`
     Check if environment is OK or not.
 
+.. Downloading sources would be manual and has no script.
+
 `build_env.py`
-    Assist user to download source, and set credentials, ...etc.
+    Dump OSBPs and customized settings to help users setting credentials.
+
+    The settings and OSBPs should put in the same directory with the scripts.
 
 `import_ovf.py`
     Import OVF/OVA file and then take snapshot.
@@ -46,13 +50,10 @@ recipe - feature mapping
     Altair Combined Appliance has default password,
     it should be changed rather than set from first boot.
 
-`dump_info.py`
-    Dump OSBPs and customized settings.
+`set_appliance.py`
+    Set appliance with existed settings and OSBPs.
 
-    OSBPs backup feature has to be implemented!!
-
-`upload_info.py`
-    Upload info created by `dump_info.py` and `build_env.py`.
+    The settings and OSBPs should put in the same directory with the scripts.
 
 `update_appliace.py`
     Upload `osd-osbp-package` if necessary and `YUM`/`RPM` update.
