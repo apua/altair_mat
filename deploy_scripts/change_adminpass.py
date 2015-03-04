@@ -12,6 +12,7 @@ settings = gen_path('settings.cfg', __file__)
 config = get_config(settings)
 username = 'administrator'
 password = config[username]['password']
+appliance_ip = config['network settings']['appliance ip']
 default_password = 'hpvse123'
 
 with Altair(appliance_ip=appliance_ip,
