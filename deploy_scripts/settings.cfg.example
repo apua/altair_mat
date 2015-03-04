@@ -1,0 +1,26 @@
+[media settings]
+
+[prodyct keys]
+
+[facility attributes]
+
+[activation key]
+
+[network settings]
+
+[administrator]
+password:
+# info 1
+# info 2
+other users:
+  [username 1]
+  ...
+  [username 2]
+  ...
+  ...
+
+[winpe]
+file name:
+
+[osbps]
+folder name:
