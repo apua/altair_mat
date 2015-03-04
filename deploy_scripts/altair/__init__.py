@@ -52,6 +52,9 @@ class Altair(object):
     # users
     # =====
 
+    def get_users(self):
+        return {}
+
     def add_user(self, user_data):
         pass
 

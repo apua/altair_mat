@@ -33,4 +33,11 @@ with Altair(appliance_ip=appliance_ip,
     # OSBPs
     # WinPE
 
+config['hypervisor'] = {
+    'ip': '',
+    'username': '',
+    'password': '',
+    'vmname': '',
+    }
+
 set_config(settings, config)
