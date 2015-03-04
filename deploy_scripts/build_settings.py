@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 from altair import Altair
 from tools import gen_path, set_config, subconfig2value

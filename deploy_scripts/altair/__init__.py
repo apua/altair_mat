@@ -61,7 +61,7 @@ class Altair(object):
     def update_user(self, user_data):
         pass
 
-    def change_password(self, new_password):
+    def change_password(self, new_password, old_password):
         pass
 
     # network
