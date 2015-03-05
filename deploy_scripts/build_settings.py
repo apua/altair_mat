@@ -20,6 +20,7 @@ with Altair(appliance_ip=appliance_ip,
         'product keys': api.get_product_keys(),
         'facility attributes': api.get_facility_attributes(),
         'activation key': api.get_activation_key(),
+        'pxeboot default': api.get_pxeboot_default(),
         'network settings': api.get_network_settings(),
         }
 
