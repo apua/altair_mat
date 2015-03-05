@@ -24,6 +24,7 @@ requirement
 
 :[ ]: `pyvmomi`
 
+
 recipe - feature mapping
 ------------------------
 
@@ -64,3 +65,31 @@ recipe - feature mapping
 
 `shutdown_appliance.py`
     Optional. Just shutdown appliance.
+
+
+Developing Issues
+=================
+
+#. other useful API wrapper
+
+#. wrap a better `configparser` module refers to Python3 module
+
+#. control vm with PyVmomi
+
+#. testing
+
+#. OSBP backup technic
+
+#. use Putty tools to send command / copy file to appliance
+
+#. inject scripts to guest OS and run it with PyVmomi
+
+#. implement PyVmomi "importting OVF" feature
+
+#. use PyVmomi to modify settings of vm
+
+#. check user`s environment for deploying Altair with PyVmomi
+
+#. splitting REST API to multiple modules if necessary
+
+- off-line yum update has some problem?
