@@ -85,7 +85,6 @@ class Altair(object):
     def get_activation_key(self):
         from base64 import b64encode
         key = self._retrieve_activation()['activationCode']
-        print(key)
         return b64encode(key)
 
     def set_activation_key(self, key_):
