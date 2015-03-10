@@ -161,7 +161,7 @@ def collect_methods(*module_names):
     from importlib import import_module
 
     for module_name in module_names:
-        module = import_module(module_name, __path__)
+        module = import_module('.'+module_name, package=__package__)
         for attr_name in dir(module):
             if not attr_name.startswith('_'):
                 attr_value = getattr(module, attr_name)
