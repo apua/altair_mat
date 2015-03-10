@@ -1,22 +1,21 @@
 '''
-usage: command appliance_ip [config_file: settings.cfg]
+usage: command appliance_ip [config_path]
 '''
 
-import argparse
 import getpass
 import os
 import sys
 
 from altair import Altair
-from tools import gen_path, set_config
+from tools import set_config
 
 
 if   len(sys.argv)==2:
     appliance_ip = sys.argv[1]
-    config_path = gen_path('settings.cfg', source_file=__file__)
+    config_path = os.path.join(os.path.dirname(__file__), 'settings.cfg')
 elif len(sys.argv)==3:
     appliance_ip = sys.argv[1]
-    config_path = gen_path(sys.argv[2], source_file=__file__)
+    config_path = sys.argv[2]
 else:
     exit(__doc__.strip())
 
@@ -25,7 +24,7 @@ if os.path.isfile(config_path):
     templ = '"%s" exists. Recover it? [Y/n]'
     choice = raw_input(templ % config_path).lower()[0]
     if choice == 'n':
-        exit()
+        exit(2)
 
 
 username = 'administrator'
