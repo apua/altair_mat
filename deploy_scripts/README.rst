@@ -36,9 +36,9 @@ recipe - feature mapping
 .. Added WinPE might has to be automatical
 
 `build_config.py`
-    Dump OSBPs and customized settings to help users setting credentials.
+    Dump OSBPs and customized config to help users setting credentials.
 
-    The settings and OSBPs should put in the same directory with the scripts.
+    The config and OSBPs should put in the same directory with the scripts.
 
 `import_ovf.py`
     Import OVF/OVA file and then take snapshot.
@@ -52,10 +52,10 @@ recipe - feature mapping
     Altair Combined Appliance has default password,
     it should be changed rather than set from first boot.
 
-`set_appliance.py`
-    Set appliance with existed settings and OSBPs.
+`config_appliance.py`
+    Configure appliance with existed configuration and OSBPs.
 
-    The settings and OSBPs should put in the same directory with the scripts.
+    The config and OSBPs should put in the same directory with the scripts.
 
 `update_appliace.py`
     Upload `osd-osbp-package` if necessary and `YUM`/`RPM` update.
