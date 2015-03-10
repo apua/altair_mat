@@ -90,4 +90,6 @@ Developing Issues
 
 #. splitting REST API to multiple modules if necessary
 
+#. add tutorial for the recipes (such as fill in passwords)
+
 - off-line yum update has some problem?
