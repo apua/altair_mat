@@ -20,7 +20,7 @@ requirement
 :[v]: `requests`
 
 :[v]: `urllib3`
-      which dependent on `requests` 
+      which dependent on `requests`
 
 :[ ]: `pyvmomi`
 
