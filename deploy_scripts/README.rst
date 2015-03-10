@@ -35,7 +35,7 @@ recipe - feature mapping
 
 .. Added WinPE might has to be automatical
 
-`build_settings.py`
+`build_config.py`
     Dump OSBPs and customized settings to help users setting credentials.
 
     The settings and OSBPs should put in the same directory with the scripts.
@@ -71,8 +71,6 @@ Developing Issues
 =================
 
 #. other useful API wrapper
-
-#. wrap a better `configparser` module refers to Python3 module
 
 #. control vm with PyVmomi
 
