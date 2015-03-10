@@ -1,19 +1,24 @@
-import ConfigParser as configparser
-import os.path as path
-
-
-def gen_path_with_script(filename, source_file):
+def gen_path(filename, source_file):
     r'''
-    >>> gen_path_with_script('fn', '/dirpath/src')
+    >>> gen_path('fn', '/dirpath/src')
     '/dirpath/fn'
     '''
+    import os.path as path
+
     dirname = path.dirname(source_file)
     abspath = path.join(dirname, filename)
     return abspath
 
 
-def get_settings(config_filename, section):
-    config = configparser.ConfigParser(allow_no_value=True)
-    config.read([config_filename])
-    mapping = dict(config.items(section))
-    return mapping
+def set_config(data, config_path):
+    import yaml
+    with open(config_path, 'w') as fp:
+        yaml.safe_dump(data, stream=fp,
+                       default_flow_style=False, indent=4,
+                       allow_unicode=True, encoding='utf-8')
+
+
+def get_config(config_path):
+    import yaml
+    with open(config_path, 'r') as fp:
+        return yaml.load(fp)
