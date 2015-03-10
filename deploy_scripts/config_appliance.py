@@ -35,10 +35,6 @@ username = config['login user']['userName']
 password = config['login user']['password']
 appliance_ip = config['network settings']['appliance_ip']
 
-from pprint import pprint as p
-p(vars())
-exit()
-
 with Altair(appliance_ip=appliance_ip,
             username=username,
             password=password) as api:
@@ -48,6 +44,7 @@ with Altair(appliance_ip=appliance_ip,
     api.set_facility_attributes(config['facility attributes'])
     api.set_activation_key(config['activation key'])
 
+    api.update_user(config['login user'])
     for user in config['other users']:
         api.add_user(user)
 

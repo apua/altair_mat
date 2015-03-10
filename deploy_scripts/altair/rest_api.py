@@ -978,16 +978,30 @@ def reset_factory(self, mode):
 # ----------------------------
 
 def retrieve_network(self):
-    """
-    """
     response = self.conn.get(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = '/rest/appliance/network-interfaces/00:50:56:98:09:07',
-            #path = "/rest/appliance/network-interfaces/00:50:56:98:09:07?_=1423476857871",
+            path = '/rest/appliance/network-interfaces',
             ),
         headers = {
-            #"X-API-Version": 100,
+            "X-API-Version": 100,
+            "Accept-Language": "en_US",
+            "Auth": self.session_id,
+            },
+        json = {},
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def retrieve_macs(self):
+    response = self.conn.get(
+        _generate_uri(
+            netloc = self.appliance_ip,
+            path = '/rest/appliance/network-interfaces/mac-addresses',
+            ),
+        headers = {
+            "X-API-Version": 100,
             "Accept-Language": "en_US",
             "Auth": self.session_id,
             },

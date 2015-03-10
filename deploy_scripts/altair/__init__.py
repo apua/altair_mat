@@ -138,9 +138,23 @@ class Altair(object):
             role = split(r',\s*', cleaned_data['role'])
             return user_data, role
 
-        user_data, role = clean(user_data)
-        self._add_users(user_data)
-        self._update_user_role(user_data['userName'], role)
+        cleaned_user_data, role = clean(user_data)
+        self._add_users(cleaned_user_data)
+        self._update_user_role(cleaned_user_data['userName'], role)
+
+    def update_user(self, user_data):
+        def clean(user_data):
+            from re import split
+            keys = ('emailAddress', 'enabled', 'fullName', 'userName',
+                    'mobilePhone', 'officePhone', 'password')
+            cleaned_data = {k.lower(): v for k,v in user_data.items()}
+            user_data = {k: cleaned_data[k.lower()] for k in keys}
+            role = split(r',\s*', cleaned_data['role'])
+            return user_data, role
+
+        cleaned_user_data, role = clean(user_data)
+        self._update_user(cleaned_user_data)
+        self._update_user_role(cleaned_user_data['userName'], role)
 
     def change_password(self, old_password, new_password):
         self._update_user({'userName': self.username,
