@@ -42,9 +42,13 @@ with Altair(appliance_ip=appliance_ip,
     api.set_media_settings(config['media settings'])
     api.set_product_keys(config['product keys'])
     api.set_facility_attributes(config['facility attributes'])
+
+    # bwlow is not idempotent
     api.set_activation_key(config['activation key'])
 
-    api.update_user(config['login user'])
+    api.update_user_info(config['login user'])
+
+    # below is not idempotent
     for user in config['other users']:
         api.add_user(user)
 
