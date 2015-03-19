@@ -187,4 +187,7 @@ for name, method in collect_methods('rest_api'):
 for name, method in collect_methods():
     setattr(Altair, name, method)
 
+for name, method in collect_methods('init'):
+    globals()[name] = method
+
 requests.packages.urllib3.disable_warnings()
