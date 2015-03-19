@@ -969,6 +969,26 @@ def retrieve_macs(self):
     assert response.status_code==200, _failure_information(response)
     return response.json()
 
+
+def set_network(self, network):
+    response = self.conn.post(
+        _generate_uri(
+            netloc = self.appliance_ip,
+            path = '/rest/appliance/network-interfaces',
+            ),
+        headers = {
+            "X-API-Version": 100,
+            "Accept-Language": "en_US",
+            "Auth": self.session_id,
+            },
+        json = network,
+        )
+    assert response.status_code==202, _failure_information(response)
+    return None
+
+
+
+
 # Appliance Node Information
 # --------------------------
 
