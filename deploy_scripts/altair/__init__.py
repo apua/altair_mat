@@ -29,6 +29,7 @@ class Altair(object):
 
     def __exit__(self, type, value, traceback):
         self._remove_session()
+        self.conn.close()
 
     # media settings, product keys, facility attributes, pxeboot default
     # ==================================================================
