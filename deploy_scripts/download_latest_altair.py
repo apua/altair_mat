@@ -31,7 +31,7 @@ def download_file(filename):
     content_length = resp.headers['content-length']
 
     total = int(content_length)
-    output_form = '\r{percent:f} size: {now} / {total}'
+    output_form = '\r{percent:6.2f} size: {now} / {total}'
 
     with open(filename, 'wb') as f:
         for i, chunk in enumerate(stream):
@@ -39,9 +39,12 @@ def download_file(filename):
                 f.write(chunk)
                 f.flush()
                 now = i*BUFFER_SIZE
-                percent = now / total
+                percent = now / total * 100
                 stdout.write(output_form.format(**locals()))
                 stdout.flush()
+        percent, now = 100, total
+        stdout.write(output_form.format(**locals()))
+        stdout.flush()
 
 
 if __name__=='__main__':
@@ -51,5 +54,6 @@ if __name__=='__main__':
         download_file(filename)
     except KeyboardInterrupt:
         import os
-        print()
         os.remove(filename)
+    finally:
+        print()
