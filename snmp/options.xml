@@ -1,0 +1,20 @@
+        <component name="Microsoft-Windows-SNMP-Agent-Service" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="NonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <PermittedManagers>
+                <A1>127.0.0.1</A1>
+            </PermittedManagers>
+            <RFC1156Agent>
+                <sysContact>Servers &amp; Storage</sysContact>
+                <sysLocation>ABC</sysLocation>
+                <sysServices>72</sysServices>
+            </RFC1156Agent>
+            <TrapConfiguration>
+                <TrapConfigurationItems wcm:action="add">
+                    <Community_Name>public</Community_Name>
+                    <Traps>10.140.16.50</Traps>
+                </TrapConfigurationItems>
+            </TrapConfiguration>
+            <ValidCommunities>
+                <ValidCommunity wcm:action="add" wcm:keyValue="public">4</ValidCommunity>
+                <ValidCommunity wcm:action="add" wcm:keyValue="brazen">16</ValidCommunity>
+            </ValidCommunities>
+        </component>

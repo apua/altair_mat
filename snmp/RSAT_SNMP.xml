@@ -1,0 +1,9 @@
+    <unattend xmlns="urn:schemas-microsoft-com:unattend">
+        <servicing>
+            <package action="configure">
+                <assemblyIdentity name="Microsoft-Windows-ServerCore-Package" version="6.3.9600.16384" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="" />
+                <selection name="Server-RSAT-SNMP" state="true" />
+            </package>
+        </servicing>
+        <cpi:offlineImage cpi:source="catalog:c:/users/administrator/desktop/xxx/sources/install_windows server 2012 r2 serverstandard.clg" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+    </unattend>
