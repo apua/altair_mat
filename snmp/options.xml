@@ -4,17 +4,17 @@
             </PermittedManagers>
             <RFC1156Agent>
                 <sysContact>Servers &amp; Storage</sysContact>
-                <sysLocation>ABC</sysLocation>
-                <sysServices>72</sysServices>
+                <sysLocation>Earth</sysLocation>
+                <sysServices>104</sysServices>
             </RFC1156Agent>
             <TrapConfiguration>
                 <TrapConfigurationItems wcm:action="add">
-                    <Community_Name>public</Community_Name>
-                    <Traps>10.140.16.50</Traps>
+                    <Community_Name>c_name</Community_Name>
+                    <Traps>10.10.1.1</Traps>
                 </TrapConfigurationItems>
             </TrapConfiguration>
             <ValidCommunities>
-                <ValidCommunity wcm:action="add" wcm:keyValue="public">4</ValidCommunity>
-                <ValidCommunity wcm:action="add" wcm:keyValue="brazen">16</ValidCommunity>
+                <ValidCommunity wcm:action="add" wcm:keyValue="Public">8</ValidCommunity>
+                <ValidCommunity wcm:action="add" wcm:keyValue="Private">4</ValidCommunity>
             </ValidCommunities>
         </component>

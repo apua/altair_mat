@@ -7,10 +7,8 @@
             <!-- Need SNMP & WMISnmpProvider to install SPP on pre-ProLiant Gen8 servers -->
             <!-- assemblyIdentity is dependent on Windows 2008 R2 SP1 x64 -->
             <assemblyIdentity name="Microsoft-Windows-ServerCore-Package" version="6.3.9600.16384" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="" />
-            <!--
             <selection name="SNMP" state="true" />
             <selection name="WMISnmpProvider" state="true" />
-            -->
             <selection name="Server-RSAT-SNMP" state="true" />
         </package>
     </servicing>
