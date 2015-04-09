@@ -625,6 +625,23 @@ def delete_OSBP(self, buildPlanID):
 # Packages
 # --------
 
+def list_package(self):
+    response = self.conn.get(
+        _generate_uri(
+            netloc = self.appliance_ip,
+            path = "/rest/os-deployment-install-zips",
+            ),
+        headers = {
+            #"X-API-Version": 108,
+            "Accept-Language": "en_US",
+            "Auth": self.session_id,
+            },
+        json = {},
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
 # Server Scripts
 # --------------
 
