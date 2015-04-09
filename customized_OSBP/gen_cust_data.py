@@ -28,13 +28,13 @@ from tools import set_config
 from pprint import pprint as p
 import json
 import os
+import sys
 
+if len(sys.argv)!=5:
+    sys.exit('usage: cmd appliance_ip username password cust_filepath')
+else:
+    appliance_ip , username , password , cust_filepath = sys.argv[1:]
 
-appliance_ip = '10.30.1.235'
-username = 'administrator'
-password = 'Compaq123'
-
-cust_filename = 'cust.yml'
 
 type_mapping = {
     'os-deployment-install-cfgfiles': 'configs',
@@ -112,4 +112,4 @@ with Altair(appliance_ip=appliance_ip,
     configs = api._list_cfgfile()
     packages = api._list_package()
     
-set_config(gen_cust(), cust_filename)
+set_config(gen_cust(), cust_filepath)
