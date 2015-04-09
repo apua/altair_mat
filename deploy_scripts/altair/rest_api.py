@@ -491,14 +491,10 @@ def edit_ogfsScript(self, ogfsScriptID, properties):
 
 
 def delete_ogfsScript(self, ogfsScriptID):
-    """
-    basic usage:
-        sessionID, cfgfileID -> None
-    """
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
             ),
         headers = {
             "X-API-Version": 102,
@@ -733,14 +729,10 @@ def edit_serverScript(self, serverScriptID, properties):
 
 
 def delete_serverScript(self, serverScriptID):
-    """
-    basic usage:
-        sessionID, cfgfileID -> None
-    """
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
             ),
         headers = {
             "X-API-Version": 102,
