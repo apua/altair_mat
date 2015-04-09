@@ -1,0 +1,115 @@
+'''
+generating customized data::
+
+    osbp
+        $name:
+            attr: ...
+            desc: ...
+            type: ...
+            steps:
+                - name: ...
+                  type: ...
+                  para: ...
+    script
+        $name:
+            desc: ...
+            cont: ...
+            type: ...
+            sudo: ...
+    config
+        $name:
+            desc: ...
+            cont: ...
+'''
+
+from altair import Altair
+from tools import set_config
+
+from pprint import pprint as p
+import json
+import os
+
+
+appliance_ip = '10.30.1.235'
+username = 'administrator'
+password = 'Compaq123'
+
+cust_filename = 'cust.yml'
+
+type_mapping = {
+    'os-deployment-install-cfgfiles': 'configs',
+    'os-deployment-ogfs-scripts': 'scripts',
+    'os-deployment-server-scripts': 'scripts',
+    'os-deployment-install-zips': 'packages',
+    }
+
+
+def cust_osbps():
+    def osbp_info(m):
+        return {
+            'attr': m['buildPlanCustAttrs'],
+            'desc': m['description'],
+            'type': m['os'],
+            'steps': [
+                {'name': step['name'],
+                 'type': type_mapping[step['type']],
+                 'para': step['parameters']}
+                for step in m['buildPlanItems']
+                ]
+            }
+
+    return {
+        m['name']: osbp_info(m)
+        for m in osbps['members']
+        if m['isCustomerContent']
+        }
+
+
+def cust_scripts():
+    def script_info(m):
+        return {
+            'desc': m['description'],
+            'cont': m['source'],
+            'type': m['codeType'],
+            'sudo': m['runAsSuperUser'],
+            }
+
+    return {
+        m['name']: script_info(m)
+        for m in scripts['members']
+        if m['isCustomerContent']
+        }
+
+
+def cust_configs():
+    def config_info(m):
+        return {
+            'desc': m['description'],
+            'cont': m['text'],
+            }
+
+    return {
+        m['name']: config_info(m)
+        for m in configs['members']
+        if m['isCustomerContent']
+        }
+
+
+def gen_cust():
+    return {
+        'osbp': cust_osbps(),
+        'script': cust_scripts(),
+        'config': cust_configs(),
+        }
+
+
+
+with Altair(appliance_ip=appliance_ip,
+            username=username,
+            password=password) as api:
+    osbps = api._list_OSBP()
+    scripts = api._list_serverScript()
+    configs = api._list_cfgfile()
+    packages = api._list_package()
+    
+set_config(gen_cust(), cust_filename)
