@@ -86,46 +86,85 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     #    })
     #print(j)
 
+    '''
+
     # just upload fxxking packages....no needs
 
     # just upload fxxking scripts
-    #for name, script in data['script'].items():
-    #    if script['type']=='ogfs':
-    #        api._add_ogfsScript({
-    #            'type': "OSDOGFSScript",
-    #            'name': name,
-    #            'description': script['desc'],
-    #            'source': script['cont'],
-    #            })
-    #    else:
-    #        api._add_serverScript({
-    #            'type': 'OSDServerScript',
-    #            'serverChanging': True,
-    #            'name': name,
-    #            'description': script['desc'],
-    #            'source': script['cont'],
-    #            'runAsSuperUser': script['sudo'],
-    #            'codeType': script['type'],
-    #            })
+
+    print('==============')
+    print('import scripts')
+    print('==============')
+
+    for name, script in data['script'].items():
+        while 1:
+            try:
+                if script['type']=='ogfs':
+                    api._add_ogfsScript({
+                        'type': "OSDOGFSScript",
+                        'name': name,
+                        'description': script['desc'],
+                        'source': script['cont'],
+                        })
+                else:
+                    api._add_serverScript({
+                        'type': 'OSDServerScript',
+                        'serverChanging': True,
+                        'name': name,
+                        'description': script['desc'],
+                        'source': script['cont'],
+                        'runAsSuperUser': script['sudo'],
+                        'codeType': script['type'],
+                        })
+                break
+            except:
+                raw_input()
 
 
     # just upload fxxking configs
-    #for name, config in data['config'].items():
-    #    api._add_cfgfile(
-    #        {'type': 'OsdCfgFile', 'name':name, 'description':config['desc'], 'text':config['cont']}
-    #        )
+
+    print('==============')
+    print('import configs')
+    print('==============')
+
+    for name, config in data['config'].items():
+        while 1:
+            try:
+                api._add_cfgfile(
+            {'type': 'OsdCfgFile', 'name':name, 'description':config['desc'], 'text':config['cont']}
+            )
+                break
+            except:
+                raw_input()
+
 
     # get mapping
-    #P = {m['name']: m['uri'] for m in api._list_package()['members']}
-    #S = {m['name']: m['uri'] for m in api._list_serverScript()['members']
-    #                                  + api._list_ogfsScript()['members']}
-    #C = {m['name']: m['uri'] for m in api._list_cfgfile()['members']}
-    #D = dict(P.items() + S.items() + C.items())
-    #with open('mapping.yml', 'w') as f:
-    #    yaml.dump(D, f)
 
+    print('===========')
+    print('get mapping')
+    print('===========')
+
+    while 1:
+        try:
+            P = {m['name']: m['uri'] for m in api._list_package()['members']}
+            S = {m['name']: m['uri'] for m in api._list_serverScript()['members']
+                                              + api._list_ogfsScript()['members']}
+            C = {m['name']: m['uri'] for m in api._list_cfgfile()['members']}
+            D = dict(P.items() + S.items() + C.items())
+            with open('mapping.yml', 'w') as f:
+                yaml.dump(D, f)
+            break
+        except:
+            raw_input()
+
+    '''
 
     # and then upload osbps
+
+    print('============')
+    print('import OSBPs')
+    print('============')
+
     def get_uri(M, step):
         if step['type']!='packages':
             return M[step['name']]
@@ -142,21 +181,28 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     M = yaml.load(open('mapping.yml'))
 
     for name, osbp in data['osbp'].items():
-        print name
-        try:
-            steps = [{'parameters': step['para'],
-                      'cfgFileDownload': step['type']=='configs',
-                      'uri': get_uri(M, step)}
-                     for step in osbp['steps']]
-            api._add_OSBP({
-                'type': 'OSDBuildPlan',
-                'modified':'0000-00-00T00:00:00.000Z',
-                'arch': 'x64',
-                'name': name,
-                'description': osbp['desc'],
-                'os': 'Other', #osbp['type'],
-                'buildPlanCustAttrs': [], #osbp['attr'],
-                'buildPlanItems': steps,
-                })
-        except Exception as E:
-            print(E.message)
+        while 1:
+            try:
+                steps = [{'parameters': step['para'],
+                          'cfgFileDownload': step['type']=='configs',
+                          'uri': get_uri(M, step)}
+                         for step in osbp['steps']]
+                api._add_OSBP({
+                    'type': 'OSDBuildPlan',
+                    'modified':'0000-00-00T00:00:00.000Z',
+                    'arch': 'x64',
+                    'name': name,
+                    'description': osbp['desc'],
+                    'os': 'Other', #osbp['type'],
+                    'buildPlanCustAttrs': [], #osbp['attr'],
+                    'buildPlanItems': steps,
+                    })
+                break
+            except Exception as E:
+                print(name)
+                print(E.message)
+                print('='*30)
+                if raw_input()=='pass':
+                    break
+                else:
+                    continue

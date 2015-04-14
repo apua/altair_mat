@@ -119,6 +119,23 @@ def delete_cfgfile(self, cfgfileID):
 # Deployment Settings
 # -------------------
 
+def export_content(self):
+    response = self.conn.get(
+        _generate_uri(
+            netloc = self.appliance_ip,
+            path = "/rest/os-deployment-settings/exportContent",
+            ),
+        headers = {
+            "X-API-Version": 108,
+            "Accept-Language": "en_US",
+            "Auth": self.session_id,
+            },
+        json = {},
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response
+
+
 def list_deployment_settings(self):
     """
     basic usage:
@@ -531,7 +548,7 @@ def list_OSBP(self):
     return response.json()
 
 
-def add_OSBP(self, properties, parentTask=None):
+def add_OSBP(self, properties):
     """
     basic usage:
         sessionID, properties -> uri, name, description, os,
