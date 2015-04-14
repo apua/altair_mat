@@ -86,8 +86,6 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     #    })
     #print(j)
 
-    '''
-
     # just upload fxxking packages....no needs
 
     # just upload fxxking scripts
@@ -156,8 +154,6 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
             break
         except:
             raw_input()
-
-    '''
 
     # and then upload osbps
 
