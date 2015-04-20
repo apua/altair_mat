@@ -10,9 +10,6 @@ configurations:
     vm_name
 '
  
-# backup
-./build_config.py
-
 # check disk space first
 # update latest ovf name
 ./download_latest_altair.py
@@ -43,9 +40,7 @@ configurations:
 
 ./wait_boot.py
 
-./configure.py
-
-./update_customized_OSBP.py
+./restore.py
 
 
 # others
