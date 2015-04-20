@@ -1,14 +1,15 @@
 # libs
-from altair import Altair
-
-import yaml
-from utils import set_config, get_config
+from __future__ import division, print_function, absolute_import
 
 from pprint import pprint
-
 import os
 import sys
 
+import requests
+import yaml
+
+from altair import Altair
+from utils import set_config, get_config
 
 # shell
 execfile(os.path.expanduser('~/.pythonstartup.py'))
