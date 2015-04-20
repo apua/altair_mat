@@ -12,7 +12,7 @@ configurations:
  
 # check disk space first
 # update latest ovf name
-./download_latest_altair.py
+./download_altair.py
 
 # check disk space first
 ./unzip.py
