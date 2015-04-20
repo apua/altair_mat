@@ -55,4 +55,5 @@ configurations:
 wait function
 set network
 set administrator
+upload WinPE ?
 '
