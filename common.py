@@ -27,3 +27,5 @@ from utils import set_config, get_config
 
 # sys
 import sys
+
+CONFIG_FILENAME = 'settings.cfg'
