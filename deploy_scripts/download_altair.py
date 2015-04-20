@@ -14,6 +14,31 @@ BUFFER_SIZE = 1024
 LOCATION = '/ovf/'
 
 
+def get_target():
+    def get_latest_filename():
+        response = requests.get(NIGHTLY_BUILD_PAGE)
+        filenames = sorted(re.findall(FILENAME_PATT, response.content))
+        latest_filename = filenames.pop()
+        return latest_filename
+
+    if   len(sys.argv)==1:
+        filename = get_latest_filename()
+    elif len(sys.argv)==2:
+        filename = sys.argv[1]
+    else:
+        exit('usage: %s [altair_filename]' % __file__)
+
+    filepath = os.path.join(LOCATION, filename)
+    if os.path.exists(filepath):
+        exit('"{}" already exists\n'.format(filepath))
+
+    fileuri = urlparse.urljoin(NIGHTLY_BUILD_PAGE, filename)
+    if requests.head(fileuri).status_code!=200:
+        exit('"{}" cannot fetch\n'.format(fileuri))
+
+    return fileuri, filepath
+
+
 def get_diskspace():
     command = 'df -B 1 --output=avail {}'.format(LOCATION)
     output = sp.check_output(command.split())
@@ -21,18 +46,11 @@ def get_diskspace():
     return size
 
 
-def get_latest_filename():
-    response = requests.get(NIGHTLY_BUILD_PAGE)
-    filenames = sorted(re.findall(FILENAME_PATT, response.content))
-    latest_filename = filenames.pop()
-    return latest_filename
-
-
-def write_file(stream, f, total):
+def write_fd(stream, fd, total):
     form = '\r{percent:6.2f}% size: {part} / {total}'
     show = lambda s: sys.stdout.write(s) or sys.stdout.flush()
     output = lambda **k: show(form.format(**k))
-    fwrite = lambda d: f.write(d) or f.flush()
+    fwrite = lambda d: fd.write(d) or fd.flush()
 
     for i, chunk in enumerate(stream):
         fwrite(chunk)
@@ -55,7 +73,7 @@ def download_file(fileuri, filepath):
 
     with open(filepath, 'wb') as fd:
         try:
-            write_file(stream, fd, filesize)
+            write_fd(stream, fd, filesize)
         except KeyboardInterrupt:
             os.remove(filepath)
         finally:
@@ -63,11 +81,4 @@ def download_file(fileuri, filepath):
 
 
 if __name__=='__main__':
-    filename = get_latest_filename()
-    filepath = os.path.join(LOCATION, filename)
-    fileuri = urlparse.urljoin(NIGHTLY_BUILD_PAGE, filename)
-
-    if os.path.exists(filepath):
-        exit('"{}" already exists\n'.format(filepath))
-
-    download_file(fileuri, filepath)
+    download_file(*get_target())
