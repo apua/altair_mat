@@ -30,3 +30,9 @@ CONFIG_FILENAME = 'settings.cfg'
 # methods
 altair235 = lambda: Altair(appliance_ip='10.30.1.235', username='administrator', password='Compaq123')
 p = lambda v: pprint(v, depth=1)
+
+try:
+    del os.environ['http_proxy']
+    del os.environ['https_proxy']
+except:
+    pass

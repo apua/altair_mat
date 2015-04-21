@@ -16,12 +16,6 @@ else:
 
 password = getpass('vSphere password: ')
 
-try:
-    del os.environ['http_proxy']
-    del os.environ['https_proxy']
-except:
-    pass
-
 with SmartConnection(host=config['vcenter'],
                      user=config['account'],
                      pwd=password) as si:
