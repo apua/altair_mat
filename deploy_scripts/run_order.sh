@@ -17,9 +17,9 @@ configurations:
 # check disk space first
 ./unzip.py filepath [target_dir]
 
-./import_ovf.py ovffile [esxi_settings]
+./import_ovf.py [requirement_settings]
 
-./take_snapshot.py 'import_ovf' [esxi_settings]
+./take_snapshot.py 'import_ovf'
 
 # check memory before turning on
 ./turn_on.py
