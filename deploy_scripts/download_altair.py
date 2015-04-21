@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import re
 import requests
 import os
+import os.path
 import subprocess as sp
 import sys
 import urlparse
