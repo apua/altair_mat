@@ -8,9 +8,8 @@ import sys
 import urlparse
 
 
-USAGE_MESSAGE = 'usage: %s [altair_filename]' % __file__
+USAGE_MESSAGE = 'usage: %s [altair_filename] location' % __file__
 FILENAME_PATT = r'ICsp-vmware-7.5.0-\d+.zip'
-LOCATION = '/ovf/'
 NIGHTLY_BUILD_PAGE = r'http://altair-ex.cce.hp.com/altair/daily-kits/'
 BUFFER_SIZE = 1024
 
@@ -22,26 +21,40 @@ def get_target():
         latest_filename = filenames.pop()
         return latest_filename
 
-    if   len(sys.argv)==1:
-        filename = get_latest_filename()
-    elif len(sys.argv)==2:
-        filename = sys.argv[1]
+    if   len(sys.argv)==2:
+        filename, location = get_latest_filename(), sys.argv[1]
+    elif len(sys.argv)==3:
+        filename, location = sys.argv[1:]
     else:
         exit(USAGE_MESSAGE)
 
-    filepath = os.path.join(LOCATION, filename)
+    diskspace = get_diskspace(location)
+
+    filepath = os.path.join(location, filename)
+    if not os.path.exists(location):
+        exit('location "{}" doesn`t exist\n'.format(location))
     if os.path.exists(filepath):
         exit('"{}" already exists\n'.format(filepath))
 
     fileuri = urlparse.urljoin(NIGHTLY_BUILD_PAGE, filename)
-    if requests.head(fileuri).status_code!=200:
-        exit('"{}" cannot fetch\n'.format(fileuri))
+    response = requests.head(fileuri)
+    filesize = int(response.headers['content-length'])
+    if response.status_code!=200:
+        exit('"{}" cannot fetch'.format(fileuri))
+    if not filesize < diskspace:
+        exit('File size:  {}\n'
+             'Disk space: {}\n'
+             'Disk space is not enough\n'.format(filesize, diskspace))
+
+    print('filename: {}\n'
+          'fileuri:  {}\n'
+          'filepath: {}\n'.format(filename, fileuri, filepath))
 
     return fileuri, filepath
 
 
-def get_diskspace():
-    command = 'df -B 1 --output=avail {}'.format(LOCATION)
+def get_diskspace(location):
+    command = 'df -B 1 --output=avail {}'.format(location)
     output = sp.check_output(command.split())
     size = int(output.splitlines()[1])
     return size
@@ -62,15 +75,9 @@ def write_fd(stream, fd, total):
 
 
 def download_file(fileuri, filepath):
-    resp = requests.get(fileuri, stream=True)
-    stream = resp.iter_content(chunk_size=BUFFER_SIZE)
-    filesize = int(resp.headers['content-length'])
-
-    diskspace = get_diskspace()
-    if not filesize < diskspace:
-        exit('File size:  {}\n'
-             'Disk space: {}\n'
-             'Disk space is not enough'.format(filesize, diskspace))
+    response = requests.get(fileuri, stream=True)
+    stream = response.iter_content(chunk_size=BUFFER_SIZE)
+    filesize = int(response.headers['content-length'])
 
     with open(filepath, 'wb') as fd:
         try:
