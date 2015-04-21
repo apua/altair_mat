@@ -19,13 +19,15 @@ configurations:
 
 ./import_ovf.py [requirement_settings]
 
-./take_snapshot.py 'import_ovf'
+#./take_snapshot.py 'import ovf' vmname [requirement_settings]
+
+#./set_vmnic.py ....
 
 # check memory before turning on
-./turn_on.py
+#./turn_on.py ....
 
 # wait vm turning on until getting ip
-./get_ip.py
+./get_ip.py vmname [requirement_settings]
 
 ./wait_boot.py
 

@@ -11,8 +11,9 @@ from pprint import pprint
 import os
 import subprocess
 import sys
+import time
 
-from pyVim import connect
+from pyVim.connect import SmartConnection
 from pyVmomi import vmodl
 from pyVmomi import vim
 import requests
