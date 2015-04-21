@@ -68,6 +68,7 @@ def write_fd(stream, fd, total):
         output(percent=part/total*100, part=part, total=total)
     else:
         output(percent=100, part=total, total=total)
+        print('\n\ndownload successfully\n')
 
 
 def download_file(fileuri, filepath):
@@ -80,8 +81,7 @@ def download_file(fileuri, filepath):
             write_fd(stream, fd, filesize)
         except KeyboardInterrupt:
             os.remove(filepath)
-        finally:
-            sys.stdout.write('\n')
+            exit('\n')
 
 
 if __name__=='__main__':
