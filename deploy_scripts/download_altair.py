@@ -8,6 +8,8 @@ import subprocess as sp
 import sys
 import urlparse
 
+from utils import get_diskspace
+
 
 USAGE_MESSAGE = 'usage: %s [altair_filename] location' % __file__
 FILENAME_PATT = r'ICsp-vmware-7.5.0-\d+.zip'
@@ -52,13 +54,6 @@ def get_target():
           'filepath: {}\n'.format(filename, fileuri, filepath))
 
     return fileuri, filepath
-
-
-def get_diskspace(location):
-    command = 'df -B 1 --output=avail {}'.format(location)
-    output = sp.check_output(command.split())
-    size = int(output.splitlines()[1])
-    return size
 
 
 def write_fd(stream, fd, total):

@@ -9,7 +9,7 @@ import requests
 import yaml
 
 from altair import Altair
-from utils import set_config, get_config
+from utils import *
 
 # shell
 execfile(os.path.expanduser('~/.pythonstartup.py'))
