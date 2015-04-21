@@ -12,17 +12,16 @@ configurations:
  
 # check disk space first
 # update latest ovf name
-./download_altair.py
+./download_altair.py [altair_filename] location
 
 # check disk space first
-./unzip.py
+./unzip.py filepath [target_dir]
 
-./check_env.py
+./import_ovf.py ovffile [esxi_settings]
 
-./import_ovf.py
+./take_snapshot.py 'import_ovf' [esxi_settings]
 
-./take_snapshot.py 'import_ovf'
-
+# check memory before turning on
 ./turn_on.py
 
 # wait vm turning on until getting ip

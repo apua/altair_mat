@@ -1,3 +1,9 @@
+def script_related(script_path, cfgfn):
+    import os.path
+    dirname = os.path.split(script_path)[0]
+    return os.path.join(dirname, cfgfn)
+
+
 def get_diskspace(location):
     import subprocess as sp
 
