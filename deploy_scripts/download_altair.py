@@ -8,7 +8,7 @@ import sys
 import urlparse
 
 
-USAGE = 'usage: %s [altair_filename]' % __file__
+USAGE_MESSAGE = 'usage: %s [altair_filename]' % __file__
 FILENAME_PATT = r'ICsp-vmware-7.5.0-\d+.zip'
 LOCATION = '/ovf/'
 NIGHTLY_BUILD_PAGE = r'http://altair-ex.cce.hp.com/altair/daily-kits/'
@@ -27,7 +27,7 @@ def get_target():
     elif len(sys.argv)==2:
         filename = sys.argv[1]
     else:
-        exit(USAGE)
+        exit(USAGE_MESSAGE)
 
     filepath = os.path.join(LOCATION, filename)
     if os.path.exists(filepath):
