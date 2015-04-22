@@ -19,12 +19,9 @@ from pyVmomi import vim
 import requests
 import yaml
 
+import altair as A
 from altair import Altair
 from utils import *
-
-
-# constants
-CONFIG_FILENAME = 'settings.cfg'
 
 
 # methods
