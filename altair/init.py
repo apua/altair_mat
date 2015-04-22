@@ -3,13 +3,32 @@ import requests
 from .tools import _generate_uri, _failure_information
 
 
-# Appliance Eula
+# Appliance EULA
 # --------------
 
-def accept_Eula(appliance_ip, supportAccess):
+def retrieve_eula(appliance_ip):
     """
-    basic usage:
-        supportAccess ("yes"/"no") -> supportAccess, version
+    None -> Boolean
+    """
+    response = requests.get(
+        _generate_uri(
+            netloc = appliance_ip,
+            path = "/rest/appliance/eula/status",
+            ),
+        headers = {
+            "X-API-Version": 1,
+            "Accept-Language": "en_US",
+            },
+        json = {},
+        verify = False,
+        )
+    assert response.status_code==200, _failure_information(response)
+    return response.json()
+
+
+def accept_eula(appliance_ip, supportAccess):
+    """
+    supportAccess ("yes"/"no") -> supportAccess, version
     """
     assert supportAccess.lower() in ('yes', 'no')
     response = requests.post(
@@ -30,21 +49,23 @@ def accept_Eula(appliance_ip, supportAccess):
     return response.json()
 
 
-def retrieve_Eula(appliance_ip, ):
+# Change Default Administrator Password
+# -------------------------------------
+
+def change_default_adminpass(appliance_ip, password_changing_info):
     """
-    basic usage:
-        None -> Boolean
+    newPassword, oldPassword, userName -> {...}
     """
-    response = requests.get(
+    response = requests.post(
         _generate_uri(
             netloc = appliance_ip,
-            path = "/rest/appliance/eula/status",
-            ),
+            path = "/rest/users/changePassword",
+        ),
         headers = {
-            "X-API-Version": 1,
+            "X-API-Version": 100,
             "Accept-Language": "en_US",
             },
-        json = {},
+        json = password_changing_info,
         verify = False,
         )
     assert response.status_code==200, _failure_information(response)

@@ -31,7 +31,7 @@ configurations:
 
 ./wait_boot.py ip
 
-./initiate.py
+./initiate.py ip [altair_settings]
 
 ./wait_shutdown.py
 
