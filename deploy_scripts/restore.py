@@ -4,7 +4,7 @@ from common import *
 if len(sys.argv)==1:
     config_path = script_related(__file__, ALTAIR_SETTINGS)
 elif len(sys.argv)==2:
-    config_path = sys.argv[2]
+    config_path = sys.argv[1]
 else:
     exit('usage: %s [altair_settings]'%__file__)
 
