@@ -41,7 +41,7 @@ configurations:
 
 ./wait_boot.py
 
-./restore.py
+./restore.py [altair_settings]
 
 
 # others
