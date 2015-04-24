@@ -26,7 +26,7 @@ with Altair(appliance_ip='10.30.1.235',
     # bwlow is not idempotent
     api.set_activation_key(config['activation key'])
 
-    api.update_user_info(config['login user'])
+    #api.update_user_info(config['login user'])
 
     # below is not idempotent
     for user in config['other users']:
