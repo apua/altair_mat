@@ -24,10 +24,10 @@ configurations:
 #./set_vmnic.py ....
 
 # check memory before turning on
-./turn_on.py
+#./turn_on.py vmname
 
 # wait vm turning on until getting ip
-./get_ip.py
+./get_ip.py vmname [requirement_settings]
 
 ./wait_boot.py ip
 
