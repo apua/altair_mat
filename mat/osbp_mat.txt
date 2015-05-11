@@ -1,0 +1,77 @@
+*** Settings ***
+#################
+
+Documentation
+...     Run OSBPs
+...     = usage =
+...     | pybot | -L debug | -d sprint66 | osbp_mat.txt |
+
+Library     String
+Library     Collections
+Library     OperatingSystem
+
+Library     Selenium2Library
+Library     robot.api.logger
+
+Library     RoboGalaxyLibrary
+Library     AltairLibrary
+
+Variables   ./test_data.py
+
+Suite Setup      Run Keywords    Login Altair
+Suite Teardown   Run Keywords    Logout Altair
+
+
+*** Test Cases ***
+#################
+
+Get SUT URIs
+    ${OSBP_URIs} =          Get OSBP URIs
+    ${SUT_URIs} =           Get SUT URIs
+    Run OSBPs with SUTs     ${SUT_URIs}     ${OSBP_URIs}
+
+
+*** Variables ***
+#################
+
+
+*** Keywords ***
+#################
+
+Login Altair
+    Console     "==== Login ===="
+    ${rsp}  ${admin_session}=
+    ...     Altair API Login Appliance  ${ALTAIR_IP}    ${ALTAIR_ADMIN_USERNAME}    ${AlTAIR_ADMIN_PASSWORD}
+    ${status}=  Get From Dictionary        ${rsp}        status
+    Run Keyword If   ${status}==400   Fail
+    Set Global Variable     ${admin_session}    ${admin_session}
+
+
+Logout Altair
+    Console     "==== Logout ===="
+    Altair API Logout Appliance
+
+
+Get SUT URIs
+    ${result} =     Create List
+    :For            ${SUT}              In                          @{SUTs}
+    \               ${SUT_uri} =        Altair API Get Server URI   ${SUT['serialno']}
+    \               Append to List      ${result}                   ${SUT_uri}
+    [return]        ${result}
+
+
+Get OSBP URIs
+    ${result} =     Create List
+    :For            ${OSBP_name}        In                                  @{OSBPs}
+    \               ${OSBP_uri} =       Altair API Get OS Buildplan URI     ${OSBP_name}
+    \               Append to List      ${result}                           ${OSBP_uri}
+    [return]        ${result}
+
+
+
+Run OSBPs with SUTs
+    [Arguments]             ${SUT_URIs}                 ${OSBP_URIs}
+    :For    ${pair}         in                          @{MAT_pairs}
+    \       ${a}            ${b} =                      Set Variable                    ${pair}
+    \       ${response}     ${task_uri} =               Altair API Run OS Buildplan     ${SUT_URIs[${a}]}   ${OSBP_URIs[${b}]}
+    \       ${status} =     Altair API Wait For Task    ${task_uri}
