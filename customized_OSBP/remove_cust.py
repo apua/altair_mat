@@ -7,12 +7,13 @@ issues:
 '''
 
 from altair import Altair
-from tools import set_config
+from utils import set_config
 
 from pprint import pprint
 import json
 import os
 import sys
+import time
 
 p = lambda v: pprint(v, depth=1)
 
@@ -27,6 +28,8 @@ def delete_cust(list_method, delete_method):
         if m['isCustomerContent']:
             print(m['uri'], m['name'])
             delete_method(m['uri'].rsplit('/',1)[-1])
+            print('...deleted successfully')
+            time.sleep(3)
 
 
 with Altair(appliance_ip=appliance_ip, username=username, password=password) as api:
@@ -39,5 +42,3 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     
     for lm, dm in L:
         delete_cust(lm, dm)
-    
-
