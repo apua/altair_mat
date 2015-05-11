@@ -1,17 +1,18 @@
 from altair import Altair
-from tools import set_config
+from utils import set_config
 
 from pprint import pprint
 import yaml
 import os
 import sys
+import time
 
 p = lambda v: pprint(v, depth=1)
 
-appliance_ip = '10.30.1.235'
+appliance_ip = 'csi-altair.twn.hp.com'#10.30.1.235'
 username = 'administrator'
 password = 'Compaq123'
-cust_filepath = './cust-houston-20150408.yml'
+cust_filepath = './cust-houston-20150507.yml'
 data = yaml.load(open(cust_filepath))
 
 
@@ -115,8 +116,8 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
                         'codeType': script['type'],
                         })
                 break
-            except:
-                raw_input()
+            except Exception as E:
+                raw_input(E.message)
 
 
     # just upload fxxking configs
@@ -193,6 +194,8 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
                     'buildPlanCustAttrs': [], #osbp['attr'],
                     'buildPlanItems': steps,
                     })
+                print(name)
+                time.sleep(3)
                 break
             except Exception as E:
                 print(name)
