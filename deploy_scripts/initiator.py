@@ -19,13 +19,16 @@ if A.retrieve_eula(given_ip) is True:
     A.accept_eula(given_ip, supportAccess='no')
 
 print('\nReset Administrator Password')
-A.change_default_adminpass(given_ip, {
-    'newPassword':  config['login user']['password'],
-    'oldPassword' : 'admin',
-    'userName' :    'administrator',
-    })
+try:
+    A.change_default_adminpass(given_ip, {
+        'newPassword':  config['login user']['password'],
+        'oldPassword' : 'admin',
+        'userName' :    'administrator',
+        })
+except:
+    pass
 
-print('\nSet Appliance IP to %s' % given_ip)
+print('\nSet Appliance IP to %s' % config['network settings'][0]['app1Ipv4Addr'])
 with Altair(appliance_ip=given_ip,
             username=config['login user']['userName'],
             password=config['login user']['password']) as api:
