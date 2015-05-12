@@ -7,14 +7,15 @@ sys.path.append('../common/')
 
 
 from altair import Altair
-from utils import set_config
+from utils import get_config, set_config
 
 
-if len(sys.argv)!=5:
-    sys.exit('usage: cmd appliance_ip username password cust_filepath')
-else:
-    appliance_ip , username , password , cust_filepath = sys.argv[1:]
+settings = get_config('settings.txt')
 
+appliance_ip = settings['appliance_ip']
+username = settings['username']
+password = settings['password']
+cust_filepath = settings['cust_filepath']
 
 type_mapping = {
     'os-deployment-install-cfgfiles': 'configs',

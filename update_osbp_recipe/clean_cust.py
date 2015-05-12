@@ -8,15 +8,14 @@ sys.path.append('../common/')
 
 
 from altair import Altair
-from utils import set_config
+from utils import get_config, set_config
 
 
-p = lambda v: pprint(v, depth=1)
+settings = get_config('settings.txt')
 
-if len(sys.argv)!=4:
-    sys.exit('usage: cmd appliance_ip username password')
-else:
-    appliance_ip, username, password = sys.argv[1:]
+appliance_ip = settings['appliance_ip']
+username = settings['username']
+password = settings['password']
 
 
 def delete_cust(list_method, delete_method):

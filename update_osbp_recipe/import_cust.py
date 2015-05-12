@@ -8,16 +8,15 @@ sys.path.append('../common/')
 
 
 from altair import Altair
-from utils import set_config
+from utils import get_config, set_config
 
 
-p = lambda v: pprint(v, depth=1)
+settings = get_config('settings.txt')
 
-appliance_ip = 'csi-altair.twn.hp.com'#10.30.1.235'
-username = 'administrator'
-password = 'Compaq123'
-cust_filepath = './cust-houston-20150507.yml'
-data = yaml.load(open(cust_filepath))
+appliance_ip = settings['appliance_ip']
+username = settings['username']
+password = settings['password']
+data = get_config(settings['cust_filepath'])
 
 
 def get_name_uri_mapping(api):
