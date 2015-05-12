@@ -1,11 +1,3 @@
-'''
-issues:
-    #. using `api._list_index({'category': '...'})` is faster,
-       but no `isCustomerContent` field,
-       needs to know where is the end index of builtins
-    #. delete methods are the same when using uri but id
-'''
-
 from pprint import pprint
 import json
 import os
