@@ -38,3 +38,6 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     
     for lm, dm in L:
         delete_cust(lm, dm)
+
+
+raw_input('Press any key to continue...')

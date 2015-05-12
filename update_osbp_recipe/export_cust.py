@@ -92,4 +92,7 @@ with Altair(appliance_ip=appliance_ip,
     configs = api._list_cfgfile()
     packages = api._list_package()
 
-set_config(gen_cust(), cust_filepath)
+    set_config(gen_cust(), cust_filepath)
+
+
+raw_input('Press any key to continue...')

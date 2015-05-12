@@ -209,3 +209,6 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
                     break
                 else:
                     continue
+
+
+raw_input('Press any key to continue...')
