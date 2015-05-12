@@ -66,7 +66,7 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
     #    })
     #api._add_serverScript({
     #    'type': "OSDServerScript",
-    #    'codeType': 'VBS', #"BAT", "OGFS","PY2", "SH", "VBS" 
+    #    'codeType': 'VBS', #"BAT", "OGFS","PY2", "SH", "VBS"
     #    'name': 'Apua05',
     #    'description': '=___=+',
     #    'source': '>///<',

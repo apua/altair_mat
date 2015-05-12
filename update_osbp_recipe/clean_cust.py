@@ -35,7 +35,7 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
         (api._list_serverScript, api._delete_serverScript),
         (api._list_cfgfile, api._delete_cfgfile)
         )
-    
+
     for lm, dm in L:
         delete_cust(lm, dm)
 

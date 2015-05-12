@@ -6,7 +6,7 @@ Issues
 - Explain the data structure of YAML file.
 
   generating customized data::
-  
+
       osbp
           $name:
               attr: ...
