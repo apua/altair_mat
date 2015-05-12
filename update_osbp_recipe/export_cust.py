@@ -24,7 +24,7 @@ type_mapping = {
     }
 
 
-def cust_osbps():
+def cust_osbps(osbps):
     def osbp_info(m):
         return {
             'attr': m['buildPlanCustAttrs'],
@@ -38,61 +38,49 @@ def cust_osbps():
                 ]
             }
 
-    return {
-        m['name']: osbp_info(m)
-        for m in osbps['members']
-        if m['isCustomerContent']
-        }
+    return { m['name']: osbp_info(m)
+             for m in osbps['members']
+             if m['isCustomerContent'] }
 
 
-def cust_scripts():
+def cust_scripts(scripts):
     def script_info(m):
-        return {
-            'desc': m['description'],
-            'cont': m['source'],
-            'type': m['codeType'],
-            'sudo': m['runAsSuperUser'],
-            }
+        return {'desc': m['description'],
+                'cont': m['source'],
+                'type': m['codeType'],
+                'sudo': m['runAsSuperUser'], }
 
-    return {
-        m['name']: script_info(m)
-        for m in scripts['members']
-        if m['isCustomerContent']
-        }
+    return { m['name']: script_info(m)
+             for m in scripts['members']
+             if m['isCustomerContent'] }
 
 
-def cust_configs():
+def cust_configs(configs):
     def config_info(m):
-        return {
-            'desc': m['description'],
-            'cont': m['text'],
-            }
+        return { 'desc': m['description'],
+                 'cont': m['text'], }
 
-    return {
-        m['name']: config_info(m)
-        for m in configs['members']
-        if m['isCustomerContent']
-        }
+    return { m['name']: config_info(m)
+             for m in configs['members']
+             if m['isCustomerContent'] }
 
 
-def gen_cust():
-    return {
-        'osbp': cust_osbps(),
-        'script': cust_scripts(),
-        'config': cust_configs(),
-        }
-
-
-
-with Altair(appliance_ip=appliance_ip,
-            username=username,
-            password=password) as api:
+with Altair(appliance_ip, username, password) as api:
+    print('Fetch OSBP...')
     osbps = api._list_OSBP()
-    scripts = api._list_serverScript()
-    configs = api._list_cfgfile()
-    packages = api._list_package()
 
-    set_config(gen_cust(), cust_filepath)
+    print('Fetch scripts...')
+    scripts = api._list_serverScript()
+
+    print('Fetch configs...')
+    configs = api._list_cfgfile()
+
+    #packages = api._list_package()
+
+    cust = { 'osbp': cust_osbps(osbps),
+             'script': cust_scripts(scripts),
+             'config': cust_configs(configs), }
+    set_config(cust, cust_filepath)
 
 
 raw_input('Press any key to continue...')
