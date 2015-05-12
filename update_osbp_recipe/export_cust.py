@@ -22,13 +22,18 @@ generating customized data::
             cont: ...
 '''
 
-from altair import Altair
-from tools import set_config
 
 from pprint import pprint as p
 import json
 import os
 import sys
+
+sys.path.append('../common/')
+
+
+from altair import Altair
+from utils import set_config
+
 
 if len(sys.argv)!=5:
     sys.exit('usage: cmd appliance_ip username password cust_filepath')
@@ -111,5 +116,5 @@ with Altair(appliance_ip=appliance_ip,
     scripts = api._list_serverScript()
     configs = api._list_cfgfile()
     packages = api._list_package()
-    
+
 set_config(gen_cust(), cust_filepath)

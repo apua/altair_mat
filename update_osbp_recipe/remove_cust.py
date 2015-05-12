@@ -6,14 +6,18 @@ issues:
     #. delete methods are the same when using uri but id
 '''
 
-from altair import Altair
-from utils import set_config
-
 from pprint import pprint
 import json
 import os
 import sys
 import time
+
+sys.path.append('../common/')
+
+
+from altair import Altair
+from utils import set_config
+
 
 p = lambda v: pprint(v, depth=1)
 
