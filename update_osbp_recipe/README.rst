@@ -50,3 +50,5 @@ Issues
       #. delete methods are the same when using uri but id
 
 - Export OSBP recipe can be more simple
+
+- Let settings and customized OSBPs data as .txt file so that even notepad can open it.
