@@ -48,3 +48,5 @@ Issues
          needs to know where is the end index of builtins
 
       #. delete methods are the same when using uri but id
+
+- Export OSBP recipe can be more simple
