@@ -52,3 +52,12 @@ Issues
 - Export OSBP recipe can be more simple
 
 - Let settings and customized OSBPs data as .txt file so that even notepad can open it.
+
+- Verification:
+  Given `A` is the exported.
+  Import `A` to another Altair and export from the Altair as `B`.
+  Check if `A` is the same with `B`.
+
+- Remove data is not necessary; consider update just necessary part with diff feature (not implement yet)
+
+- Need modulization.
