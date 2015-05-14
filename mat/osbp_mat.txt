@@ -25,7 +25,7 @@ Suite Teardown   Run Keywords    Logout Altair
 *** Test Cases ***
 #################
 
-Get SUT URIs
+Run OSBPs MAT
     ${OSBP_URIs} =          Get OSBP URIs
     ${SUT_URIs} =           Get SUT URIs
     Run OSBPs with SUTs     ${SUT_URIs}     ${OSBP_URIs}
