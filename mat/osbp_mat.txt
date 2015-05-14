@@ -3,8 +3,6 @@
 
 Documentation
 ...     Run OSBPs
-...     = usage =
-...     | pybot | -L debug | -d sprint66 | osbp_mat.txt |
 
 Library     String
 Library     Collections
@@ -18,17 +16,169 @@ Library     AltairLibrary
 
 Variables   ./test_data.py
 
-Suite Setup      Run Keywords    Login Altair
-Suite Teardown   Run Keywords    Logout Altair
+Suite Setup     Run Keywords    Login Altair
+Suite Teardown  Run Keywords    Logout Altair
+
+Default Tags    regression
 
 
 *** Test Cases ***
 #################
 
-Run OSBPs MAT
-    ${OSBP_URIs} =          Get OSBP URIs
-    ${SUT_URIs} =           Get SUT URIs
-    Run OSBPs with SUTs     ${SUT_URIs}     ${OSBP_URIs}
+Check Information of SUTs and OSBPs
+    [Tags]  ENV
+    Fetch the SUT   0
+    Fetch the SUT   1
+    Fetch the OSBP  ProLiant OS - Windows 2012 R2 Standard x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - Windows 2012 Standard x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - Windows 2008 R2 SP1 Standard x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - Windows 2008 SP2 Standard x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 7.1 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 7.0 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 6.6 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 6.5 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 6.4 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 5.11 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - RHEL 5.9 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - SLES 12 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - SLES 11 SP3 x64 Scripted Install
+    Fetch the OSBP  ProLiant OS - ESXi 5.5 Scripted Install
+    Fetch the OSBP  ProLiant OS - ESXi 5.1 U3 Scripted Install
+    Fetch the OSBP  ProLiant OS - ESXi 5.0 U2 Scripted Install
+
+
+#### The First SUT ####
+
+
+Provisioning Windows 2012 R2 Standard to First SUT
+    Provisioning    0   ProLiant OS - Windows 2012 R2 Standard x64 Scripted Install
+
+
+Provisioning Windows 2012 Standard to First SUT
+    Provisioning    0   ProLiant OS - Windows 2012 Standard x64 Scripted Install
+
+
+Provisioning Windows 2008 R2 SP1 Standard to First SUT
+    Provisioning    0   ProLiant OS - Windows 2008 R2 SP1 Standard x64 Scripted Install
+
+
+Provisioning Windows 2008 SP2 Standard to First SUT
+    Provisioning    0   ProLiant OS - Windows 2008 SP2 Standard x64 Scripted Install
+
+
+Provisioning RHEL 7.1 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 7.1 x64 Scripted Install
+
+
+Provisioning RHEL 7.0 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 7.0 x64 Scripted Install
+
+
+Provisioning RHEL 6.6 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 6.6 x64 Scripted Install
+
+
+Provisioning RHEL 6.5 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 6.5 x64 Scripted Install
+
+
+Provisioning RHEL 6.4 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 6.4 x64 Scripted Install
+
+
+Provisioning RHEL 5.11 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 5.11 x64 Scripted Install
+
+
+Provisioning RHEL 5.9 to First SUT
+    Provisioning    0   ProLiant OS - RHEL 5.9 x64 Scripted Install
+
+
+Provisioning SLES 12 to First SUT
+    Provisioning    0   ProLiant OS - SLES 12 x64 Scripted Install
+
+
+Provisioning SLES 11 SP3 to First SUT
+    Provisioning    0   ProLiant OS - SLES 11 SP3 x64 Scripted Install
+
+
+Provisioning ESXi 5.5 to First SUT
+    Provisioning    0   ProLiant OS - ESXi 5.5 Scripted Install
+
+
+Provisioning ESXi 5.1 U3 to First SUT
+    Provisioning    0   ProLiant OS - ESXi 5.1 U3 Scripted Install
+
+
+Provisioning ESXi 5.0 U2 to First SUT
+    Provisioning    0   ProLiant OS - ESXi 5.0 U2 Scripted Install
+
+
+#### The Second SUT ####
+
+
+Provisioning Windows 2012 R2 Standard to Second SUT
+    Provisioning    1   ProLiant OS - Windows 2012 R2 Standard x64 Scripted Install
+
+
+Provisioning Windows 2012 Standard to Second SUT
+    Provisioning    1   ProLiant OS - Windows 2012 Standard x64 Scripted Install
+
+
+Provisioning Windows 2008 R2 SP1 Standard to Second SUT
+    Provisioning    1   ProLiant OS - Windows 2008 R2 SP1 Standard x64 Scripted Install
+
+
+Provisioning Windows 2008 SP2 Standard to Second SUT
+    Provisioning    1   ProLiant OS - Windows 2008 SP2 Standard x64 Scripted Install
+
+
+Provisioning RHEL 7.1 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 7.1 x64 Scripted Install
+
+
+Provisioning RHEL 7.0 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 7.0 x64 Scripted Install
+
+
+Provisioning RHEL 6.6 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 6.6 x64 Scripted Install
+
+
+Provisioning RHEL 6.5 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 6.5 x64 Scripted Install
+
+
+Provisioning RHEL 6.4 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 6.4 x64 Scripted Install
+
+
+Provisioning RHEL 5.11 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 5.11 x64 Scripted Install
+
+
+Provisioning RHEL 5.9 to Second SUT
+    Provisioning    1   ProLiant OS - RHEL 5.9 x64 Scripted Install
+
+
+Provisioning SLES 12 to Second SUT
+    Provisioning    1   ProLiant OS - SLES 12 x64 Scripted Install
+
+
+Provisioning SLES 11 SP3 to Second SUT
+    Provisioning    1   ProLiant OS - SLES 11 SP3 x64 Scripted Install
+
+
+Provisioning ESXi 5.5 to Second SUT
+    Provisioning    1   ProLiant OS - ESXi 5.5 Scripted Install
+
+
+Provisioning ESXi 5.1 U3 to Second SUT
+    Provisioning    1   ProLiant OS - ESXi 5.1 U3 Scripted Install
+
+
+Provisioning ESXi 5.0 U2 to Second SUT
+    Provisioning    1   ProLiant OS - ESXi 5.0 U2 Scripted Install
 
 
 *** Variables ***
@@ -52,26 +202,20 @@ Logout Altair
     Altair API Logout Appliance
 
 
-Get SUT URIs
-    ${result} =     Create List
-    :For            ${SUT}              In                          @{SUTs}
-    \               ${SUT_uri} =        Altair API Get Server URI   ${SUT['serialno']}
-    \               Append to List      ${result}                   ${SUT_uri}
-    [return]        ${result}
+Fetch the SUT
+    [Arguments]     ${SUT_idx}
+    ${SUT_URI} =    Altair API Get Server URI   ${SUTs[${SUT_idx}]['serialno']}
 
 
-Get OSBP URIs
-    ${result} =     Create List
-    :For            ${OSBP_name}        In                                  @{OSBPs}
-    \               ${OSBP_uri} =       Altair API Get OS Buildplan URI     ${OSBP_name}
-    \               Append to List      ${result}                           ${OSBP_uri}
-    [return]        ${result}
+Fetch the OSBP
+    [Arguments]     ${OSBP_name}
+    ${OSBP_URI} =   Altair API Get OS Buildplan URI     ${OSBP_name}
 
 
-
-Run OSBPs with SUTs
-    [Arguments]             ${SUT_URIs}                 ${OSBP_URIs}
-    :For    ${pair}         in                          @{MAT_pairs}
-    \       ${a}            ${b} =                      Set Variable                    ${pair}
-    \       ${response}     ${task_uri} =               Altair API Run OS Buildplan     ${SUT_URIs[${a}]}   ${OSBP_URIs[${b}]}
-    \       ${status} =     Altair API Wait For Task    ${task_uri}
+Provisioning
+    [Arguments]     ${SUT_idx}  ${OSBP_name}
+    ${SUT_URI} =    Altair API Get Server URI   ${SUTs[${SUT_idx}]['serialno']}
+    ${OSBP_URI} =   Altair API Get OS Buildplan URI     ${OSBP_name}
+    ${response}     ${task_uri} =               Altair API Run OS Buildplan     ${SUT_URI}   ${OSBP_URI}
+    ${job_response} =   Altair API Wait For Task    ${task_uri}
+    Run keyword if  "${job_response['status']}"!="ok"   Fail    The job failed
