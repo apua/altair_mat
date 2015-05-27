@@ -570,16 +570,18 @@ def add_OSBP(self, properties):
     return response.json()
 
 
-def retrieve_OSBP(self, buildPlanID):
+def retrieve_OSBP(self, buildPlanID=None, uri=None):
     """
     basic usage:
         sessionID, buildPlanID -> uri, name, description, os,
                                   buildPlanItems, buildPlanCustAttrs
     """
+    assert (buildPlanID is None)+(uri is None)==1
+    path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()) if uri is None else uri
     response = self.conn.get(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
+            path = path,
             ),
         headers = {
             #"X-API-Version": 102,

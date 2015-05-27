@@ -96,3 +96,64 @@ def get_cust_info(self, interval=0):
         'serverScript': cust_serverScript_info,
         'config': cust_config_info,
         }
+
+
+def get_cust_info(self, interval=0):
+
+    info = {'osbp':{}, 'ogfsScript':{}, 'serverScript':{}, 'config':{}}
+
+    # used to fast check if ogfsScript/serverScript is custom or not
+    cust_script_names = {member['name'] for member in self._list_index({'category':'osdscript'})['members']
+                                        if member['attributes']['osdCustomerContent']=='true'}
+
+    for member in self._list_index({'category':'osdbuildplan'})['members']:
+        if member['attributes']['osdCustomerContent']=='false':
+            continue
+        osbp = self._retrieve_OSBP(uri=member['uri'])
+
+        time.sleep(interval)
+        print(osbp['name'])
+
+        info['osbp'][osbp['name']] = {
+            'attr': osbp['buildPlanCustAttrs'],
+            'desc': osbp['description'],
+            'type': osbp['os'],
+            'steps': [
+                {'name': step['name'],
+                 'type': type_mapping[step['type']],
+                 'para': step['parameters']}
+                for step in osbp['buildPlanItems']
+                ]
+            }
+
+        # retrieve customized items of the OSBP
+        for item in osbp['buildPlanItems']:
+            if   item['type']=='os-deployment-install-cfgfiles':
+                # there is no way to check if it is customized or not from fetched data
+                config = self._retrieve_cfgfile(item['id'])
+                if config['isCustomerContent']:
+                    info['config'][config['name']] = {
+                        'desc': config['description'],
+                        'cont': config['text'],
+                        }
+            elif item['type']=='os-deployment-ogfs-scripts' and item['name'] in cust_script_names:
+                ogfsScript = self._retrieve_ogfsScript(item['id'])
+                info['ogfsScript'][ogfsScript['name']] = {
+                    'desc': ogfsScript['description'],
+                    'cont': ogfsScript['source'],
+                    'type': ogfsScript['codeType'],
+                    }
+            elif item['type']=='os-deployment-server-scripts' and item['name'] in cust_script_names:
+                serverScript = self._retrieve_serverScript(item['id'])
+                info['serverScript'][serverScript['name']] = {
+                    'desc': serverScript['description'],
+                    'cont': serverScript['source'],
+                    'type': serverScript['codeType'],
+                    }
+            else: #os-deployment-install-zips
+                pass
+
+            time.sleep(interval)
+            print(item['name'])
+
+    return info
