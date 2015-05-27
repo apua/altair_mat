@@ -193,7 +193,7 @@ with Altair(appliance_ip=appliance_ip, username=username, password=password) as 
                     'arch': 'x64',
                     'name': name,
                     'description': osbp['desc'],
-                    'os': 'Other', #osbp['type'],
+                    'os': osbp['type'],
                     'buildPlanCustAttrs': [], #osbp['attr'],
                     'buildPlanItems': steps,
                     })
