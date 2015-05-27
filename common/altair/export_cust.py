@@ -8,7 +8,7 @@ type_mapping = {
     }
 
 
-def get_osbps(self):
+def get_cust_info(self, interval=0):
     print('================================\n'
           'fetch id of osbp, script, config\n'
           '================================')
@@ -26,7 +26,8 @@ def get_osbps(self):
     cust_osbp_info = {}
     for id in osbp_ids:
         osbp = self._retrieve_OSBP(id)
-        time.sleep(0); print(osbp['name'])
+        time.sleep(interval)
+        print(osbp['name'])
         if not osbp['isCustomerContent']:
             continue
         cust_osbp_info[osbp['name']] = {
@@ -47,7 +48,8 @@ def get_osbps(self):
     cust_ogfsScript_info = {}
     for id in ogfsScript_ids:
         ogfsScript = self._retrieve_ogfsScript(id)
-        time.sleep(0); print(ogfsScript['name'])
+        time.sleep(interval)
+        print(ogfsScript['name'])
         if not ogfsScript['isCustomerContent']:
             continue
         cust_ogfsScript_info[ogfsScript['name']] = {
@@ -63,7 +65,8 @@ def get_osbps(self):
     cust_serverScript_info = {}
     for id in serverScript_ids:
         serverScript = self._retrieve_serverScript(id)
-        time.sleep(0); print(serverScript['name'])
+        time.sleep(interval)
+        print(serverScript['name'])
         if not serverScript['isCustomerContent']:
             continue
         cust_serverScript_info[serverScript['name']] = {

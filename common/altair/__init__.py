@@ -97,7 +97,7 @@ class Altair(object):
     # OSBPs and related
     # =================
 
-    def get_osbps(self):
+    def get_cust_info(self, *args, **kwargs):
         pass
 
     def upload_osbps(self, osbps):
