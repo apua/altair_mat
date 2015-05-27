@@ -20,7 +20,8 @@ cust_filepath = settings['cust_filepath']
 
 
 with Altair(appliance_ip, username, password) as api:
-    cust_info = api.get_cust_info(interval=1)
+    cust_info = api.get_cust_info()
+    #cust_info = api.get_cust_info(interval=1)
     set_config(cust_info, cust_filepath)
 
 
