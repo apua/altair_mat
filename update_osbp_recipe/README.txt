@@ -61,3 +61,13 @@ Issues
 - Remove data is not necessary; consider update just necessary part with diff feature (not implement yet)
 
 - Need modulization.
+
+
+After discussion
+==============================
+
+[v] Merge export cust feature to API class
+[v] Use methods that fetching index and then retrieving one by one
+[v] Use imperative to rewrite fetching
+[ ] Only export scripts and config files of customized OSBPs
+[ ] Update usage to wiki
