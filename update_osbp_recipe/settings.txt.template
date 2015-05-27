@@ -1,0 +1,11 @@
+appliance_ip:
+    #csi-altair.twn.hp.com
+
+username:
+    #administrator
+
+password:
+    #password
+
+cust_filepath:
+    #local filename 
