@@ -184,7 +184,7 @@ def collect_methods(*module_names):
 for name, method in collect_methods('rest_api'):
     setattr(Altair, '_'+name, method)
 
-for name, method in collect_methods():
+for name, method in collect_methods('export_cust'):
     setattr(Altair, name, method)
 
 for name, method in collect_methods('init'):
