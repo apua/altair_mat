@@ -53,7 +53,7 @@ def get_cust_info(self, interval=0):
         if not ogfsScript['isCustomerContent']:
             continue
         cust_ogfsScript_info[ogfsScript['name']] = {
-            'desc': ogfsScript['deogfsScription'],
+            'desc': ogfsScript['description'],
             'cont': ogfsScript['source'],
             'type': ogfsScript['codeType'],
             #'sudo': ogfsScript['runAsSuperUser'],
@@ -70,7 +70,7 @@ def get_cust_info(self, interval=0):
         if not serverScript['isCustomerContent']:
             continue
         cust_serverScript_info[serverScript['name']] = {
-            'desc': serverScript['deserverScription'],
+            'desc': serverScript['description'],
             'cont': serverScript['source'],
             'type': serverScript['codeType'],
             'sudo': serverScript['runAsSuperUser'],
