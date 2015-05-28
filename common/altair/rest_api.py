@@ -95,15 +95,17 @@ def edit_cfgfile(self, cfgfileID, properties):
     return response.json()
 
 
-def delete_cfgfile(self, cfgfileID):
+def delete_cfgfile(self, cfgfileID=None, uri=None):
     """
     basic usage:
         sessionID, cfgfileID -> None
     """
+    assert (cfgfileID is None)+(uri is None)==1
+    path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()) if uri is None else uri
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
@@ -507,11 +509,13 @@ def edit_ogfsScript(self, ogfsScriptID, properties):
     return response.json()
 
 
-def delete_ogfsScript(self, ogfsScriptID):
+def delete_ogfsScript(self, ogfsScriptID=None, uri=None):
+    assert (ogfsScriptID is None)+(uri is None)==1
+    path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()) if uri is None else uri
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
@@ -747,11 +751,13 @@ def edit_serverScript(self, serverScriptID, properties):
     return response.json()
 
 
-def delete_serverScript(self, serverScriptID):
+def delete_serverScript(self, serverScriptID=None, uri=None):
+    assert (serverScriptID is None)+(uri is None)==1
+    path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()) if uri is None else uri
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
