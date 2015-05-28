@@ -1,213 +1,124 @@
-from pprint import pprint
-import yaml
-import os
-import sys
-import time
+__import__('sys').path.append('../common/')
 
-sys.path.append('../common/')
-
+from common import *
 
 from altair import Altair
 from utils import get_config, set_config
 
+def compare_cust(older, newer):
+    diff = {'uploads':{}, 'updates':{}, 'removes':{}}
+    for category in ('osbp','ogfsScript','serverScript','config'):
+        # Altair compares name **in lowercase** !?
+
+        #ncate = newer[category]
+        #ocate = older[category]
+        ncate = {name.lower(): data for name,data in newer[category].items()}
+        ocate = {name.lower(): data for name,data in older[category].items()}
+
+        realnames = {name.lower(): name for name in newer[category].viewkeys()|older[category].viewkeys()}
+
+        # dict.viewkeys is Python2.x only
+        added_names     = ncate.viewkeys() - ocate.viewkeys()
+        deprecate_names = ocate.viewkeys() - ncate.viewkeys()
+        same_names      = ncate.viewkeys() & ocate.viewkeys()
+
+        #diff['uploads'][category] = {name: ncate[name] for name in added_names}
+        #diff['removes'][category] = {name: ocate[name] for name in deprecate_names}
+        #diff['updates'][category] = {name: ncate[name] for name in same_names if ncate[name]!=ocate[name]}
+        diff['uploads'][category] = {realnames[name]: ncate[name] for name in added_names}
+        diff['removes'][category] = {realnames[name]: ocate[name] for name in deprecate_names}
+        diff['updates'][category] = {realnames[name]: ncate[name] for name in same_names if ncate[name]!=ocate[name]}
+
+    return diff
+
+def upload_cust_items(self, uploads):
+    for name, script in uploads['serverScript'].items():
+        print('upload', name)
+        self._add_serverScript({
+            'type': 'OSDServerScript',
+            'serverChanging': True,
+            'name': name,
+            'description': script['desc'],
+            'source': script['cont'],
+            'runAsSuperUser': script['sudo'],
+            'codeType': script['type'],
+            })
+    for name, script in uploads['ogfsScript'].items():
+        print('upload', name)
+        self._add_ogfsScript({
+            'type': "OSDOGFSScript",
+            'name': name,
+            'description': script['desc'],
+            'source': script['cont'],
+            })
+    for name, config in uploads['config'].items():
+        print('upload', name)
+        self._add_cfgfile({
+            'type': 'OsdCfgFile',
+            'name':name,
+            'description':config['desc'],
+            'text':config['cont'],
+            })
+
+def upload_cust_osbps(self, uploads):
+    def gen_step_data(step):
+        """
+        It is also strange,
+        such as duplicated information and process non-exist package name,
+        thus collect to a single function.
+        """
+        if step['name'] in uri_mapping:
+            name = step['name']
+        elif step['type']=='packages':
+            try:
+                name = next(n for i in reversed(range(len(step['name'])))
+                              for n in uri_mapping
+                              if n.startswith(step['name'][:i]) )
+                print('Choose package "{}" but "{}"'.format(name, step['name']))
+            except StopIteration:
+                raise Exception('Cannot find suitable package for "{name}"'.format(**step))
+            except:
+                raise Exception('Unknown Error...')
+        else:
+            raise Exception('Cannot find step "{type}" "{name}"'.format(**step))
+
+        return {
+            # every type of step has key 'cfgFileDownload' and it is necessary
+            'cfgFileDownload': step['type']=='configs',
+            'parameters': step['para'],
+            'uri': uri_mapping[name],
+            }
+
+    uri_mapping = {}
+    for cate in ('osdscript', 'osdcfgfile', 'osdzip'):
+        for member in self._list_index({'category': cate})['members']:
+            uri_mapping[member['name']] = member['uri']
+
+    for name, osbp in uploads['osbp'].items():
+        print('upload OSBP', name)
+        api._add_OSBP({
+            'type': 'OSDBuildPlan',
+            'modified':'0000-00-00T00:00:00.000Z',
+            'arch': 'x64',
+            'name': name,
+            'description': osbp['desc'],
+            'os': osbp['type'],
+            'buildPlanCustAttrs': osbp['attr'],
+            'buildPlanItems': tuple(map(gen_step_data, osbp['steps'])),
+            })
+
 
 settings = get_config('settings.txt')
+appliance_ip  = settings['appliance_ip']
+username      = settings['username']
+password      = settings['password']
+cust_filepath = settings['cust_filepath']
 
-appliance_ip = settings['appliance_ip']
-username = settings['username']
-password = settings['password']
-data = get_config(settings['cust_filepath'])
+with Altair(appliance_ip, username, password) as api:
+    older = api.get_cust_info()
+newer = get_config(cust_filepath)
 
-
-def get_name_uri_mapping(api):
-    for category in ('osdbuildplan', 'osdscript', 'osdcfgfile','osdzip'):
-        print('========')
-        print(category)
-        print('========')
-        for m in api._list_index({'category': category})['members']:
-            print(m['uri'], m['name'])
-
-    sys.exit()
-
-
-def import_(data, api):
-    #. get name-uri mapping
-    M = get_name_uri_mapping(api)
-
-    for script in api['script']:
-        #. gen form
-        #. upload and get uri
-        #. update mapping
-        pass
-
-    for config in api['config']:
-        #. gen form
-        #. upload and get uri
-        #. update mapping
-        pass
-
-    for osbp in api['osbp']:
-        #. clean steps
-        #. gen form
-        #. upload
-        pass
-
-
-with Altair(appliance_ip=appliance_ip, username=username, password=password) as api:
-    # let's test!!
-
-    #api._add_cfgfile({'type':'OsdCfgFile', 'name':'Apua01', 'description':'A__a', 'text':'= =a'})
-    #api._add_ogfsScript({
-    #    'type': "OSDOGFSScript",
-    #    'name': 'Apua06',
-    #    'description': '=___=+',
-    #    'source': '>///<',
-    #    })
-    #api._add_serverScript({
-    #    'type': "OSDServerScript",
-    #    'codeType': 'VBS', #"BAT", "OGFS","PY2", "SH", "VBS"
-    #    'name': 'Apua05',
-    #    'description': '=___=+',
-    #    'source': '>///<',
-    #    'runAsSuperUser': True,
-    #    "serverChanging": True,
-    #    })
-    #j = api._add_OSBP({
-    #    'type': 'OSDBuildPlan',
-    #    'modified':'0000-00-00T00:00:00.000Z',
-    #    'arch': 'x64',
-    #    'name': 'Apua021',
-    #    'description': 'qwer',
-    #    'os': 'Other', # osbp['type']
-    #    'buildPlanItems': [
-    #        {
-    #            'parameters':'.......',
-    #            'uri':'/rest/os-deployment-server-scripts/820001',
-    #            'cfgFileDownload': step['type']=='configs',
-    #            },
-    #        ],
-    #    'buildPlanCustAttrs': [{'attribute': 'xxx', 'value': 'ooo'}], #osbp['attr']
-    #    })
-    #print(j)
-
-    # just upload fxxking packages....no needs
-
-    # just upload fxxking scripts
-
-    print('==============')
-    print('import scripts')
-    print('==============')
-
-    for name, script in data['script'].items():
-        while 1:
-            try:
-                if script['type']=='ogfs':
-                    api._add_ogfsScript({
-                        'type': "OSDOGFSScript",
-                        'name': name,
-                        'description': script['desc'],
-                        'source': script['cont'],
-                        })
-                else:
-                    api._add_serverScript({
-                        'type': 'OSDServerScript',
-                        'serverChanging': True,
-                        'name': name,
-                        'description': script['desc'],
-                        'source': script['cont'],
-                        'runAsSuperUser': script['sudo'],
-                        'codeType': script['type'],
-                        })
-                break
-            except Exception as E:
-                raw_input(E.message)
-
-
-    # just upload fxxking configs
-
-    print('==============')
-    print('import configs')
-    print('==============')
-
-    for name, config in data['config'].items():
-        while 1:
-            try:
-                api._add_cfgfile(
-            {'type': 'OsdCfgFile', 'name':name, 'description':config['desc'], 'text':config['cont']}
-            )
-                break
-            except:
-                raw_input()
-
-
-    # get mapping
-
-    print('===========')
-    print('get mapping')
-    print('===========')
-
-    while 1:
-        try:
-            P = {m['name']: m['uri'] for m in api._list_package()['members']}
-            S = {m['name']: m['uri'] for m in api._list_serverScript()['members']
-                                              + api._list_ogfsScript()['members']}
-            C = {m['name']: m['uri'] for m in api._list_cfgfile()['members']}
-            D = dict(P.items() + S.items() + C.items())
-            with open('mapping.yml', 'w') as f:
-                yaml.dump(D, f)
-            break
-        except:
-            raw_input()
-
-    # and then upload osbps
-
-    print('============')
-    print('import OSBPs')
-    print('============')
-
-    def get_uri(M, step):
-        if step['type']!='packages':
-            return M[step['name']]
-        else:
-            for i in range(len(step['name']),0,-1):
-                name_ = step['name'][:i]
-                try:
-                    key = next(k for k in M if name_ in k)
-                except:
-                    continue
-                return M[key]
-
-
-    M = yaml.load(open('mapping.yml'))
-
-    for name, osbp in data['osbp'].items():
-        while 1:
-            try:
-                steps = [{'parameters': step['para'],
-                          'cfgFileDownload': step['type']=='configs',
-                          'uri': get_uri(M, step)}
-                         for step in osbp['steps']]
-                api._add_OSBP({
-                    'type': 'OSDBuildPlan',
-                    'modified':'0000-00-00T00:00:00.000Z',
-                    'arch': 'x64',
-                    'name': name,
-                    'description': osbp['desc'],
-                    'os': osbp['type'],
-                    'buildPlanCustAttrs': [], #osbp['attr'],
-                    'buildPlanItems': steps,
-                    })
-                print(name)
-                time.sleep(3)
-                break
-            except Exception as E:
-                print(name)
-                print(E.message)
-                print('='*30)
-                if raw_input()=='pass':
-                    break
-                else:
-                    continue
-
-
-raw_input('Press any key to continue...')
+diff = compare_cust(older, newer)
+with Altair(appliance_ip, username, password) as api:
+    #upload_cust_items(api, uploads=diff['uploads'])
+    #upload_cust_osbps(api, uploads=diff['uploads'])
