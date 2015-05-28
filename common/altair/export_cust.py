@@ -100,13 +100,25 @@ def get_cust_info(self, interval=0):
         }
 
 
-def get_cust_info(self, interval=0):
+def get_cust_info(self, interval=0, fetch_all=False):
+    """
+    Fetch osbp, config, ogfsScript, serverScript, and then return the necessary data.
+
+    It uses fetching Altair index now.
+
+    You can set :param:`interval` (second) to wait after retrieve data everytime.
+
+    By default, it only fetch config/script which has related to osbp, and ignore the isolated one.
+    You can set :param:`fetch_all` (bool) to fetch all customized config/script,
+    it will be slower because there is no way to check if config is customized or not by index.
+    """
 
     info = {'osbp':{}, 'ogfsScript':{}, 'serverScript':{}, 'config':{}}
 
     # used to fast check if ogfsScript/serverScript is custom or not
-    cust_script_names = {member['name'] for member in self._list_index({'category':'osdscript'})['members']
-                                        if member['attributes']['osdCustomerContent']=='true'}
+    cust_script_names = {member['name']: member['uri']
+                         for member in self._list_index({'category':'osdscript'})['members']
+                         if member['attributes']['osdCustomerContent']=='true'}
 
     for member in self._list_index({'category':'osdbuildplan'})['members']:
         if member['attributes']['osdCustomerContent']=='false':
@@ -127,6 +139,9 @@ def get_cust_info(self, interval=0):
                 for step in osbp['buildPlanItems']
                 ]
             }
+
+        if fetch_all:
+            continue
 
         # retrieve customized items of the OSBP
         for item in osbp['buildPlanItems']:
@@ -158,5 +173,30 @@ def get_cust_info(self, interval=0):
 
             #time.sleep(interval)
             #print(item['name'])
+
+    if fetch_all:
+        for name, uri in cust_script_names.items():
+            if 'os-deployment-ogfs-scripts' in uri:
+                ogfsScript = self._retrieve_ogfsScript(uri=uri)
+                info['ogfsScript'][ogfsScript['name']] = {
+                    'desc': ogfsScript['description'],
+                    'cont': ogfsScript['source'],
+                    'type': ogfsScript['codeType'],
+                    }
+            elif 'os-deployment-server-scripts' in uri:
+                serverScript = self._retrieve_serverScript(uri=uri)
+                info['serverScript'][serverScript['name']] = {
+                    'desc': serverScript['description'],
+                    'cont': serverScript['source'],
+                    'type': serverScript['codeType'],
+                    'sudo': serverScript['runAsSuperUser'],
+                    }
+        for member in self._list_index({'category':'osdcfgfile'})['members']:
+            config = self._retrieve_cfgfile(uri=member['uri'])
+            if config['isCustomerContent']:
+                info['config'][config['name']] = {
+                    'desc': config['description'],
+                    'cont': config['text'],
+                    }
 
     return info

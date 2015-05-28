@@ -31,6 +31,13 @@ def compare_cust(older, newer):
 
     return diff
 
+def get_uri_mapping(self):
+    return {
+        member['name']: member['uri']
+        for cate in ('osdbuildplan', 'osdscript', 'osdcfgfile', 'osdzip')
+        for member in self._list_index({'category': cate})['members']
+        }
+
 def upload_cust_items(self, uploads):
     for name, script in uploads['serverScript'].items():
         print('upload', name)
@@ -89,11 +96,7 @@ def upload_cust_osbps(self, uploads):
             'uri': uri_mapping[name],
             }
 
-    uri_mapping = {}
-    for cate in ('osdscript', 'osdcfgfile', 'osdzip'):
-        for member in self._list_index({'category': cate})['members']:
-            uri_mapping[member['name']] = member['uri']
-
+    uri_mapping = get_uri_mapping(self)
     for name, osbp in uploads['osbp'].items():
         print('upload OSBP', name)
         api._add_OSBP({
@@ -107,6 +110,21 @@ def upload_cust_osbps(self, uploads):
             'buildPlanItems': tuple(map(gen_step_data, osbp['steps'])),
             })
 
+def remove_cust(self, removes):
+    uri_mapping = get_uri_mapping(self)
+    # OSBPs have to be removed first
+    for name in removes['osbp']:
+        print('remove osbp', name)
+        self._delete_OSBP(uri=uri_mapping[name])
+    for name in removes['serverScript']:
+        print('remove script', name)
+        self._delete_serverScript(uri=uri_mapping[name])
+    for name in removes['ogfsScript']:
+        print('remove script', name)
+        self._delete_ogfsScript(uri=uri_mapping[name])
+    for name in removes['config']:
+        print('remove config', name)
+        self._delete_cfgfile(uri=uri_mapping[name])
 
 settings = get_config('settings.txt')
 appliance_ip  = settings['appliance_ip']
@@ -115,10 +133,16 @@ password      = settings['password']
 cust_filepath = settings['cust_filepath']
 
 with Altair(appliance_ip, username, password) as api:
-    older = api.get_cust_info()
+    older = api.get_cust_info(fetch_all=True)
 newer = get_config(cust_filepath)
 
 diff = compare_cust(older, newer)
 with Altair(appliance_ip, username, password) as api:
     #upload_cust_items(api, uploads=diff['uploads'])
     #upload_cust_osbps(api, uploads=diff['uploads'])
+
+    #update_cust_items(api, updates=diff['updates'])
+    #update_cust_osbps(api, updates=diff['updates'])
+
+    pprint(diff['removes'], depth=2)
+    remove_cust(api, removes=diff['removes'])

@@ -53,15 +53,17 @@ def add_cfgfile(self, properties):
     return response.json()
 
 
-def retrieve_cfgfile(self, cfgfileID):
+def retrieve_cfgfile(self, cfgfileID=None, uri=None):
     """
     basic usage:
         sessionID, cfgfileID -> uri, name, description, text
     """
+    assert (cfgfileID is None)+(uri is None)==1
+    path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()) if uri is None else uri
     response = self.conn.get(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-install-cfgfiles/{cfgfileID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
@@ -467,15 +469,17 @@ def add_ogfsScript(self, properties):
     return response.json()
 
 
-def retrieve_ogfsScript(self, ogfsScriptID):
+def retrieve_ogfsScript(self, ogfsScriptID=None, uri=None):
     """
     basic usage:
         sessionID, ogfsScriptID -> uri, name, codeType, description, source
     """
+    assert (ogfsScriptID is None)+(uri is None)==1
+    path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()) if uri is None else uri
     response = self.conn.get(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
@@ -620,15 +624,17 @@ def edit_OSBP(self, buildPlanID, properties):
     return response.json()
 
 
-def delete_OSBP(self, buildPlanID):
+def delete_OSBP(self, buildPlanID=None, uri=None):
     """
     basic usage:
         sessionID, buildPlanID -> None
     """
+    assert (buildPlanID is None)+(uri is None)==1
+    path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()) if uri is None else uri
     response = self.conn.delete(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-build-plans/{buildPlanID}".format(**locals()),
+            path = path,
             ),
         headers = {
             "X-API-Version": 102,
@@ -707,16 +713,18 @@ def add_serverScript(self, properties):
     return response.json()
 
 
-def retrieve_serverScript(self, serverScriptID):
+def retrieve_serverScript(self, serverScriptID=None, uri=None):
     """
     basic usage:
         sessionID, serverScriptID -> uri, name, codeType, runAsSuperUser, description, source
 
     """
+    assert (serverScriptID is None)+(uri is None)==1
+    path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()) if uri is None else uri
     response = self.conn.get(
         _generate_uri(
             netloc = self.appliance_ip,
-            path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()),
+            path = path,
             ),
         headers = {
             #"X-API-Version": 102,
