@@ -66,9 +66,28 @@ Issues
 After discussion
 ==============================
 
-[v] Merge export cust feature to API class
-[v] Use methods that fetching index and then retrieving one by one
-[v] Use imperative to rewrite fetching
-[v] Only export scripts and config files of customized OSBPs
-[v] Use index data to fast distinguish customized data
+[✓] Merge export cust feature to API class
+[✓] Use methods that fetching index and then retrieving one by one
+[✓] Use imperative to rewrite fetching
+[✓] Only export scripts and config files of customized OSBPs
+[✓] Use index data to fast distinguish customized data
 [ ] Update usage to wiki
+[✓] The YAML file data structure has been added `ogfsScript` and `serverScript`.
+    So now it looks like that::
+
+      osbp:
+          $name:
+              attr: ...
+              desc: ...
+              type: ...
+              steps:
+                  - { name: ... , type: ... , para: ... }
+                  - { name: ... , type: ... , para: ... }
+      ogfsScript:
+          $name: { desc: ... , cont: ... , type: ... }
+      serverScript:
+          $name: { desc: ... , cont: ... , type: ... , sudo: ... }
+      config:
+          $name: { desc: ... , cont: ... }
+
+[ ] Remind user that the recipes are based on *name*
