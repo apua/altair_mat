@@ -71,7 +71,6 @@ After discussion
 [✓] Use imperative to rewrite fetching
 [✓] Only export scripts and config files of customized OSBPs
 [✓] Use index data to fast distinguish customized data
-[ ] Update usage to wiki
 [✓] The YAML file data structure has been added `ogfsScript` and `serverScript`.
     So now it looks like that::
 
@@ -90,4 +89,13 @@ After discussion
       config:
           $name: { desc: ... , cont: ... }
 
-[ ] Remind user that the recipes are based on *name*
+[✓] Add "all" argument to fetch all cust even if it is not belong to any OSBP
+[ ] Update usage to wiki
+[ ] Write wiki to remind user that the recipes are based on *name*
+
+Altair:
+[ ] 統一 naming REST API
+[ ] 令訊息更明確
+[ ] Add `verbose` option or logger to methods
+[ ] Replace assertion error with customized Altair API exceptions
+[ ] Let some REST call can be wait and retry (how to design??)
