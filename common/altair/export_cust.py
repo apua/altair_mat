@@ -1,6 +1,6 @@
 import time
 
-type_mapping = {
+osbp_steps_type_mapping = {
     'os-deployment-install-cfgfiles': 'configs',
     'os-deployment-ogfs-scripts':     'ogfsScripts',
     'os-deployment-server-scripts':   'serverScripts',
@@ -38,7 +38,7 @@ def get_cust_info(self, interval=0):
             'type': osbp['os'],
             'steps': [
                 {'name': step['name'],
-                 'type': type_mapping[step['type']],
+                 'type': osbp_steps_type_mapping[step['type']],
                  'para': step['parameters']}
                 for step in osbp['buildPlanItems']
                 ]
@@ -122,7 +122,7 @@ def get_cust_info(self, interval=0):
             'type': osbp['os'],
             'steps': [
                 {'name': step['name'],
-                 'type': type_mapping[step['type']],
+                 'type': osbp_steps_type_mapping[step['type']],
                  'para': step['parameters']}
                 for step in osbp['buildPlanItems']
                 ]
@@ -156,7 +156,7 @@ def get_cust_info(self, interval=0):
             else: #os-deployment-install-zips
                 pass
 
-            time.sleep(interval)
-            print(item['name'])
+            #time.sleep(interval)
+            #print(item['name'])
 
     return info

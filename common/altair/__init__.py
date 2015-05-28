@@ -170,7 +170,7 @@ class Altair(object):
         return {}
 
 
-def collect_methods(*module_names):
+def collect_members(*module_names):
     from importlib import import_module
 
     for module_name in module_names:
@@ -181,13 +181,13 @@ def collect_methods(*module_names):
                 yield attr_name, attr_value
 
 
-for name, method in collect_methods('rest_api'):
-    setattr(Altair, '_'+name, method)
+for name, member in collect_members('rest_api'):
+    setattr(Altair, '_'+name, member)
 
-for name, method in collect_methods('export_cust'):
-    setattr(Altair, name, method)
+for name, member in collect_members('export_cust'):
+    setattr(Altair, name, member)
 
-for name, method in collect_methods('init'):
-    globals()[name] = method
+for name, member in collect_members('init'):
+    globals()[name] = member
 
 requests.packages.urllib3.disable_warnings()
