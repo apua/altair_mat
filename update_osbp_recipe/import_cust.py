@@ -38,6 +38,41 @@ def get_uri_mapping(self):
         for member in self._list_index({'category': cate})['members']
         }
 
+def get_modified_mapping(self):
+    return {
+        member['name']: member['modified']
+        for cate in ('osdbuildplan', 'osdscript', 'osdcfgfile', 'osdzip')
+        for member in self._list_index({'category': cate})['members']
+        }
+
+def gen_step_data(step, uri_mapping):
+    """
+    It is also strange,
+    such as duplicated information and process non-exist package name,
+    thus collect to a single function.
+    """
+    if step['name'] in uri_mapping:
+        name = step['name']
+    elif step['type']=='packages':
+        try:
+            name = next(n for i in reversed(range(len(step['name'])))
+                          for n in uri_mapping
+                          if n.startswith(step['name'][:i]) )
+            print('Choose package "{}" but "{}"'.format(name, step['name']))
+        except StopIteration:
+            raise Exception('Cannot find suitable package for "{name}"'.format(**step))
+        except:
+            raise Exception('Unknown Error...')
+    else:
+        raise Exception('Cannot find step "{type}" "{name}"'.format(**step))
+
+    return {
+        # every type of step has key 'cfgFileDownload' and it is necessary
+        'cfgFileDownload': step['type']=='configs',
+        'parameters': step['para'],
+        'uri': uri_mapping[name],
+        }
+
 def upload_cust_items(self, uploads):
     for name, script in uploads['serverScript'].items():
         print('upload', name)
@@ -68,34 +103,6 @@ def upload_cust_items(self, uploads):
             })
 
 def upload_cust_osbps(self, uploads):
-    def gen_step_data(step):
-        """
-        It is also strange,
-        such as duplicated information and process non-exist package name,
-        thus collect to a single function.
-        """
-        if step['name'] in uri_mapping:
-            name = step['name']
-        elif step['type']=='packages':
-            try:
-                name = next(n for i in reversed(range(len(step['name'])))
-                              for n in uri_mapping
-                              if n.startswith(step['name'][:i]) )
-                print('Choose package "{}" but "{}"'.format(name, step['name']))
-            except StopIteration:
-                raise Exception('Cannot find suitable package for "{name}"'.format(**step))
-            except:
-                raise Exception('Unknown Error...')
-        else:
-            raise Exception('Cannot find step "{type}" "{name}"'.format(**step))
-
-        return {
-            # every type of step has key 'cfgFileDownload' and it is necessary
-            'cfgFileDownload': step['type']=='configs',
-            'parameters': step['para'],
-            'uri': uri_mapping[name],
-            }
-
     uri_mapping = get_uri_mapping(self)
     for name, osbp in uploads['osbp'].items():
         print('upload OSBP', name)
@@ -107,7 +114,66 @@ def upload_cust_osbps(self, uploads):
             'description': osbp['desc'],
             'os': osbp['type'],
             'buildPlanCustAttrs': osbp['attr'],
-            'buildPlanItems': tuple(map(gen_step_data, osbp['steps'])),
+            'buildPlanItems': [gen_step_data(s, uri_mapping) for s in osbp['steps']],
+            })
+
+def upload_cust(self, updates):
+    upload_cust_items(self, uploads)
+    upload_cust_osbps(self, uploads)
+
+def update_cust(self, updates):
+    uri_mapping = get_uri_mapping(self)
+    modified_mapping = get_modified_mapping(self)
+
+    for name, osbp in updates['osbp'].items():
+        print('update OSBP', name)
+        api._edit_OSBP(uri=uri_mapping[name], properties={
+            'type': 'OSDBuildPlan',
+            'lifeCycle': 'AVAILABLE',
+            'arch': 'x64',
+            'name': name,
+            'buildPlanCustAttrs': osbp['attr'],
+            'description': osbp['desc'],
+            'os': osbp['type'],
+            'buildPlanItems': [gen_step_data(s, uri_mapping) for s in osbp['steps']],
+            'modified': modified_mapping[name],
+            'uri': uri_mapping[name],
+            })
+
+    for name, config in updates['config'].items():
+        print('update config', name)
+        self._edit_cfgfile(uri=uri_mapping[name], properties={
+            'type': 'OsdCfgFile',
+            'name': name,
+            'description': config['desc'],
+            'text': config['cont'],
+            'modified': modified_mapping[name],
+            'uri': uri_mapping[name],
+            })
+
+    for name, script in updates['serverScript'].items():
+        print('update script', name)
+        self._edit_serverScript(uri=uri_mapping[name], properties={
+            'type': 'OSDServerScript',
+            'serverChanging': True,
+            'name': name,
+            'description': script['desc'],
+            'source': script['cont'],
+            'runAsSuperUser': script['sudo'],
+            'codeType': script['type'],
+            'modified': modified_mapping[name],
+            'uri': uri_mapping[name],
+            })
+
+    for name, script in updates['ogfsScript'].items():
+        print('update script', name)
+        self._edit_ogfsScript(uri=uri_mapping[name], properties={
+            'type': "OSDOGFSScript",
+            'name': name,
+            'description': script['desc'],
+            'source': script['cont'],
+            'modified': modified_mapping[name],
+            'uri': uri_mapping[name],
             })
 
 def remove_cust(self, removes):
@@ -138,11 +204,6 @@ newer = get_config(cust_filepath)
 
 diff = compare_cust(older, newer)
 with Altair(appliance_ip, username, password) as api:
-    #upload_cust_items(api, uploads=diff['uploads'])
-    #upload_cust_osbps(api, uploads=diff['uploads'])
-
-    #update_cust_items(api, updates=diff['updates'])
-    #update_cust_osbps(api, updates=diff['updates'])
-
-    pprint(diff['removes'], depth=2)
+    upload_cust(api, uploads=diff['uploads'])
     remove_cust(api, removes=diff['removes'])
+    update_cust(api, updates=diff['updates'])
