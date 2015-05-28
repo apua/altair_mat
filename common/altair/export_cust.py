@@ -9,6 +9,8 @@ type_mapping = {
 
 
 def get_cust_info(self, interval=0):
+    """deprecated"""
+
     print('================================\n'
           'fetch id of osbp, script, config\n'
           '================================')
