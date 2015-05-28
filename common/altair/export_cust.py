@@ -151,6 +151,7 @@ def get_cust_info(self, interval=0):
                     'desc': serverScript['description'],
                     'cont': serverScript['source'],
                     'type': serverScript['codeType'],
+                    'sudo': serverScript['runAsSuperUser'],
                     }
             else: #os-deployment-install-zips
                 pass
