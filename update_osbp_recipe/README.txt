@@ -92,6 +92,8 @@ After discussion
 [✓] Add "all" argument to fetch all cust even if it is not belong to any OSBP
 [ ] Update usage to wiki
 [ ] Write wiki to remind user that the recipes are based on *name*
+[ ] If package name is a little different, think as same
+[ ] Merge imporing feature and collect some useful function to API class
 
 Altair:
 [ ] 統一 naming REST API
