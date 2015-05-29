@@ -8,7 +8,7 @@ osbp_steps_type_mapping = {
     }
 
 
-def get_cust_info(self, interval=0):
+def export_cust_info(self, interval=0):
     """deprecated"""
 
     print('================================\n'
@@ -100,7 +100,7 @@ def get_cust_info(self, interval=0):
         }
 
 
-def get_cust_info(self, interval=0, fetch_all=True):
+def export_cust_info(self, interval=0, fetch_all=True):
     """
     Fetch osbp, config, ogfsScript, serverScript, and then return the necessary data.
 

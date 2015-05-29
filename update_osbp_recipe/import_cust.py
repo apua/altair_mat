@@ -199,7 +199,7 @@ password      = settings['password']
 cust_filepath = settings['cust_filepath']
 
 with Altair(appliance_ip, username, password) as api:
-    older = api.get_cust_info(fetch_all=True)
+    older = api.export_cust_info(fetch_all=True)
 newer = get_config(cust_filepath)
 
 diff = compare_cust(older, newer)

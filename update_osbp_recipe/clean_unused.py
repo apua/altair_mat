@@ -28,7 +28,7 @@ def find_cust_config(self):
             
 
 with Altair(appliance_ip, username, password) as api:
-    cust_info = api.get_cust_info()
+    cust_info = api.export_cust_info()
     #p(get_uri_mapping(api)
     #p(find_cust_scrpit(api))
     #p(find_cust_config(api))

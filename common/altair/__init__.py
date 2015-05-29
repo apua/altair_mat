@@ -97,10 +97,10 @@ class Altair(object):
     # OSBPs and related
     # =================
 
-    def get_cust_info(self, *args, **kwargs):
+    def export_cust_info(self, *args, **kwargs):
         pass
 
-    def upload_osbps(self, osbps):
+    def import_cust_info(self, *args, **kwargs):
         pass
 
     # WinPE
