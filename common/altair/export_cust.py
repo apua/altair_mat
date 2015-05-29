@@ -100,7 +100,7 @@ def get_cust_info(self, interval=0):
         }
 
 
-def get_cust_info(self, interval=0, fetch_all=False):
+def get_cust_info(self, interval=0, fetch_all=True):
     """
     Fetch osbp, config, ogfsScript, serverScript, and then return the necessary data.
 
@@ -108,9 +108,8 @@ def get_cust_info(self, interval=0, fetch_all=False):
 
     You can set :param:`interval` (second) to wait after retrieve data everytime.
 
-    By default, it only fetch config/script which has related to osbp, and ignore the isolated one.
-    You can set :param:`fetch_all` (bool) to fetch all customized config/script,
-    it will be slower because there is no way to check if config is customized or not by index.
+    You can set :param:`fetch_all` (bool) `False` to fetch config/script only related to customized OSBPs,
+    it will be faster since checking if config is customized or not cannot use index.
     """
 
     info = {'osbp':{}, 'ogfsScript':{}, 'serverScript':{}, 'config':{}}
@@ -176,6 +175,7 @@ def get_cust_info(self, interval=0, fetch_all=False):
 
     if fetch_all:
         for name, uri in cust_script_names.items():
+            print(name)
             if 'os-deployment-ogfs-scripts' in uri:
                 ogfsScript = self._retrieve_ogfsScript(uri=uri)
                 info['ogfsScript'][ogfsScript['name']] = {
@@ -192,6 +192,7 @@ def get_cust_info(self, interval=0, fetch_all=False):
                     'sudo': serverScript['runAsSuperUser'],
                     }
         for member in self._list_index({'category':'osdcfgfile'})['members']:
+            print(member['name'])
             config = self._retrieve_cfgfile(uri=member['uri'])
             if config['isCustomerContent']:
                 info['config'][config['name']] = {
