@@ -117,7 +117,7 @@ def upload_cust_osbps(self, uploads):
             'buildPlanItems': [gen_step_data(s, uri_mapping) for s in osbp['steps']],
             })
 
-def upload_cust(self, updates):
+def upload_cust(self, uploads):
     upload_cust_items(self, uploads)
     upload_cust_osbps(self, uploads)
 
@@ -204,6 +204,6 @@ newer = get_config(cust_filepath)
 
 diff = compare_cust(older, newer)
 with Altair(appliance_ip, username, password) as api:
-    upload_cust(api, uploads=diff['uploads'])
     remove_cust(api, removes=diff['removes'])
+    upload_cust(api, uploads=diff['uploads'])
     update_cust(api, updates=diff['updates'])
