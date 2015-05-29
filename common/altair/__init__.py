@@ -184,7 +184,7 @@ def collect_members(*module_names):
 for name, member in collect_members('rest_api'):
     setattr(Altair, '_'+name, member)
 
-for name, member in collect_members('export_cust'):
+for name, member in collect_members('export_cust', 'import_cust'):
     setattr(Altair, name, member)
 
 for name, member in collect_members('init'):
