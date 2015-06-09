@@ -1,7 +1,3 @@
-# =====
-# Tools
-# =====
-
 def _generate_uri(netloc='localhost', path='', Query={}):
     """
     issues:
@@ -42,4 +38,42 @@ def _failure_information(response):
     return template.format(response.status_code, _add_indent(response.json()))
 
 
+def script_related(script_path, cfgfn):
+    import os.path
+    dirname = os.path.split(script_path)[0]
+    return os.path.join(dirname, cfgfn)
 
+
+def get_diskspace(location):
+    import subprocess as sp
+
+    command = 'df -B 1 --output=avail {}'.format(location)
+    output = sp.check_output(command.split())
+    size = int(output.splitlines()[1])
+    return size
+
+
+def set_config(data, config_path):
+    import yaml
+
+    with open(config_path, 'w') as fp:
+        yaml.safe_dump(data, stream=fp,
+                       default_flow_style=False, indent=4,
+                       allow_unicode=True, encoding='utf-8', line_break='\r\n')
+
+
+def get_config(config_path):
+    import yaml
+
+    with open(config_path, 'r') as fp:
+        try:
+            return yaml.load(fp)
+        except yaml.scanner.ScannerError as e:
+            msg_templ = (
+                'There is format error in "{filename}" line {linenum}.\n'
+                'Hint: {problem}.\n'
+                )
+            linenum = int(e.problem_mark.line) + 1
+            filename = e.problem_mark.name
+            problem = e.problem
+            raise Exception(msg_templ.format(**locals()))
