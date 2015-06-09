@@ -21,7 +21,8 @@ import yaml
 
 import altair as A
 from altair import Altair
-from utils import *
+from altair.utils import *
+#from utils import *
 
 
 # constants

@@ -4,7 +4,7 @@ import os.path
 import shutil
 import sys
 
-from utils import get_diskspace
+from altair.utils import get_diskspace
 
 
 USAGE_MESSAGE = 'usage: %s filepath [target_dir]' % __file__

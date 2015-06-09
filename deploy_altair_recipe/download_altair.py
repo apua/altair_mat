@@ -8,7 +8,7 @@ import subprocess as sp
 import sys
 import urlparse
 
-from utils import get_diskspace
+from altair.utils import get_diskspace
 
 
 USAGE_MESSAGE = 'usage: %s [altair_filename] location' % __file__
