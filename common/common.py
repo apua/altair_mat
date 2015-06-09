@@ -20,7 +20,7 @@ import requests
 import yaml
 
 import altair as A
-from altair import Altair
+from altair.api import Altair
 from altair.utils import *
 #from utils import *
 

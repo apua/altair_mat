@@ -1,5 +1,5 @@
-from altair import Altair
-from altair import retrieve_Eula, accept_Eula, reset_administrator_password
+from altair.api import Altair
+from altair.api import retrieve_Eula, accept_Eula, reset_administrator_password
 from pprint import pprint as p
 
 

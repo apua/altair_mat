@@ -1,7 +1,7 @@
 import argparse
 
-from altair import Altair
-from tools import gen_path, get_config
+from altair.api import Altair
+from altair.utils import gen_path, get_config
 
 '''
 usage: $CMD $SETTINGS_FILENAME

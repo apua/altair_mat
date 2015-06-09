@@ -6,8 +6,8 @@ import getpass
 import os
 import sys
 
-from altair import Altair
-from tools import set_config
+from altair.api import Altair
+from altair.utils import set_config
 
 
 if   len(sys.argv)==2:

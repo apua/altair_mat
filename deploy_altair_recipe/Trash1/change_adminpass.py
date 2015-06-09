@@ -1,7 +1,7 @@
 import argparse
 
-from altair import Altair
-from tools import gen_path_with_script, get_settings
+from altair.api import Altair
+from altair.utils import gen_path_with_script, get_settings
 
 '''
 usage: $CMD $APPLIANCE_IP $SETTINGS_FILENAME

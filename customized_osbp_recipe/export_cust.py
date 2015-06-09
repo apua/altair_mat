@@ -1,6 +1,6 @@
 __import__('sys').path.append('../common/')
 
-from altair import Altair
+from altair.api import Altair
 from altair.utils import get_config, set_config
 
 settings = get_config('settings.txt')

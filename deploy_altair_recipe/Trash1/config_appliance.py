@@ -6,8 +6,8 @@ import argparse
 import os
 import sys
 
-from altair import Altair
-from tools import get_config
+from altair.api import Altair
+from altair.utils import get_config
 
 
 if   len(sys.argv)==1:
