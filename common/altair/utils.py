@@ -1,4 +1,4 @@
-def _generate_uri(netloc='localhost', path='', Query={}):
+def generate_uri(netloc='localhost', path='', Query={}):
     """
     issues:
       - check if URI form is valid, refer RFC 3986
@@ -23,12 +23,12 @@ def _generate_uri(netloc='localhost', path='', Query={}):
     return "{scheme}://{netloc}{path}{query}".format(**locals())
 
 
-def _add_indent(json_content):
+def add_indent(json_content):
     from json import dumps
     return dumps(json_content, indent=2)
 
 
-def _failure_information(response):
+def failure_information(response):
     import os
 
     if os.name=='nt':

@@ -1,6 +1,7 @@
 import requests
 
-from .utils import _generate_uri, _failure_information
+from .utils import (generate_uri as _generate_uri,
+                    failure_information as _failure_information)
 
 
 # Appliance EULA
