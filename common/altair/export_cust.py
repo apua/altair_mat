@@ -1,6 +1,4 @@
-import time
-
-osbp_steps_type_mapping = {
+_osbp_steps_type_mapping = {
     'os-deployment-install-cfgfiles': 'configs',
     'os-deployment-ogfs-scripts':     'ogfsScripts',
     'os-deployment-server-scripts':   'serverScripts',
@@ -10,7 +8,7 @@ osbp_steps_type_mapping = {
 
 def export_cust_info(self, interval=0):
     """deprecated"""
-
+    import time
     print('================================\n'
           'fetch id of osbp, script, config\n'
           '================================')
@@ -38,7 +36,7 @@ def export_cust_info(self, interval=0):
             'type': osbp['os'],
             'steps': [
                 {'name': step['name'],
-                 'type': osbp_steps_type_mapping[step['type']],
+                 'type': _osbp_steps_type_mapping[step['type']],
                  'para': step['parameters']}
                 for step in osbp['buildPlanItems']
                 ]
@@ -111,6 +109,7 @@ def export_cust_info(self, interval=0, fetch_all=True):
     You can set :param:`fetch_all` (bool) `False` to fetch config/script only related to customized OSBPs,
     it will be faster since checking if config is customized or not cannot use index.
     """
+    import time
 
     info = {'osbp':{}, 'ogfsScript':{}, 'serverScript':{}, 'config':{}}
 
@@ -133,7 +132,7 @@ def export_cust_info(self, interval=0, fetch_all=True):
             'type': osbp['os'],
             'steps': [
                 {'name': step['name'],
-                 'type': osbp_steps_type_mapping[step['type']],
+                 'type': _osbp_steps_type_mapping[step['type']],
                  'para': step['parameters']}
                 for step in osbp['buildPlanItems']
                 ]
