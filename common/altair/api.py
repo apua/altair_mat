@@ -1,6 +1,7 @@
-import requests
-from rest_api import RestAPI
+from __future__ import absolute_import
 
+import requests
+from .rest_api import RestAPI
 
 class Altair(RestAPI):
 
@@ -103,8 +104,8 @@ class Altair(RestAPI):
     # OSBPs and related
     # =================
 
-    from export_cust import export_cust_info
-    from import_cust import import_cust_info
+    from .export_cust import export_cust_info
+    from .import_cust import import_cust_info
 
     # WinPE
     # =====
@@ -166,10 +167,11 @@ class Altair(RestAPI):
     # network
     # =======
 
-    def get_network_settings(self):
-        '''
-        include DHCP server
-        '''
-        return {}
+    from .network import get_network_settings, set_network_settings
+
+    # first time setup
+    # ================
+
+    from .fts import initialize
 
 requests.packages.urllib3.disable_warnings()
