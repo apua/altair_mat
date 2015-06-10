@@ -3,31 +3,38 @@ import requests
 
 class Altair(object):
 
-    def __init__(self, appliance_ip, username, password, trust_env=False):
+    def __init__(self, appliance_ip, username=None, password=None, trust_env=False):
+        # given both username and password or not
+        assert (username is None)==(password is None)
 
         # build HTTP connection session
-        self.conn = requests.Session()
-        self.conn.trust_env = trust_env
-        self.conn.verify = False
+        self._conn = requests.Session()
+        self._conn.trust_env = trust_env
+        self._conn.verify = False
 
         # set target appliance and authenticate
         self.appliance_ip = appliance_ip
         self.username = username
-        self.session_id = self._authenticate(
-             username=username,
-             password=password,
-             )['sessionID']
+        self.password = password
+        self.session_id = None
 
     def __enter__(self):
-        '''
-        test if session is outdated
-        '''
-        self._retrieve_session()
+        # must set username and password already
+        assert self.username is not None and self.password is not None
+        self.login(self.username, self.password)
         return self
 
     def __exit__(self, type, value, traceback):
+        self.logout()
+
+    def login(self, username, password):
+        self.session_id = self._authenticate(username, password)['sessionID']
+        self.username = username
+        self.password = password
+
+    def logout(self):
         self._remove_session()
-        self.conn.close()
+        self.session_id = None
 
     # media settings, product keys, facility attributes, pxeboot default
     # ==================================================================
