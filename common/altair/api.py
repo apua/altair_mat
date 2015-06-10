@@ -160,10 +160,10 @@ class Altair(object):
         cleaned_user_data = clean(user_data)
         self._update_user(cleaned_user_data)
 
-    def change_password(self, old_password, new_password):
+    def change_password(self, new_password):
         self._update_user({'userName': self.username,
                            'password': new_password,
-                           'currentPassword': old_password})
+                           'currentPassword': self.password})
 
     # network
     # =======
