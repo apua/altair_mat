@@ -1,4 +1,4 @@
-def import_cust_info(self, new_info, remove_unused=False):
+def import_cust_info(api, new_info, remove_unused=False):
     """
     Given the newer customized info. Diff and upload/update/remove
 
@@ -30,18 +30,18 @@ def import_cust_info(self, new_info, remove_unused=False):
     
         return diff
     
-    def get_uri_mapping(self):
+    def get_uri_mapping(api):
         return {
             member['name']: member['uri']
             for cate in ('osdbuildplan', 'osdscript', 'osdcfgfile', 'osdzip')
-            for member in self._list_index({'category': cate})['members']
+            for member in api._list_index({'category': cate})['members']
             }
     
-    def get_modified_mapping(self):
+    def get_modified_mapping(api):
         return {
             member['name']: member['modified']
             for cate in ('osdbuildplan', 'osdscript', 'osdcfgfile', 'osdzip')
-            for member in self._list_index({'category': cate})['members']
+            for member in api._list_index({'category': cate})['members']
             }
     
     def gen_step_data(step, uri_mapping):
@@ -72,10 +72,10 @@ def import_cust_info(self, new_info, remove_unused=False):
             'uri': uri_mapping[name],
             }
     
-    def upload_cust_items(self, uploads):
+    def upload_cust_items(api, uploads):
         for name, script in uploads['serverScript'].items():
             print('upload', name)
-            self._add_serverScript({
+            api._add_serverScript({
                 'type': 'OSDServerScript',
                 'serverChanging': True,
                 'name': name,
@@ -86,7 +86,7 @@ def import_cust_info(self, new_info, remove_unused=False):
                 })
         for name, script in uploads['ogfsScript'].items():
             print('upload', name)
-            self._add_ogfsScript({
+            api._add_ogfsScript({
                 'type': "OSDOGFSScript",
                 'name': name,
                 'description': script['desc'],
@@ -94,18 +94,18 @@ def import_cust_info(self, new_info, remove_unused=False):
                 })
         for name, config in uploads['config'].items():
             print('upload', name)
-            self._add_cfgfile({
+            api._add_cfgfile({
                 'type': 'OsdCfgFile',
                 'name':name,
                 'description':config['desc'],
                 'text':config['cont'],
                 })
     
-    def upload_cust_osbps(self, uploads):
-        uri_mapping = get_uri_mapping(self)
+    def upload_cust_osbps(api, uploads):
+        uri_mapping = get_uri_mapping(api)
         for name, osbp in uploads['osbp'].items():
             print('upload OSBP', name)
-            self._add_OSBP({
+            api._add_OSBP({
                 'type': 'OSDBuildPlan',
                 'modified':'0000-00-00T00:00:00.000Z',
                 'arch': 'x64',
@@ -116,17 +116,17 @@ def import_cust_info(self, new_info, remove_unused=False):
                 'buildPlanItems': [gen_step_data(s, uri_mapping) for s in osbp['steps']],
                 })
     
-    def upload_cust(self, uploads):
-        upload_cust_items(self, uploads)
-        upload_cust_osbps(self, uploads)
+    def upload_cust(api, uploads):
+        upload_cust_items(api, uploads)
+        upload_cust_osbps(api, uploads)
     
-    def update_cust(self, updates):
-        uri_mapping = get_uri_mapping(self)
-        modified_mapping = get_modified_mapping(self)
+    def update_cust(api, updates):
+        uri_mapping = get_uri_mapping(api)
+        modified_mapping = get_modified_mapping(api)
     
         for name, osbp in updates['osbp'].items():
             print('update OSBP', name)
-            self._edit_OSBP(uri=uri_mapping[name], properties={
+            api._edit_OSBP(uri=uri_mapping[name], properties={
                 'type': 'OSDBuildPlan',
                 'lifeCycle': 'AVAILABLE',
                 'arch': 'x64',
@@ -141,7 +141,7 @@ def import_cust_info(self, new_info, remove_unused=False):
     
         for name, config in updates['config'].items():
             print('update config', name)
-            self._edit_cfgfile(uri=uri_mapping[name], properties={
+            api._edit_cfgfile(uri=uri_mapping[name], properties={
                 'type': 'OsdCfgFile',
                 'name': name,
                 'description': config['desc'],
@@ -152,7 +152,7 @@ def import_cust_info(self, new_info, remove_unused=False):
     
         for name, script in updates['serverScript'].items():
             print('update script', name)
-            self._edit_serverScript(uri=uri_mapping[name], properties={
+            api._edit_serverScript(uri=uri_mapping[name], properties={
                 'type': 'OSDServerScript',
                 'serverChanging': True,
                 'name': name,
@@ -166,7 +166,7 @@ def import_cust_info(self, new_info, remove_unused=False):
     
         for name, script in updates['ogfsScript'].items():
             print('update script', name)
-            self._edit_ogfsScript(uri=uri_mapping[name], properties={
+            api._edit_ogfsScript(uri=uri_mapping[name], properties={
                 'type': "OSDOGFSScript",
                 'name': name,
                 'description': script['desc'],
@@ -175,26 +175,26 @@ def import_cust_info(self, new_info, remove_unused=False):
                 'uri': uri_mapping[name],
                 })
     
-    def remove_cust(self, removes):
-        uri_mapping = get_uri_mapping(self)
+    def remove_cust(api, removes):
+        uri_mapping = get_uri_mapping(api)
         # OSBPs have to be removed first
         for name in removes['osbp']:
             print('remove osbp', name)
-            self._delete_OSBP(uri=uri_mapping[name])
+            api._delete_OSBP(uri=uri_mapping[name])
         for name in removes['serverScript']:
             print('remove script', name)
-            self._delete_serverScript(uri=uri_mapping[name])
+            api._delete_serverScript(uri=uri_mapping[name])
         for name in removes['ogfsScript']:
             print('remove script', name)
-            self._delete_ogfsScript(uri=uri_mapping[name])
+            api._delete_ogfsScript(uri=uri_mapping[name])
         for name in removes['config']:
             print('remove config', name)
-            self._delete_cfgfile(uri=uri_mapping[name])
+            api._delete_cfgfile(uri=uri_mapping[name])
     
-    diff = compare_cust(self.export_cust_info(fetch_all=True), new_info)
+    diff = compare_cust(api.export_cust_info(fetch_all=True), new_info)
     
     if remove_unused:
-        remove_cust(self, removes=diff['removes'])
-    upload_cust(self, uploads=diff['uploads'])
-    update_cust(self, updates=diff['updates'])
+        remove_cust(api, removes=diff['removes'])
+    upload_cust(api, uploads=diff['uploads'])
+    update_cust(api, updates=diff['updates'])
     
