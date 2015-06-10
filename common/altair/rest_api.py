@@ -5,10 +5,10 @@ from .utils import generate_uri, failure_information
 class RestAPI(object):
     # DEPLOYMENT
     # ==========
-    
+
     # Configuration Files
     # -------------------
-    
+
     def _list_cfgfile(self):
         """
         basic usage:
@@ -28,8 +28,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _add_cfgfile(self, properties):
         """
         basic usage:
@@ -49,8 +49,8 @@ class RestAPI(object):
             )
         assert response.status_code==201, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_cfgfile(self, cfgfileID=None, uri=None):
         """
         basic usage:
@@ -72,8 +72,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_cfgfile(self, properties, cfgfileID=None, uri=None):
         """
         basic usage:
@@ -95,8 +95,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_cfgfile(self, cfgfileID=None, uri=None):
         """
         basic usage:
@@ -118,11 +118,11 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
+
+
     # Deployment Settings
     # -------------------
-    
+
     def _export_content(self):
         response = self._conn.get(
             generate_uri(
@@ -138,8 +138,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response
-    
-    
+
+
     def _list_deployment_settings(self):
         """
         basic usage:
@@ -159,8 +159,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_deployment_settings(self, uri):
         """
         basic usage:
@@ -181,8 +181,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_deployment_settings(self, uri, data):
         """
         basic usage:
@@ -203,8 +203,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_activation(self):
         """
         """
@@ -222,8 +222,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _send_activation(self, data):
         """
         """
@@ -241,24 +241,24 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _export_userDefined_content(self, *args, **kwargs):
         """export all user-defined content such as OSBP, script,..."""
-    
+
     def _import_userDefined_content(self, *args, **kwargs):
         """import all user-defined content such as OSBP, script,..."""
-    
+
     def _reconcileindex(self, *args, **kwargs):
         """sync items between webUI and Altair database"""
-    
+
     def _retrieve_file(self, *args, **kwargs):
         """retrieve files such as Media Server Tool and WinPE Tool"""
-    
-    
+
+
     # The four methods below are reference.
-    
-    
+
+
     def _retrieve_FTS(self):
         """
         basic usage:
@@ -279,8 +279,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_FTS(self, ftsTasks):
         """
         basic usage:
@@ -302,8 +302,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_DHCP(self):
         """
         basic usage:
@@ -323,8 +323,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_DHCP(self, dhcpState, subnetList):
         """
         basic usage:
@@ -347,14 +347,14 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Device Groups
     # -------------
-    
+
     # Facility
     # --------
-    
+
     def _list_facility(self):
         """
         basic usage:
@@ -374,8 +374,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_facility(self, facilityID):
         """
         basic usage:
@@ -395,8 +395,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_facility(self, facilityID, properties):
         """
         basic usage:
@@ -416,17 +416,17 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # HP OneView Appliances
     # ---------------------
-    
+
     # Jobs
     # ----
-    
+
     # OGFS Scripts
     # ------------
-    
+
     def _list_ogfsScript(self):
         """
         basic usage:
@@ -446,8 +446,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _add_ogfsScript(self, properties):
         """
         basic usage:
@@ -467,8 +467,8 @@ class RestAPI(object):
             )
         assert response.status_code==201, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_ogfsScript(self, ogfsScriptID=None, uri=None):
         """
         basic usage:
@@ -490,8 +490,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_ogfsScript(self, properties, ogfsScriptID=None, uri=None):
         """
         basic usage:
@@ -513,8 +513,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_ogfsScript(self, ogfsScriptID=None, uri=None):
         assert (ogfsScriptID is None)+(uri is None)==1
         path = "/rest/os-deployment-ogfs-scripts/{ogfsScriptID}".format(**locals()) if uri is None else uri
@@ -532,11 +532,11 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
+
+
     # OS Build Plans
     # --------------
-    
+
     def _list_OSBP(self):
         """
         basic usage: sessionID -> members
@@ -556,8 +556,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _add_OSBP(self, properties):
         """
         basic usage:
@@ -578,8 +578,8 @@ class RestAPI(object):
             )
         assert response.status_code==201, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_OSBP(self, buildPlanID=None, uri=None):
         """
         basic usage:
@@ -602,8 +602,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_OSBP(self, properties, buildPlanID=None, uri=None):
         """
         basic usage:
@@ -626,8 +626,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_OSBP(self, buildPlanID=None, uri=None):
         """
         basic usage:
@@ -649,11 +649,11 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
+
+
     # Packages
     # --------
-    
+
     def _list_package(self):
         response = self._conn.get(
             generate_uri(
@@ -669,11 +669,11 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Server Scripts
     # --------------
-    
+
     def _list_serverScript(self):
         """
         basic usage:
@@ -693,13 +693,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _add_serverScript(self, properties):
         """
         basic usage:
             sessionID, properties -> uri, name, codeType, runAsSuperUser, description, source
-    
+
         """
         response = self._conn.post(
             generate_uri(
@@ -715,13 +715,13 @@ class RestAPI(object):
             )
         assert response.status_code==201, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_serverScript(self, serverScriptID=None, uri=None):
         """
         basic usage:
             sessionID, serverScriptID -> uri, name, codeType, runAsSuperUser, description, source
-    
+
         """
         assert (serverScriptID is None)+(uri is None)==1
         path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()) if uri is None else uri
@@ -739,13 +739,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_serverScript(self, properties, serverScriptID=None, uri=None):
         """
         basic usage:
             sessionID, serverScriptID, properties -> uri, name, codeType, runAsSuperUser, description, source
-    
+
         """
         assert (serverScriptID is None)+(uri is None)==1
         path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()) if uri is None else uri
@@ -763,8 +763,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_serverScript(self, serverScriptID=None, uri=None):
         assert (serverScriptID is None)+(uri is None)==1
         path = "/rest/os-deployment-server-scripts/{serverScriptID}".format(**locals()) if uri is None else uri
@@ -782,11 +782,11 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
+
+
     # Servers
     # -------
-    
+
     def _list_server(self):
         """
         basic usage:
@@ -806,13 +806,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _add_server(self, properties):
         """
         basic usage:
             sessionID, properties -> uri, name, description, customAttributes
-    
+
         """
         response = self._conn.post(
             generate_uri(
@@ -828,13 +828,13 @@ class RestAPI(object):
             )
         assert response.status_code==202, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_server(self, serverID):
         """
         basic usage:
             sessionID, serverID -> uri, name, description, customAttributes
-    
+
         """
         response = self._conn.get(
             generate_uri(
@@ -850,13 +850,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _edit_server(self, serverID, properties):
         """
         basic usage:
             sessionID, serverID, properties -> uri, name, description, customAttributes
-    
+
         """
         response = self._conn.put(
             generate_uri(
@@ -872,8 +872,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_server(self, serverID):
         """
         basic usage:
@@ -893,17 +893,17 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
-    
-    
-    
+
+
+
+
+
     # SETTINGS
     # ========
-    
+
     # Appliance Eula
     # --------------
-    
+
     def _accept_Eula(self, supportAccess):
         """
         basic usage:
@@ -924,9 +924,9 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
-    def _retrieve_Eula(self, ):
+
+
+    def _retrieve_Eula(self):
         """
         basic usage:
             None -> Boolean
@@ -944,11 +944,11 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Appliance Factory Reset
     # -----------------------
-    
+
     def _reset_factory(self, mode):
         """
         basic usage:
@@ -973,17 +973,17 @@ class RestAPI(object):
             )
         assert response.status_code==202, failure_information(response)
         return response.json()
-    
-    
+
+
     # Appliance Firmware
     # ------------------
-    
+
     # Appliance Health-status
     # -----------------------
-    
+
     # Appliance Network Interfaces
     # ----------------------------
-    
+
     def _retrieve_network(self):
         response = self._conn.get(
             generate_uri(
@@ -999,8 +999,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_macs(self):
         response = self._conn.get(
             generate_uri(
@@ -1016,8 +1016,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _set_network(self, network):
         response = self._conn.post(
             generate_uri(
@@ -1033,43 +1033,43 @@ class RestAPI(object):
             )
         assert response.status_code==202, failure_information(response)
         return None
-    
-    
-    
-    
+
+
+
+
     # Appliance Node Information
     # --------------------------
-    
+
     # Appliance Shutdown
     # ------------------
-    
+
     # Appliance Support Dumps
     # -----------------------
-    
+
     # Backups
     # -------
-    
+
     # Email notification
     # ------------------
-    
+
     # Global Settings
     # ---------------
-    
+
     # Licenses
     # --------
-    
+
     # Restores
     # --------
-    
+
     # Service Access
     # --------------
-    
+
     def _enable_service_access(self, enable):
         """
         basic usage:
             .. enable (Boolean) -> status ("Enabled"/"Disabled")
             enable (Boolean) -> True # it looks like the method not implemented as document said
-    
+
         Authorization:
             Category: appliance
             Action: Update
@@ -1088,8 +1088,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _retrieve_service_access(self):
         """
         basic usage:
@@ -1109,11 +1109,11 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Startup Progress
     # ----------------
-    
+
     def _get_startup_status(self, ):
         """
         basic usage:
@@ -1132,11 +1132,11 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Version
     # -------
-    
+
     def _get_supported_API_version(self, ):
         """
         basic usage:
@@ -1152,20 +1152,20 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
-    
-    
-    
+
+
+
+
+
     # SECURITY
     # ========
-    
+
     # Active User Sessions
     # --------------------
-    
+
     # Authorizations
     # --------------
-    
+
     def _list_categories_and_actions(self):
         """
         basic usage:
@@ -1186,8 +1186,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _list_roles_and_associated(self):
         """
         basic usage:
@@ -1207,8 +1207,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _check_user_permission(self, actionDto, categoryDto):
         """
         basic usage:
@@ -1231,29 +1231,29 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Certificate Authority
     # ---------------------
-    
+
     # Certificates Client RabbitMq
     # ----------------------------
-    
+
     # Client Certificates
     # -------------------
-    
+
     # Login Domains
     # -------------
-    
+
     # Login Domains Global Settings
     # -----------------------------
-    
+
     # Login Domains Group To Role Mapping
     # -----------------------------------
-    
+
     # Login Sessions
     # --------------
-    
+
     def _authenticate(self, username, password):
         """
         basic usage:
@@ -1277,13 +1277,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _reconnect_session(self):
         """
         Basic Usage:
             sessionID -> sessionID
-    
+
         It looks like useless....?
         """
         response = self._conn.put(
@@ -1300,13 +1300,13 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _remove_session(self):
         """
         Basic Usage:
             sessionID -> None
-    
+
         It is explict logout.
         """
         response = self._conn.delete(
@@ -1322,14 +1322,14 @@ class RestAPI(object):
             )
         assert response.status_code==204, failure_information(response)
         return None
-    
-    
+
+
     # Roles
     # -----
-    
+
     # Sessions
     # --------
-    
+
     def _retrieve_session(self):
         """
         basic usage:
@@ -1349,7 +1349,7 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     def _list_sessions(self):
         """
         basic usage:
@@ -1369,10 +1369,10 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     # Users
     # -----
-    
+
     def _list_users(self):
         """
         """
@@ -1390,7 +1390,7 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     def _retrieve_user_role(self, user):
         """
         """
@@ -1408,7 +1408,7 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     def _add_users(self, users):
         """
         """
@@ -1427,7 +1427,7 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     def _update_user(self, user):
         """
         """
@@ -1445,7 +1445,7 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
+
     def _update_user_role(self, user, roles):
         """
         """
@@ -1466,8 +1466,8 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     def _delete_user(self, user):
         """
         basic usage:
@@ -1487,32 +1487,32 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Web Server Certificates
     # -----------------------
-    
-    
-    
-    
+
+
+
+
     # ACTIVITY
     # ========
-    
+
     # Alerts
     # ------
-    
+
     # Audit Logs
     # ----------
-    
+
     # Events
     # ------
-    
+
     # Reports
     # -------
-    
+
     # Tasks
     # -----
-    
+
     def _get_tasks(self):
         """
         basic usage:
@@ -1531,17 +1531,17 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # SEARCH
     # ======
-    
+
     # Index Associations
     # ------------------
-    
+
     # Index Resources
     # ---------------
-    
+
     def _list_index(self, query):
         """
         basic usage:
@@ -1561,10 +1561,10 @@ class RestAPI(object):
             )
         assert response.status_code==200, failure_information(response)
         return response.json()
-    
-    
+
+
     # Index Search Suggestions
     # ------------------------
-    
+
     # Index Trees
     # -----------
