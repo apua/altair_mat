@@ -197,4 +197,3 @@ def import_cust_info(api, new_info, remove_unused=False):
         remove_cust(api, removes=diff['removes'])
     upload_cust(api, uploads=diff['uploads'])
     update_cust(api, updates=diff['updates'])
-    
