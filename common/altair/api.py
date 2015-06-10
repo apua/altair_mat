@@ -1,7 +1,8 @@
 import requests
+from rest_api import RestAPI
 
 
-class Altair(object):
+class Altair(RestAPI):
 
     def __init__(self, appliance_ip, username=None, password=None, trust_env=False):
         # given both username and password or not
@@ -102,11 +103,8 @@ class Altair(object):
     # OSBPs and related
     # =================
 
-    def export_cust_info(self, *args, **kwargs):
-        pass
-
-    def import_cust_info(self, *args, **kwargs):
-        pass
+    from export_cust import export_cust_info
+    from import_cust import import_cust_info
 
     # WinPE
     # =====
@@ -173,26 +171,5 @@ class Altair(object):
         include DHCP server
         '''
         return {}
-
-
-def collect_members(*module_names):
-    from importlib import import_module
-
-    for module_name in module_names:
-        module = import_module('.'+module_name, package=__package__)
-        for attr_name in dir(module):
-            if not attr_name.startswith('_'):
-                attr_value = getattr(module, attr_name)
-                yield attr_name, attr_value
-
-
-for name, member in collect_members('rest_api'):
-    setattr(Altair, '_'+name, member)
-
-for name, member in collect_members('export_cust', 'import_cust'):
-    setattr(Altair, name, member)
-
-for name, member in collect_members('init'):
-    globals()[name] = member
 
 requests.packages.urllib3.disable_warnings()

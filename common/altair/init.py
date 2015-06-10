@@ -1,7 +1,6 @@
 import requests
 
-from .utils import (generate_uri as _generate_uri,
-                    failure_information as _failure_information)
+from .utils import generate_uri, failure_information
 
 
 # Appliance EULA
@@ -12,7 +11,7 @@ def retrieve_eula(appliance_ip):
     None -> Boolean
     """
     response = requests.get(
-        _generate_uri(
+        generate_uri(
             netloc = appliance_ip,
             path = "/rest/appliance/eula/status",
             ),
@@ -23,7 +22,7 @@ def retrieve_eula(appliance_ip):
         json = {},
         verify = False,
         )
-    assert response.status_code==200, _failure_information(response)
+    assert response.status_code==200, failure_information(response)
     return response.json()
 
 
@@ -33,7 +32,7 @@ def accept_eula(appliance_ip, supportAccess):
     """
     assert supportAccess.lower() in ('yes', 'no')
     response = requests.post(
-        _generate_uri(
+        generate_uri(
             netloc = appliance_ip,
             path = "/rest/appliance/eula/save",
         ),
@@ -46,7 +45,7 @@ def accept_eula(appliance_ip, supportAccess):
         },
         verify = False,
         )
-    assert response.status_code==200, _failure_information(response)
+    assert response.status_code==200, failure_information(response)
     return response.json()
 
 
@@ -58,7 +57,7 @@ def change_default_adminpass(appliance_ip, password_changing_info):
     newPassword, oldPassword, userName -> {...}
     """
     response = requests.post(
-        _generate_uri(
+        generate_uri(
             netloc = appliance_ip,
             path = "/rest/users/changePassword",
         ),
@@ -69,7 +68,7 @@ def change_default_adminpass(appliance_ip, password_changing_info):
         json = password_changing_info,
         verify = False,
         )
-    assert response.status_code==200, _failure_information(response)
+    assert response.status_code==200, failure_information(response)
     return response.json()
 
 
@@ -81,7 +80,7 @@ def wait_boot(appliance_ip):
     I = interval = 2
     C = connection_timeout = 2
     path = '/rest/appliance/progress'
-    uri = _generate_uri(netloc=appliance_ip, path=path)
+    uri = generate_uri(netloc=appliance_ip, path=path)
     headers = {'X-API-Version': 100}
     send_request = lambda t=C: requests.get(
         uri, headers=headers,
@@ -129,3 +128,6 @@ def wait_boot(appliance_ip):
             pass
         time.sleep(I)
     write('\n')
+
+
+del requests, generate_uri, failure_information
