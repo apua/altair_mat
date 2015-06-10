@@ -3,9 +3,9 @@ def generate_uri(netloc='localhost', path='', Query={}):
     issues:
       - check if URI form is valid, refer RFC 3986
 
-    >>> _generate_uri(path='/rest/os-deployment-jobs/', Query={'force': 'true'})
+    >>> generate_uri(path='/rest/os-deployment-jobs/', Query={'force': 'true'})
     'https://localhost/rest/os-deployment-jobs/?force=true'
-    >>> _generate_uri('https://altair.dev-net.local', '/rest/os-deployment-jobs/')
+    >>> generate_uri('https://altair.dev-net.local', '/rest/os-deployment-jobs/')
     'https://altair.dev-net.local/rest/os-deployment-jobs/'
     """
     from urllib import quote
@@ -35,7 +35,7 @@ def failure_information(response):
         template = "\nstatus code => {}\ncontent => {}"
     else:
         template = "\n\x1b[32mstatus code\x1b[m => \x1b[33m{}\x1b[m\n\x1b[34mcontent\x1b[m => {}"
-    return template.format(response.status_code, _add_indent(response.json()))
+    return template.format(response.status_code, add_indent(response.json()))
 
 
 def script_related(script_path, cfgfn):
