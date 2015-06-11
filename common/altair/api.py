@@ -4,8 +4,29 @@ import requests
 from .rest_api import RestAPI
 
 class Altair(RestAPI):
+    r"""
+    Usage
+    =====
 
+    1.  with Altair(appliance_ip, username, password) as api:
+            ...
+
+    2.  api = Altair(appliance_ip, username, password)
+        with api:
+            ...
+
+    3.  api = Altair(appliance_ip, username, password)
+        api.login()
+        try:
+            ...
+        finally:
+            api.logout()
+    """
     def __init__(self, appliance_ip, username=None, password=None, trust_env=False):
+        r"""
+        api = Altair(appliance_ip)
+        api = Altair(appliance_ip, username, password)
+        """
         # given both username and password or not
         assert (username is None)==(password is None)
 
@@ -23,16 +44,25 @@ class Altair(RestAPI):
     def __enter__(self):
         # must set username and password already
         assert self.username is not None and self.password is not None
-        self.login(self.username, self.password)
+        self.login()
         return self
 
     def __exit__(self, type, value, traceback):
         self.logout()
 
-    def login(self, username, password):
-        self.session_id = self._authenticate(username, password)['sessionID']
-        self.username = username
-        self.password = password
+    def login(self, username=None, password=None):
+        r"""
+        api.login()
+        api.login(username, password)
+        """
+        if username is None and password is None:
+            self.session_id = self._authenticate(self.username, self.password)['sessionID']
+        elif username is not None and password is not None:
+            self.session_id = self._authenticate(username, password)['sessionID']
+            self.username = username
+            self.password = password
+        else:
+            raise Exception('Should set username and password')
 
     def logout(self):
         self._remove_session()
@@ -167,11 +197,11 @@ class Altair(RestAPI):
     # network
     # =======
 
-    from .network import get_network_settings, set_network_settings
+    from .network import get_network_setting, set_network
 
     # first time setup
     # ================
 
-    from .fts import initialize
+    from .fts import setup
 
 requests.packages.urllib3.disable_warnings()

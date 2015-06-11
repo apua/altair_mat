@@ -984,7 +984,7 @@ class RestAPI(object):
     # Appliance Network Interfaces
     # ----------------------------
 
-    def _retrieve_network(self):
+    def _retrieve_network_interface(self):
         response = self._conn.get(
             generate_uri(
                 netloc = self.appliance_ip,
@@ -1018,7 +1018,7 @@ class RestAPI(object):
         return response.json()
 
 
-    def _set_network(self, network):
+    def _configure_network_interface(self, network):
         response = self._conn.post(
             generate_uri(
                 netloc = self.appliance_ip,
@@ -1114,7 +1114,7 @@ class RestAPI(object):
     # Startup Progress
     # ----------------
 
-    def _get_startup_status(self, ):
+    def _get_startup_status(self):
         """
         basic usage:
             None -> complete, total
@@ -1137,7 +1137,7 @@ class RestAPI(object):
     # Version
     # -------
 
-    def _get_supported_API_version(self, ):
+    def _get_supported_API_version(self):
         """
         basic usage:
             None -> currentVersion, minimumVersion
@@ -1467,6 +1467,24 @@ class RestAPI(object):
         assert response.status_code==200, failure_information(response)
         return response.json()
 
+    def _change_default_adminpass(self, password_changing_info):
+        """
+        newPassword, oldPassword, userName -> {...}
+        """
+        response = self._conn.post(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/users/changePassword",
+            ),
+            headers = {
+                "X-API-Version": 100,
+                "Accept-Language": "en_US",
+                },
+            json = password_changing_info,
+            verify = False,
+            )
+        assert response.status_code==200, failure_information(response)
+        return response.json()
 
     def _delete_user(self, user):
         """
