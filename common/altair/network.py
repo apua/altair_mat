@@ -1,3 +1,5 @@
+from .utils import clean_unicode as clean
+
 M = mapping = {
     'hostname':   'hostname',
     'ip_address': 'app1Ipv4Addr',
@@ -7,25 +9,24 @@ M = mapping = {
     'alias':      'app1Ipv4Alias',
     }
 
-
 def get_network_setting(api):
     N = api._retrieve_network_interface()['applianceNetworks']
 
     if len(N)==1:
-        setting = {'hostname':   N[-1][M['hostname']],
-                   'dns':        N[-1][M['dns']],
-                   'appliance':  {'ip_address': N[-1][M['ip_address']],
-                                  'gateway':    N[-1][M['gateway']],
-                                  'subnet':     N[-1][M['subnet']]},
-                   'deployment': {'ip_address': N[-1][M['alias']]}}
+        setting = {'hostname':   clean(N[-1][M['hostname']]),
+                   'dns':        clean(N[-1][M['dns']]),
+                   'appliance':  {'ip_address': clean(N[-1][M['ip_address']]),
+                                  'gateway':    clean(N[-1][M['gateway']]),
+                                  'subnet':     clean(N[-1][M['subnet']])},
+                   'deployment': {'ip_address': clean(N[-1][M['alias']])}}
     elif len(N)==2:
-        setting = {'hostname':   N[-1][M['hostname']],
-                   'dns':        N[-1][M['dns']],
-                   'appliance':  {'ip_address': N[-1][M['ip_address']],
-                                  'subnet':     N[-1][M['subnet']],
-                                  'gateway':    N[-1][M['gateway']]},
-                   'deployment': {'ip_address': N[-2][M['ip_address']],
-                                  'subnet':     N[-2][M['subnet']]}}
+        setting = {'hostname':   clean(N[-1][M['hostname']]),
+                   'dns':        clean(N[-1][M['dns']]),
+                   'appliance':  {'ip_address': clean(N[-1][M['ip_address']]),
+                                  'subnet':     clean(N[-1][M['subnet']]),
+                                  'gateway':    clean(N[-1][M['gateway']])},
+                   'deployment': {'ip_address': clean(N[-2][M['ip_address']]),
+                                  'subnet':     clean(N[-2][M['subnet']])}}
     return setting
 
 
