@@ -7,7 +7,7 @@ Issues
 ======
 
 [ ] Write on wiki
-[ ] Improve the variable names in settings::
+[✓] Improve the variable names in settings::
       __OPSW-Media-LinURI ->
           http_server_host
           http_server_path
@@ -18,3 +18,5 @@ Issues
           file_share_name
       __OPSW-Media-WinUser ->
           file_share_user
+[✓] Cleaned string::
+    u'...' -> '...'
