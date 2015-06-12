@@ -71,65 +71,19 @@ class Altair(RestAPI):
     # media settings, product keys, facility attributes, pxeboot default
     # ==================================================================
 
-    def get_media_settings(self):
-        customAttributes = self._retrieve_facility(1)['customAttributes']
-        media_settings = {k: v for k, v in customAttributes.items()
-                               if k.startswith('__OPSW-Media')}
-        media_settings['__OPSW-Media-WinPassword'] = ''
-        return media_settings
-
-    def get_product_keys(self):
-        customAttributes = self._retrieve_facility(1)['customAttributes']
-        product_keys = {k: v for k, v in customAttributes.items()
-                             if k.startswith('ProductKey_')}
-        return product_keys
-
-    def get_facility_attributes(self):
-        customAttributes = self._retrieve_facility(1)['customAttributes']
-        product_keys = {k: v for k, v in customAttributes.items()
-                             if not k.startswith('ProductKey_') and
-                                not k.startswith('__OPSW') and
-                                k != 'device_discovery_naming_rules'}
-        return product_keys
-
-    def get_pxeboot_default(self):
-        customAttributes = self._retrieve_facility(1)['customAttributes']
-        attr_name = '__OPSWpxeboot_default'
-        return {attr_name: customAttributes[attr_name]}
-
-    def set_media_settings(self, settings):
-        facility = self._retrieve_facility(1)
-        facility['customAttributes'].update(settings)
-        self._edit_facility(1, facility)
-
-    def set_product_keys(self, keys):
-        facility = self._retrieve_facility(1)
-        facility['customAttributes'].update(keys)
-        self._edit_facility(1, facility)
-
-    def set_facility_attributes(self, attributes):
-        facility = self._retrieve_facility(1)
-        facility['customAttributes'].update(attributes)
-        self._edit_facility(1, facility)
-
-    def set_pxeboot_default(self, default):
-        facility = self._retrieve_facility(1)
-        facility['customAttributes'].update(default)
-        self._edit_facility(1, facility)
+    from .facility import (get_media_settings,
+                          get_product_keys,
+                          get_facility_attributes,
+                          get_pxeboot_default,
+                          set_media_settings,
+                          set_product_keys,
+                          set_facility_attributes,
+                          set_pxeboot_default)
 
     # the activation key
     # ==================
 
-    def get_activation_key(self):
-        from base64 import b64encode
-        key = self._retrieve_activation()['activationCode']
-        return b64encode(key)
-
-    def set_activation_key(self, key_):
-        from base64 import b64decode
-        activation = self._retrieve_activation()
-        activation['activationCode'] =  b64decode(key_)
-        self._send_activation(activation)
+    from .activation_key import get_activation_key, set_activation_key
 
     # OSBPs and related
     # =================
