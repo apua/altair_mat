@@ -77,3 +77,20 @@ def get_config(config_path):
             filename = e.problem_mark.name
             problem = e.problem
             raise Exception(msg_templ.format(**locals()))
+
+
+def clean_unicode(s):
+    """
+    Find and encode unicode string recursively
+    It supports tuple, list, and dict
+    """
+    if isinstance(s, unicode):
+        return s.encode('utf8')
+    elif isinstance(s, tuple):
+        return tuple(clean_unicode(i) for i in s)
+    elif isinstance(s, list):
+        return list(clean_unicode(i) for i in s)
+    elif isinstance(s, dict):
+        return dict((clean_unicode(k), clean_unicode(s[k])) for k in s)
+    else:
+        return s
