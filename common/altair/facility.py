@@ -53,4 +53,4 @@ def set_facility_attributes(api, attributes):
     update_custom_attributes(api, attributes)
 
 def set_pxeboot_default(api, default):
-    update_custom_attributes(api, {'pxeboot_default': default})
+    update_custom_attributes(api, {'__OPSWpxeboot_default': default})
