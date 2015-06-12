@@ -3,6 +3,16 @@ These recipes are for easily backup / running first time setup.
 
 The online document will be written latter.
 
+FTS
+===
+
+  download & unzip
+→ deploy OVA / OVF
+→ set pwd & network & reboot
+→ set facility
+→ add SUT & user
+→ add OSBP
+
 Issues
 ======
 
