@@ -25,31 +25,23 @@ username      = basic_information['username']
 password      = basic_information['password']
 
 with Altair(appliance_ip, username, password) as api:
-    network_setting     = api.get_network_setting()
-    activation_key      = api.get_activation_key()
-    media_settings      = api.get_media_settings()
-    product_keys        = api.get_product_keys()
-    facility_attributes = api.get_facility_attributes()
-    #pxeboot_default     = api.get_pxeboot_default()
-
-info = {
-    'basic_information':   basic_information,
-    'network_setting':     network_setting,
-    'media_settings':      media_settings,
-    'product_keys':        product_keys,
-    'facility_attributes': facility_attributes,
-    #'pxeboot_default':     pxeboot_default,
-    'activation_key':      activation_key,
-    #'WinPE source':,
-    #'SUTs':,
-    #'Users':,
-    }
+    info = {
+        'basic_information':   basic_information,
+        'network_setting':     api.get_network_setting(),
+        'media_settings':      api.get_media_settings(),
+        'product_keys':        api.get_product_keys(),
+        'facility_attributes': api.get_facility_attributes(),
+        'pxeboot_default':     api.get_pxeboot_default(),
+        'activation_key':      api.get_activation_key(),
+        #'WinPE source':,
+        #'SUTs':,
+        #'Users':,
+        }
 
 set_config(info, config_file)
 
 with open(variables_file, 'w') as f:
     for k, v in info.items():
-        lines = pformat(v).splitlines()
         indent = ' '*(len(k)+3)
-        output = ''.join((indent if ln else k+' = ')+line+'\n' for ln, line in enumerate(lines))
-        f.write(output)
+        for ln, line in enumerate(pformat(v).splitlines()):
+            f.write((indent if ln else k+' = ')+line+'\n')
