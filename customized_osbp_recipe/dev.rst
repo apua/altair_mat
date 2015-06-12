@@ -27,10 +27,6 @@ Issues
               desc: ...
               cont: ...
 
-- Explain the requirements:
-    + Python
-    + Git
-
 - Include Packages:
     + Requists
     + PyYAML
@@ -94,6 +90,10 @@ After discussion
 [ ] Write wiki to remind user that the recipes are based on *name*
 [ ] If package name is a little different, think as same
 [ ] Merge imporing feature and collect some useful function to API class
+[✓] Explain the requirements:
+    + Python
+    + Git (Finally, we just use CSINFS but Teamforge)
+[ ] Support *custom attirbutes of osbps*
 
 Altair:
 [ ] 統一 naming REST API
