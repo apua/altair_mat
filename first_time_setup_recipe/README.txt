@@ -9,7 +9,7 @@ FTS
   download & unzip
 → deploy OVA / OVF
 → set pwd & network & reboot
-→ set facility
+→ set facility & upload WinPE
 → add SUT & user
 → add OSBP
 
