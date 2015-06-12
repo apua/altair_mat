@@ -9,7 +9,7 @@ M = mapping = {
 
 
 def get_network_setting(api):
-    N = api._retrieve_network()['applianceNetworks']
+    N = api._retrieve_network_interface()['applianceNetworks']
 
     if len(N)==1:
         setting = {'hostname':   N[-1][M['hostname']],
@@ -19,13 +19,13 @@ def get_network_setting(api):
                                   'subnet':     N[-1][M['subnet']]},
                    'deployment': {'ip_address': N[-1][M['alias']]}}
     elif len(N)==2:
-        setting = {'hostname':   N[-2][M['hostname']],
-                   'dns':        N[-2][M['dns']],
-                   'appliance':  {'ip_address': N[-2][M['ip_address']],
-                                  'subnet':     N[-2][M['subnet']],
-                                  'gateway':    N[-2][M['gateway']]},
-                   'deployment': {'ip_address': N[-1][M['ip_address']],
-                                  'subnet':     N[-1][M['subnet']]}}
+        setting = {'hostname':   N[-1][M['hostname']],
+                   'dns':        N[-1][M['dns']],
+                   'appliance':  {'ip_address': N[-1][M['ip_address']],
+                                  'subnet':     N[-1][M['subnet']],
+                                  'gateway':    N[-1][M['gateway']]},
+                   'deployment': {'ip_address': N[-2][M['ip_address']],
+                                  'subnet':     N[-2][M['subnet']]}}
     return setting
 
 
