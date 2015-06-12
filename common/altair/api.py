@@ -72,13 +72,13 @@ class Altair(RestAPI):
     # ==================================================================
 
     from .facility import (get_media_settings,
-                          get_product_keys,
-                          get_facility_attributes,
-                          get_pxeboot_default,
-                          set_media_settings,
-                          set_product_keys,
-                          set_facility_attributes,
-                          set_pxeboot_default)
+                           get_product_keys,
+                           get_facility_attributes,
+                           get_pxeboot_default,
+                           set_media_settings,
+                           set_product_keys,
+                           set_facility_attributes,
+                           set_pxeboot_default)
 
     # the activation key
     # ==================
