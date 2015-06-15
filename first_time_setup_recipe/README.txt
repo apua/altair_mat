@@ -30,3 +30,5 @@ Issues
           file_share_user
 [✓] Cleaned string::
     u'...' -> '...'
+[ ] REST API error handlers have to improve
+    such as HTTP response not always have payload (JSON)
