@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .utils import generate_uri, failure_information
+from .utils import generate_uri, failure_information, clean_unicode
 
 class RestAPI(object):
     # DEPLOYMENT
@@ -27,7 +27,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _add_cfgfile(self, properties):
@@ -48,7 +48,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==201, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_cfgfile(self, cfgfileID=None, uri=None):
@@ -71,7 +71,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_cfgfile(self, properties, cfgfileID=None, uri=None):
@@ -94,7 +94,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _delete_cfgfile(self, cfgfileID=None, uri=None):
@@ -158,7 +158,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_deployment_settings(self, uri):
@@ -180,7 +180,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_deployment_settings(self, uri, data):
@@ -202,7 +202,7 @@ class RestAPI(object):
             json = data,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_activation(self):
@@ -221,7 +221,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _send_activation(self, data):
@@ -240,7 +240,7 @@ class RestAPI(object):
             json = data,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _export_userDefined_content(self, *args, **kwargs):
@@ -278,7 +278,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_FTS(self, ftsTasks):
@@ -301,7 +301,7 @@ class RestAPI(object):
                 },
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_DHCP(self):
@@ -322,7 +322,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_DHCP(self, dhcpState, subnetList):
@@ -346,7 +346,7 @@ class RestAPI(object):
                 },
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Device Groups
@@ -373,7 +373,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_facility(self, facilityID):
@@ -394,7 +394,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_facility(self, facilityID, properties):
@@ -415,7 +415,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # HP OneView Appliances
@@ -445,7 +445,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _add_ogfsScript(self, properties):
@@ -466,7 +466,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==201, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_ogfsScript(self, ogfsScriptID=None, uri=None):
@@ -489,7 +489,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_ogfsScript(self, properties, ogfsScriptID=None, uri=None):
@@ -512,7 +512,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _delete_ogfsScript(self, ogfsScriptID=None, uri=None):
@@ -555,7 +555,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _add_OSBP(self, properties):
@@ -577,7 +577,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==201, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_OSBP(self, buildPlanID=None, uri=None):
@@ -601,7 +601,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_OSBP(self, properties, buildPlanID=None, uri=None):
@@ -625,7 +625,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _delete_OSBP(self, buildPlanID=None, uri=None):
@@ -668,7 +668,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Server Scripts
@@ -692,7 +692,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _add_serverScript(self, properties):
@@ -714,7 +714,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==201, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_serverScript(self, serverScriptID=None, uri=None):
@@ -738,7 +738,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_serverScript(self, properties, serverScriptID=None, uri=None):
@@ -762,7 +762,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _delete_serverScript(self, serverScriptID=None, uri=None):
@@ -805,7 +805,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _add_server(self, properties):
@@ -827,7 +827,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==202, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_server(self, serverID):
@@ -849,7 +849,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _edit_server(self, serverID, properties):
@@ -871,7 +871,7 @@ class RestAPI(object):
             json = properties,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _delete_server(self, serverID):
@@ -923,7 +923,7 @@ class RestAPI(object):
             },
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_Eula(self):
@@ -943,7 +943,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Appliance Factory Reset
@@ -972,7 +972,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==202, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Appliance Firmware
@@ -998,7 +998,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_macs(self):
@@ -1015,7 +1015,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _configure_network_interface(self, network):
@@ -1087,7 +1087,7 @@ class RestAPI(object):
             json = enable,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _retrieve_service_access(self):
@@ -1108,7 +1108,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Startup Progress
@@ -1131,7 +1131,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Version
@@ -1151,7 +1151,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
 
@@ -1185,7 +1185,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _list_roles_and_associated(self):
@@ -1206,7 +1206,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _check_user_permission(self, actionDto, categoryDto):
@@ -1230,7 +1230,7 @@ class RestAPI(object):
             },
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Certificate Authority
@@ -1276,7 +1276,7 @@ class RestAPI(object):
                 },
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _reconnect_session(self):
@@ -1299,7 +1299,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     def _remove_session(self):
@@ -1348,7 +1348,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _list_sessions(self):
         """
@@ -1368,7 +1368,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     # Users
     # -----
@@ -1389,7 +1389,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _retrieve_user_role(self, user):
         """
@@ -1407,7 +1407,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _add_users(self, users):
         """
@@ -1426,7 +1426,7 @@ class RestAPI(object):
             json = users,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _update_user(self, user):
         """
@@ -1444,7 +1444,7 @@ class RestAPI(object):
             json = user,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _update_user_role(self, user, roles):
         """
@@ -1465,7 +1465,7 @@ class RestAPI(object):
                 }
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _change_default_adminpass(self, password_changing_info):
         """
@@ -1484,7 +1484,7 @@ class RestAPI(object):
             verify = False,
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
     def _delete_user(self, user):
         """
@@ -1504,7 +1504,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Web Server Certificates
@@ -1548,7 +1548,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # SEARCH
@@ -1578,7 +1578,7 @@ class RestAPI(object):
             json = {},
             )
         assert response.status_code==200, failure_information(response)
-        return response.json()
+        return clean_unicode(response.json())
 
 
     # Index Search Suggestions
