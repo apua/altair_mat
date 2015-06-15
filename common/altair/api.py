@@ -100,7 +100,8 @@ class Altair(RestAPI):
     # users
     # =====
     from .users import (get_users, add_user, delete_user,
-                        get_user_info, update_user_info)
+                        get_user_info, update_user_info,
+                        change_own_password)
 
     # network
     # =======

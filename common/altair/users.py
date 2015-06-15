@@ -97,11 +97,16 @@ def update_user_info(self, data):
     check_roles_correct(self, data['roles'])
 
     user_data, roles = gen_cleaned_data(self, data)
+    if user_data['userName']==self.username:
+        print('**Notice: if you want to change your own password, '
+              'please use `api.change_own_password` for explicit.**')
+        user_data['password'] = user_data['currentPassword'] = None
     self._update_user(user_data)
-    self._update_user_roles(user_data['userName'], roles)
+    if user_data['userName'].lower()!='administrator':
+        self._update_user_roles(user_data['userName'], roles)
 
 
-#def change_password(self, new_password):
-#    self._update_user({'userName': self.username,
-#                       'password': new_password,
-#                       'currentPassword': self.password})
+def change_own_password(self, new_password):
+    self._update_user({'userName': self.username,
+                       'password': new_password,
+                       'currentPassword': self.password})
