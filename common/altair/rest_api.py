@@ -1391,7 +1391,7 @@ class RestAPI(object):
         assert response.status_code==200, failure_information(response)
         return clean_unicode(response.json())
 
-    def _retrieve_user_role(self, user):
+    def _retrieve_user_roles(self, user):
         """
         """
         response = self._conn.get(
@@ -1446,7 +1446,7 @@ class RestAPI(object):
         assert response.status_code==200, failure_information(response)
         return clean_unicode(response.json())
 
-    def _update_user_role(self, user, roles):
+    def _update_user_roles(self, user, roles):
         """
         """
         response = self._conn.put(
@@ -1503,8 +1503,8 @@ class RestAPI(object):
                 },
             json = {},
             )
-        assert response.status_code==200, failure_information(response)
-        return clean_unicode(response.json())
+        assert response.status_code==204, failure_information(response)
+        return None
 
 
     # Web Server Certificates

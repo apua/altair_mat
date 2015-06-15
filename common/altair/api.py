@@ -99,54 +99,8 @@ class Altair(RestAPI):
 
     # users
     # =====
-
-    def get_users(self):
-        def get_role(user):
-            members = self._retrieve_user_role(user)['members']
-            return (mem['roleName'] for mem in members)
-
-        # Don`t know how to treat those special users yet,
-        # since they invisible at first, visible after modified,
-        # and no options talk about that.
-        # So, just ignore them now.
-        builtin_usernames = ('paul','ralph','april','rheid')
-        users = [user for user in self._list_users()['members']
-                      if user['userName'] not in builtin_usernames]
-        for user in users:
-            user['password'] = ''
-            user['role'] = ', '.join(get_role(user['userName']))
-        return users
-
-    def add_user(self, user_data):
-        def clean(user_data):
-            from re import split
-            keys = ('emailAddress', 'enabled', 'fullName', 'userName',
-                    'mobilePhone', 'officePhone', 'password')
-            cleaned_data = {k.lower(): v for k,v in user_data.items()}
-            user_data = {k: cleaned_data[k.lower()] for k in keys}
-            role = split(r',\s*', cleaned_data['role'])
-            return user_data, role
-
-        cleaned_user_data, role = clean(user_data)
-        self._add_users(cleaned_user_data)
-        self._update_user_role(cleaned_user_data['userName'], role)
-
-    def update_user_info(self, user_data):
-        def clean(user_data):
-            from re import split
-            keys = ('emailAddress', 'enabled', 'fullName', 'userName',
-                    'mobilePhone', 'officePhone')
-            cleaned_data = {k.lower(): v for k,v in user_data.items()}
-            user_data = {k: cleaned_data[k.lower()] for k in keys}
-            return user_data
-
-        cleaned_user_data = clean(user_data)
-        self._update_user(cleaned_user_data)
-
-    def change_password(self, new_password):
-        self._update_user({'userName': self.username,
-                           'password': new_password,
-                           'currentPassword': self.password})
+    from .users import (get_users, add_user, delete_user,
+                        get_user_info, update_user_info)
 
     # network
     # =======
