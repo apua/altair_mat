@@ -111,6 +111,6 @@ class Altair(RestAPI):
     # first time setup
     # ================
 
-    from .fts import setup
+    from .init import setup
 
 requests.packages.urllib3.disable_warnings()
