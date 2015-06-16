@@ -1,3 +1,6 @@
+import yaml
+
+
 def generate_uri(netloc='localhost', path='', Query={}):
     """
     issues:
@@ -54,8 +57,6 @@ def get_diskspace(location):
 
 
 def set_config(data, config_path):
-    import yaml
-
     with open(config_path, 'w') as fp:
         yaml.safe_dump(data, stream=fp,
                        default_flow_style=False, indent=4,
@@ -63,11 +64,9 @@ def set_config(data, config_path):
 
 
 def get_config(config_path):
-    import yaml
-
     with open(config_path, 'r') as fp:
         try:
-            return yaml.load(fp)
+            return clean_unicode(yaml.load(fp))
         except yaml.scanner.ScannerError as e:
             msg_templ = (
                 'There is format error in "{filename}" line {linenum}.\n'
