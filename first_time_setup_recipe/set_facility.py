@@ -1,3 +1,9 @@
+"""
+Set facility & upload WinPE
+
+Updating WinPE and adding SUTs features are not implement yet
+"""
+
 __import__('sys').path.append('../common/')
 
 from altair.api import Altair
@@ -15,14 +21,22 @@ with Altair(appliance_ip, username, password) as api:
     api.set_media_settings(settings['media_settings'])
     api.set_product_keys(settings['product_keys'])
     api.set_facility_attributes(settings['facility_attributes'])
+
     try:
         api.set_activation_key(settings['activation_key'])
     except: # except reapplied case
         pass
+
     api.set_pxeboot_default(settings['pxeboot_default'])
+
     for user in settings['users']:
         if user['login_name']==username:
             # will not change password and modify admin roles
             api.update_user_info(user)
         else:
             api.add_user(user)
+
+    #api.upload_winpe(settings['winpe_source'])
+
+    #for sut in settings['suts']:
+    #    api.add_sut(sut) #async

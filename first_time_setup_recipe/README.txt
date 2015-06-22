@@ -9,8 +9,8 @@ FTS
   download & unzip
 → deploy OVA / OVF
 → set pwd & network & reboot
-→ set facility & upload WinPE
-→ add SUT & user
+→ *set facility & upload WinPE*
+→ add SUT & user (async)
 → add OSBP
 
 Issues
@@ -32,3 +32,4 @@ Issues
     u'...' -> '...'
 [ ] REST API error handlers have to improve
     such as HTTP response not always have payload (JSON)
+[ ] Test `export_altair_info.py`, `initiate.py`, `set_facility.py`
