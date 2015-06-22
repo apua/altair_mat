@@ -33,9 +33,9 @@ with Altair(appliance_ip, username, password) as api:
         'facility_attributes': api.get_facility_attributes(),
         'pxeboot_default':     api.get_pxeboot_default(),
         'activation_key':      api.get_activation_key(),
-        'winpe source':        '......',
+        #'winpe_source':        '......',
         'users':               api.get_users(),
-        #'SUTs':,
+        #'suts':,               api.get_suts(),
         }
 
 set_config(info, config_file)
