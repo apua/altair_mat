@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from sys import stdout
+
 import requests
 from .rest_api import RestAPI
 
@@ -95,7 +97,21 @@ class Altair(RestAPI):
     # =====
 
     def upload_winpe(self, abs_path):
-        pass
+        def write(s):
+            stdout.write(s)
+            stdout.flush()
+
+        def callback(monitor):
+            if not callback.disable:
+                show_text = '{:7.2f}%'.format(100. * monitor.bytes_read / monitor.len)
+                if monitor.bytes_read != monitor.len:
+                    write(show_text + '\b'*8)
+                else:
+                    callback.disable = True
+                    write(show_text + ' waiting Altair response... ')
+        callback.disable = False
+
+        self._upload_winpe(abs_path, callback=callback)
 
     # users
     # =====
