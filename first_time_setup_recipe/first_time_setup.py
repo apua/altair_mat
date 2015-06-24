@@ -29,6 +29,8 @@ with Altair(appliance_ip, username, password) as api:
 
     api.set_pxeboot_default(settings['pxeboot_default'])
 
+    api.upload_winpe(settings['winpe_source'])
+
     for user in settings['users']:
         if user['login_name']==username:
             # will not change password and modify admin roles
@@ -36,7 +38,5 @@ with Altair(appliance_ip, username, password) as api:
         else:
             api.add_user(user)
 
-    #api.upload_winpe(settings['winpe_source'])
-
-    #for sut in settings['suts']:
-    #    api.add_sut(sut) #async
+    for sut in settings['suts']:
+        job = api.add_sut(sut) #async
