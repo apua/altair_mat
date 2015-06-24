@@ -136,4 +136,9 @@ class Altair(RestAPI):
         supportAccess, version = self._accept_Eula(supportAccess='no')
         self._change_default_adminpass(passwd_info)
 
+    # SUTs
+    # ====
+
+    from .sut import get_suts, add_sut, set_sut
+
 requests.packages.urllib3.disable_warnings()
