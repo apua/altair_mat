@@ -15,8 +15,12 @@ def get_suts(api):
              'custom_attributes': get_attr(sut)}
             for sut in suts]
 
-def add_sut(api):
-    pass
+def add_sut(api, setting):
+    properties = {'port': 443,
+                  'ipAddress': setting['ilo_ip_address'],
+                  'username': setting['username'],
+                  'password': setting['password']}
+    return api._add_server(properties)
 
 def set_sut(api, setting):
-    pass
+    raise NotImplementedError()
