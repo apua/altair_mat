@@ -4,6 +4,7 @@ from sys import stdout
 
 import requests
 from .rest_api import RestAPI
+from .utils import generate_uri, failure_information
 
 class Altair(RestAPI):
     r"""
@@ -127,6 +128,12 @@ class Altair(RestAPI):
     # first time setup
     # ================
 
-    from .init import setup
+    def setup(api):
+        passwd_info = {'newPassword':api.password,
+                       'oldPassword':'admin',
+                       'userName':'administrator'}
+    
+        supportAccess, version = api._accept_Eula(supportAccess='no')
+        api._change_default_adminpass(passwd_info)
 
 requests.packages.urllib3.disable_warnings()
