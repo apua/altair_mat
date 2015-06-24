@@ -128,12 +128,12 @@ class Altair(RestAPI):
     # first time setup
     # ================
 
-    def setup(api):
-        passwd_info = {'newPassword':api.password,
+    def setup(self):
+        passwd_info = {'newPassword':self.password,
                        'oldPassword':'admin',
                        'userName':'administrator'}
     
-        supportAccess, version = api._accept_Eula(supportAccess='no')
-        api._change_default_adminpass(passwd_info)
+        supportAccess, version = self._accept_Eula(supportAccess='no')
+        self._change_default_adminpass(passwd_info)
 
 requests.packages.urllib3.disable_warnings()
