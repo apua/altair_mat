@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from os.path import split as psplit
+
+from requests_toolbelt.multipart.encoder import MultipartEncoder, MultipartEncoderMonitor
 from .utils import generate_uri, failure_information, clean_unicode
 
 class RestAPI(object):
@@ -122,6 +125,30 @@ class RestAPI(object):
 
     # Deployment Settings
     # -------------------
+
+    def _upload_winpe(self, source_path, callback=None):
+        m = MultipartEncoderMonitor.from_fields(
+            fields={'file': (psplit(source_path)[-1], open(source_path), 'application/x-zip-compressed')},
+            callback=callback,
+            )
+
+        response = self._conn.post(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/os-deployment-settings/WinPE",
+                ),
+            headers = {
+                "X-API-Version": 108,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                "Content-Type": m.content_type,
+                },
+            data = m,
+            )
+        assert response.status_code==202, failure_information(response)
+        return clean_unicode(response.json)
+
+
 
     def _export_content(self):
         response = self._conn.get(
@@ -830,16 +857,18 @@ class RestAPI(object):
         return clean_unicode(response.json())
 
 
-    def _retrieve_server(self, serverID):
+    def _retrieve_server(self, serverID=None, uri=None):
         """
         basic usage:
             sessionID, serverID -> uri, name, description, customAttributes
 
         """
+        assert (serverID is None)+(uri is None)==1
+        path = "/rest/os-deployment-servers/{serverID}".format(**locals()) if uri is None else uri
         response = self._conn.get(
             generate_uri(
                 netloc = self.appliance_ip,
-                path = "/rest/os-deployment-servers/{serverID}".format(**locals()),
+                path = path,
                 ),
             headers = {
                 "X-API-Version": 102,
