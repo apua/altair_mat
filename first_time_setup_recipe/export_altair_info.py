@@ -45,3 +45,4 @@ with open(variables_file, 'w') as f:
         indent = ' '*(len(k)+3)
         for ln, line in enumerate(pformat(v).splitlines()):
             f.write((indent if ln else k+' = ')+line+'\n')
+        f.write('\n')
