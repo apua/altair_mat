@@ -1,4 +1,6 @@
+import functools
 import yaml
+import time
 
 
 def generate_uri(netloc='localhost', path='', Query={}):
@@ -93,3 +95,24 @@ def clean_unicode(s):
         return dict((clean_unicode(k), clean_unicode(s[k])) for k in s)
     else:
         return s
+
+
+def retry(times=None, wait=None):
+    """
+    Given times of retry and seconds of waiting,
+    return a decorator wating a period of time and retrying if failed.
+    """
+    if times is None and wait is None:
+        times
+    def dec(func):
+        @functools.wraps(func)
+        def func_(*a,**k):
+            for _ in range(times):
+                try:
+                    return func(*a, **k)
+                except Exception as e:
+                    print(e.message)
+                    print("\033[7m"+"....wait and retry"+"\033[m")
+                    time.sleep(wait)
+        return func_
+    return dec

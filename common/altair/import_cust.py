@@ -1,3 +1,5 @@
+from .utils import retry
+
 def import_cust_info(api, new_info, remove_unused=False):
     """
     Given the newer customized info. Diff and upload/update/remove
@@ -44,6 +46,7 @@ def import_cust_info(api, new_info, remove_unused=False):
             for member in api._list_index({'category': cate})['members']
             }
 
+    @retry(times=6, wait=20)
     def gen_step_data(step, uri_mapping):
         """
         It is also strange,
@@ -103,9 +106,10 @@ def import_cust_info(api, new_info, remove_unused=False):
 
     def upload_cust_osbps(api, uploads):
         uri_mapping = get_uri_mapping(api)
+        add_osbp = retry(times=6, wait=20)(api._add_OSBP)
         for name, osbp in uploads['osbp'].items():
             print('upload OSBP', name)
-            api._add_OSBP({
+            add_osbp({
                 'type': 'OSDBuildPlan',
                 'modified':'0000-00-00T00:00:00.000Z',
                 'arch': 'x64',
@@ -124,9 +128,10 @@ def import_cust_info(api, new_info, remove_unused=False):
         uri_mapping = get_uri_mapping(api)
         modified_mapping = get_modified_mapping(api)
 
+        edit_osbp = retry(times=3, wait=20)(api._edit_OSBP)
         for name, osbp in updates['osbp'].items():
             print('update OSBP', name)
-            api._edit_OSBP(uri=uri_mapping[name], properties={
+            edit_osbp(uri=uri_mapping[name], properties={
                 'type': 'OSDBuildPlan',
                 'lifeCycle': 'AVAILABLE',
                 'arch': 'x64',
