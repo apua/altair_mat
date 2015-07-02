@@ -24,6 +24,12 @@ class Altair(object):
                "To use Altair API, please set appliance IP and login first"
         return self.api.session_id
 
+    def upload_winpe_and_show_progress(self, *a):
+        assert hasattr(self, "api"), \
+               "To use Altair API, please set appliance IP and login first"
+        write = lambda msg: logger.console(msg, newline=False)
+        return self.upload_winpe(*a, write=write)
+
 
 def gen_unbound_method(name):
     def unbound_method(self, *a, **k):

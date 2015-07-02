@@ -97,10 +97,11 @@ class Altair(RestAPI):
     # WinPE
     # =====
 
-    def upload_winpe(self, abs_path):
-        def write(s):
-            stdout.write(s)
-            stdout.flush()
+    def upload_winpe(self, abs_path, write=None):
+        if write is None:
+            def write(s):
+                stdout.write(s)
+                stdout.flush()
 
         def callback(monitor):
             if not callback.disable:
