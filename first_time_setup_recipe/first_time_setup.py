@@ -33,7 +33,6 @@ with Altair(appliance_ip, username, password) as api:
 
     existed = {user['login_name'] for user in api.get_users()}
     for user in settings['users']:
-        print(user['login_name'])
         (api.update_user if user['login_name'] in existed else api.add_user)(user)
         api.change_password(user['password'], user['login_name'])
 
