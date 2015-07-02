@@ -21,7 +21,10 @@ class Altair(object):
 
 
 def gen_unbound_method(name):
-    unbound_method = lambda self, *a, **k: getattr(self.api, name)(*a, **k)
+    def unbound_method(self, *a, **k):
+        assert hasattr(self, "api"), \
+               "To use Altair API, please set appliance IP and login first"
+        return getattr(self.api, name)(*a, **k)
     unbound_method.__name__ = name
     return unbound_method
 
