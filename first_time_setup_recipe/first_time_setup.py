@@ -22,10 +22,10 @@ with Altair(appliance_ip, username, password) as api:
     api.set_product_keys(settings['product_keys'])
     api.set_facility_attributes(settings['facility_attributes'])
 
-    try:
+    if api.get_activation_status()!="activated":
         api.set_activation_key(settings['activation_key'])
-    except: # except reapplied case
-        pass
+    else:
+        print(api.get_activation_key(), settings['activation_key'])
 
     api.set_pxeboot_default(settings['pxeboot_default'])
 
