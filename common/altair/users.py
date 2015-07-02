@@ -141,19 +141,22 @@ def update_user(self, data):
 
 def change_password(self, new_password, username=None):
     """
-    Change password with different new password
+    Set password
 
-    It will be refined to set password even if newpassword is same as old one in the future.
+    It will be refine to check exception
     """
-    if username and username!=self.username:
-        if not user_existed(self, username):
-            raise Exception('user "{}" not existed'.format(username))
-        self._update_user({'userName': username,
-                           'password': new_password})
-    else:
-        self._update_user({'userName': self.username,
-                           'password': new_password,
-                           'currentPassword': self.password})
+    try:
+        if username and username!=self.username:
+            if not user_existed(self, username):
+                raise Exception('user "{}" not existed'.format(username))
+            self._update_user({'userName': username,
+                               'password': new_password})
+        else:
+            self._update_user({'userName': self.username,
+                               'password': new_password,
+                               'currentPassword': self.password})
+    except:
+        pass
 
 def change_own_password(self, new_password):
     raise NotImplementedError
