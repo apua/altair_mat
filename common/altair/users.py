@@ -1,112 +1,164 @@
 """
-Since given data may only part of keys or typo,
-it has to be checked.
-In fact, it is not necessary.
+CURD for Altair users
+
+keys: login_name, full_name, email, mobile_phone, office_phone
+all keys: keys | password | roles
+
+add user:        Dict[login_name, password, roles, *] -> None
+update user:     Dict[login_name, *] -> None
+change password: password, (username) -> None
+get users:       None -> List[ Dict[all keys] ]
+get user:        username -> Dicst[all keys]
+delete user:     username -> None
 """
 
-def check_not_user_existed(self, username):
-    """
-    There is also REST API for checking username is existed or not
-    """
+#### Some functions for checking
+valid_keys = ('login_name', 'password', 'full_name', 'roles', 'email', 'mobile_phone', 'office_phone')
+possible_roles = []
+namemap = {'userName': 'login_name',
+           'fullName': 'full_name',
+           'password': 'password',
+           #'enabled' -- not necessary
+           'emailAddress': 'email',
+           'mobilePhone': 'mobile_phone',
+           'officePhone': 'office_phone'}
+namemap_ = {v:k for k,v in namemap.items()}
+
+def user_existed(self, username):
     for user in self.get_users():
         if user['login_name']==username:
-            raise Exception('user "{}" existed'.format(username))
+            return True
+    else:
+        return False
 
-def check_user_data_keys_correct(self, keys):
-    valid_keys = ('login_name', 'password', 'full_name', 'roles',
-                  'email', 'mobile_phone', 'office_phone')
-    if not set(valid_keys).issuperset(keys):
+def keys_invalid(self, keys):
+    return not set(valid_keys).issuperset(keys)
+
+def user_roles_incorrect(self, roles):
+    if not possible_roles:
+        possible_roles.extend(self._list_roles_and_associated().keys())
+    return not set(possible_roles).issuperset(roles)
+
+def has_necessary_keys(self, keys, nece_keys):
+    return set(keys).issuperset(nece_keys)
+
+#### Create
+
+def add_user(self, user):
+    given_keys = ('login_name', 'password', 'roles')
+    if not has_necessary_keys(self, user.keys(), given_keys):
+        raise Exception('some keys are not present\n'
+                        '  the necessary keys: {}\n'
+                        '  your keys: {}'.format(given_keys, user.keys()))
+
+    if user_existed(self, user['login_name']):
+        raise Exception('user "{}" existed'.format(user['login_name']))
+
+    if keys_invalid(self, user.keys()):
         raise Exception('some keys are not present\n'
                         '  the possible keys: {}\n'
-                        '  your keys: {}'.format(valid_keys, keys))
+                        '  your keys: {}'.format(valid_keys, user.keys()))
 
-def check_roles_correct(self, roles):
-    possible_roles = self._list_roles_and_associated().keys()
-    if not set(possible_roles).issuperset(roles):
+    if user_roles_incorrect(self, user['roles']):
         raise Exception('some roles are not present in the appliance\n'
                         '  the possible roles: {}\n'
-                        '  your roles: {}'.format(possible_roles, roles))
-####
+                        '  your roles: {}'.format(possible_roles, user['roles']))
 
-def gen_cleaned_data(self, data):
-    user_data = {'userName': data['login_name'],
-                 'fullName': data.get('full_name'),
-                 'password': data['password'],
-                 #'enabled': True, # not necessary ....= =a
-                 'emailAddress': data.get('email'),
-                 'mobilePhone': data.get('mobile_phone'),
-                 'officePhone': data.get('office_phone')}
+    nece_keys = valid_keys
+    data = dict.fromkeys(nece_keys, '')
+    data.update(user)
+    info = {namemap_[k]:v for k,v in data.items() if k!='roles'}
     roles = data['roles']
-    return user_data, roles
+    self._add_users(info)
+    self._update_user_roles(data['login_name'], roles)
 
-####
+#### Read
 
 def get_users(self):
-    def remove_builtin_usernames(users):
-        r"""
-        Don`t know how to treat those special users yet,
-        since they invisible at first, visible after modified,
-        and no options talk about that.
-        So, just ignore them now.
-    
-        The builtin usernames only appear in combined appliance.
-        """
-        builtin_usernames = ('paul','ralph','april','rheid')
-        for idx in reversed(range(len(users))):
-            if users[idx]['userName'] in builtin_usernames:
-                del users[idx]
+    def get_roles(username):
+        return [m['roleName'] for m in self._retrieve_user_roles(username)['members']]
 
-    def get_roles(user):
-        return [m['roleName'] for m in self._retrieve_user_roles(user)['members']]
+    def generate_cleaned_user(user):
+        data = {namemap[k]: v for k,v in user.items() if k!='enabled'}
+        data['roles'] = get_roles(data['login_name'])
+        return data
 
     users = self._list_users()['members']
-    remove_builtin_usernames(users)
-    return [{'login_name':   user['userName'],
-             'password':     '......',
-             'full_name':    user['fullName'],
-             'roles':        get_roles(user['userName']),
-             #'enabled':      users['enabled'], # useless?
-             'email':        user['emailAddress'],
-             'mobile_phone': user['mobilePhone'],
-             'office_phone': user['officePhone']}
-            for user in users]
 
+    # remove built-in usernames
+    #
+    #    Don`t know how to treat those special users yet,
+    #    since they invisible at first, visible after modified,
+    #    and no options talk about that.
+    #    So, just ignore them now.
+    #
+    #    The builtin usernames only appear in combined appliance.
+    builtin_usernames = ('paul','ralph','april','rheid')
+    for idx in reversed(range(len(users))):
+        if users[idx]['userName'] in builtin_usernames:
+            del users[idx]
 
-def add_user(self, data):
-    check_not_user_existed(self, data['login_name'])
-    check_user_data_keys_correct(self, data.keys())
-    check_roles_correct(self, data['roles'])
-
-    user_data, roles = gen_cleaned_data(self, data)
-    self._add_users(user_data)
-    self._update_user_roles(user_data['userName'], roles)
-
-
-def delete_user(self, username):
-    self._delete_user(username)
-
+    return list(map(generate_cleaned_user, users))
 
 def get_user_info(self, username):
+    raise NotImplementedError
+
+def get_user(self, username):
+    # not implement with REST API yet
     for user in self.get_users():
         if user['login_name']==username:
             return user
+    else:
+        raise Exception('no such user')
 
+#### Update
 
 def update_user_info(self, data):
-    check_user_data_keys_correct(self, data.keys())
-    check_roles_correct(self, data['roles'])
+    raise NotImplementedError
 
-    user_data, roles = gen_cleaned_data(self, data)
-    if user_data['userName']==self.username:
-        print('**Notice: if you want to change your own password, '
-              'please use `api.change_own_password` for explicit.**')
-        user_data['password'] = user_data['currentPassword'] = None
-    self._update_user(user_data)
-    if user_data['userName'].lower()!='administrator':
-        self._update_user_roles(user_data['userName'], roles)
+def update_user(self, data):
+    """
+    Update user information except password
+    """
+    if keys_invalid(self, data.keys()):
+        raise Exception('some keys are not present\n'
+                        '  the possible keys: {}\n'
+                        '  your keys: {}'.format(valid_keys, user.keys()))
 
+    user = self.get_user(data['login_name'])
+    user.update(data)
+
+    info = {namemap_[k]:v for k,v in user.items() if k!='roles'}
+    roles = user['roles']
+
+    # update user information
+    info['password'] = None
+    self._update_user(info)
+
+    # update role
+    if user['login_name'].lower()!='administrator':
+        self._update_user_roles(user['login_name'], roles)
+
+def change_password(self, new_password, username=None):
+    """
+    Change password with different new password
+
+    It will be refined to set password even if newpassword is same as old one in the future.
+    """
+    if username and username!=self.username:
+        if not user_existed(self, username):
+            raise Exception('user "{}" not existed'.format(username))
+        self._update_user({'userName': username,
+                           'password': new_password})
+    else:
+        self._update_user({'userName': self.username,
+                           'password': new_password,
+                           'currentPassword': self.password})
 
 def change_own_password(self, new_password):
-    self._update_user({'userName': self.username,
-                       'password': new_password,
-                       'currentPassword': self.password})
+    raise NotImplementedError
+
+#### Delete
+
+def delete_user(self, username):
+    self._delete_user(username)
