@@ -86,7 +86,8 @@ class Altair(RestAPI):
     # the activation key
     # ==================
 
-    from .activation_key import get_activation_key, set_activation_key
+    from .activation_key import (get_activation_status,
+                                 get_activation_key, set_activation_key)
 
     # OSBPs and related
     # =================

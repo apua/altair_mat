@@ -1,8 +1,17 @@
 from base64 import b64encode, b64decode
 
+def get_activation_status(api):
+    resp = api._retrieve_activation()
+    status = resp['status'].lower()
+    if status not in ('activated', 'trial', 'trial_expired', 'unactivated'):
+        raise NotImplementedError
+    return status
+
 def get_activation_key(api):
-    key = api._retrieve_activation()['activationCode']
-    return b64encode(key)
+    resp = api._retrieve_activation()
+    status = resp['status'].lower()
+    if status in ('activated',):
+        return b64encode(resp['activationCode'])
 
 def set_activation_key(api, key_):
     activation = api._retrieve_activation()
