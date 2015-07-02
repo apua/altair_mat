@@ -19,6 +19,11 @@ class Altair(object):
         self.api = API(appliance_ip)
         return self.api
 
+    def get_session_id(self):
+        assert hasattr(self, "api"), \
+               "To use Altair API, please set appliance IP and login first"
+        return self.api.session_id
+
 
 def gen_unbound_method(name):
     def unbound_method(self, *a, **k):
