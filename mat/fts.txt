@@ -17,11 +17,12 @@ Login Altair
 Logout Altair
     logout
     ${session_id}=      Get session id
+    #Should be equal     ${session_id}       ${None}
 
 *** Test Cases ***
 Check connection
     ${session_id}=                      Get session ID
-    Should not be equal as strings      ${session_id}       "None"
+    Should not be equal     ${session_id}       ${None}
 
 Set facility attributes
     [Tags]      ignore
