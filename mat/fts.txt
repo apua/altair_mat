@@ -1,0 +1,66 @@
+*** Settings ***
+Library     Altair
+Variables   test_data.py
+Suite Setup     Login Altair
+Suite Teardown  Logout Altair
+
+*** Variables ***
+${appliance IP}=    ${basic_information['appliance_ip']}
+${username}=        ${basic_information['username']}
+${password}=        ${basic_information['password']}
+
+*** Keywords ***
+Login Altair
+    set appliance IP    ${appliance IP}
+    login   ${username}     ${password}
+
+Logout Altair
+    logout
+    ${session_id}=      Get session id
+
+*** Test Cases ***
+Check connection
+    ${session_id}=                      Get session ID
+    Should not be equal as strings      ${session_id}       "None"
+
+Set facility attributes
+    [Tags]      ignore
+    Log to console              [7mMedia Settings[m
+    Set media settings          ${media_settings}
+
+    Log to console              [7mProduct Keys[m
+    Set product keys            ${product_keys}
+
+    Log to console              [7mFacility Attributes[m
+    Set facility attributes     ${facility_attributes}
+
+    ${act_status}=      Get activation status
+    Run keyword IF      "${act_status}"!="activated"
+    ...                 Log to console          [7mActivation Key[m
+    ...                 Set activation key      ${activation_key}
+    ...       ELSE
+    ...                 Log to console          [7mPass[m
+
+    Log to console              [7mPXE Boot Default[m
+    Set pxeboot default         ${pxeboot_default}
+
+Upload WinPE
+    [Tags]      ignore
+    #Upload WinPE    ${winpe_source}
+    Upload WinPE and show progress      ${winpe_source}
+
+Add users
+    [Tags]      ignore
+    #:For    ${user}     in      @{users}
+    #\       Log to console      ${user['login_name']}
+    #\       Run keyword IF      "${user['login_name']}"=="administrator"
+    #        ...                 Update user info    ${user}
+    #        ...       ELSE
+    #        ...                 Add user        ${users}
+    Set users     ${users}
+
+Add SUTs
+    [Tags]      ignore
+
+Add customized OSBPs
+    [Tags]      ignore
