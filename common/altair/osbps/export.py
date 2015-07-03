@@ -5,7 +5,7 @@ osbp_steps_type_mapping = {
     'os-deployment-install-zips':     'packages',
     }
 
-def export_cust_info(api, interval=0, fetch_all=True):
+def export_custom_osbps(api, interval=0, fetch_all=True):
     """
     Fetch osbp, config, ogfsScript, serverScript, and then return the necessary data.
 

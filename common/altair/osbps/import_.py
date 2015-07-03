@@ -1,6 +1,6 @@
-from .utils import retry
+from ..utils import retry
 
-def import_cust_info(api, new_info, remove_unused=False):
+def import_custom_osbps(api, new_info, remove_unused=False):
     """
     Given the newer customized info. Diff and upload/update/remove
 

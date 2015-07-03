@@ -92,8 +92,7 @@ class Altair(RestAPI):
     # OSBPs and related
     # =================
 
-    from .export_cust import export_cust_info
-    from .import_cust import import_cust_info
+    from .osbps import export_custom_osbps, import_custom_osbps
 
     # WinPE
     # =====
