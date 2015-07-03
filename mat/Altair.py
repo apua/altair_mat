@@ -30,6 +30,20 @@ class Altair(object):
         write = lambda msg: logger.console(msg, newline=False)
         return self.upload_winpe(*a, write=write)
 
+    def set_users(self, users):
+        existed = {user['login_name'] for user in self.get_users()}
+        failed = []
+        for user in users:
+            method = self.update_user if user['login_name'] in existed else self.add_user
+            try:
+                method(user)
+                self.change_password(user['password'], user['login_name'])
+            except:
+                failed.append((method.__name__, user['login_name']))
+
+        if failed:
+            raise Exception("Some users are add/update failed: {}".format(failed))
+
 
 def gen_unbound_method(name):
     def unbound_method(self, *a, **k):
