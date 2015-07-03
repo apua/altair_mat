@@ -93,8 +93,9 @@ After discussion
 [✓] Explain the requirements:
     + Python
     + Git (Finally, we just use CSINFS but Teamforge)
-[ ] Support *custom attirbutes of osbps*
-[ ] "export_cust_info" and "import_cust_info" are not explicit enough
+[✓] Support *custom attirbutes of osbps*
+[✓] "export_cust_info" and "import_cust_info" are not explicit enough
+    replaced with "export_custom_osbps" and "import_custom_osbps"
 
 Altair:
 [ ] 統一 naming REST API
