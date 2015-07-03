@@ -196,7 +196,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
             print('remove config', name)
             api._delete_cfgfile(uri=uri_mapping[name])
 
-    diff = compare_cust(api.export_cust_info(fetch_all=True), new_info)
+    diff = compare_cust(api.export_custom_osbps(fetch_all=True), new_info)
 
     if remove_unused:
         remove_cust(api, removes=diff['removes'])
