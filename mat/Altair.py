@@ -4,8 +4,8 @@ It is a Robot Framework Library which provides keywords to control Altair with A
 
 __import__('sys').path.append('../common/')
 
-from inspect import getmembers
 from robot.api import logger
+
 from altair.api import Altair as API
 from altair import utils
 utils.output.method = logger.console
@@ -51,7 +51,7 @@ def gen_unbound_method(name):
     return unbound_method
 
 
-for name, value in getmembers(API):
+for name in dir(API):
     if name.startswith('_'):
         continue
     keyword = name

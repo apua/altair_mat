@@ -53,12 +53,6 @@ Upload WinPE
 
 Add users
     [Tags]      ignore
-    #:For    ${user}     in      @{users}
-    #\       Log to console      ${user['login_name']}
-    #\       Run keyword IF      "${user['login_name']}"=="administrator"
-    #        ...                 Update user info    ${user}
-    #        ...       ELSE
-    #        ...                 Add user        ${users}
     Set users     ${users}
 
 Add SUTs
