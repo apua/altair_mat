@@ -7,6 +7,9 @@ __import__('sys').path.append('../common/')
 from inspect import getmembers
 from robot.api import logger
 from altair.api import Altair as API
+from altair import utils
+utils.output.method = logger.console
+
 
 class Altair(object):
     r"""
@@ -23,12 +26,6 @@ class Altair(object):
         assert hasattr(self, "api"), \
                "To use Altair API, please set appliance IP and login first"
         return self.api.session_id
-
-    def upload_winpe_and_show_progress(self, *a):
-        assert hasattr(self, "api"), \
-               "To use Altair API, please set appliance IP and login first"
-        write = lambda msg: logger.console(msg, newline=False)
-        return self.upload_winpe(*a, write=write)
 
     def set_users(self, users):
         existed = {user['login_name'] for user in self.get_users()}

@@ -47,8 +47,7 @@ Set facility attributes
 
 Upload WinPE
     [Tags]      ignore
-    #Upload WinPE    ${winpe_source}
-    Upload WinPE and show progress      ${winpe_source}
+    Upload WinPE    ${winpe_source}
 
 Add users
     [Tags]      ignore
