@@ -1,4 +1,4 @@
-from ..utils import retry
+from ..utils import retry, output
 
 def import_custom_osbps(api, new_info, remove_unused=False):
     """
@@ -60,7 +60,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 name = next(n for i in reversed(range(len(step['name'])))
                               for n in uri_mapping
                               if n.startswith(step['name'][:i]) )
-                print('Choose package "{}" but "{}"'.format(name, step['name']))
+                output('Choose package "{}" but "{}"'.format(name, step['name']))
             except StopIteration:
                 raise Exception('Cannot find suitable package for "{name}"'.format(**step))
             except:
@@ -77,7 +77,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
 
     def upload_cust_items(api, uploads):
         for name, script in uploads['serverScript'].items():
-            print('upload', name)
+            output("uploading serverScript -- {}".format(name))
             api._add_serverScript({
                 'type': 'OSDServerScript',
                 'serverChanging': True,
@@ -88,7 +88,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 'codeType': script['type'],
                 })
         for name, script in uploads['ogfsScript'].items():
-            print('upload', name)
+            output("uploading ogfsScript -- {}".format(name))
             api._add_ogfsScript({
                 'type': "OSDOGFSScript",
                 'name': name,
@@ -96,7 +96,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 'source': script['cont'],
                 })
         for name, config in uploads['config'].items():
-            print('upload', name)
+            output("uploading config -- {}".format(name))
             api._add_cfgfile({
                 'type': 'OsdCfgFile',
                 'name':name,
@@ -108,7 +108,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
         uri_mapping = get_uri_mapping(api)
         add_osbp = retry(times=6, wait=20)(api._add_OSBP)
         for name, osbp in uploads['osbp'].items():
-            print('upload OSBP', name)
+            output("uploading osbp -- {}".format(name))
             add_osbp({
                 'type': 'OSDBuildPlan',
                 'modified':'0000-00-00T00:00:00.000Z',
@@ -130,7 +130,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
 
         edit_osbp = retry(times=3, wait=20)(api._edit_OSBP)
         for name, osbp in updates['osbp'].items():
-            print('update OSBP', name)
+            output("updating osbp ~~ {}".format(name))
             edit_osbp(uri=uri_mapping[name], properties={
                 'type': 'OSDBuildPlan',
                 'lifeCycle': 'AVAILABLE',
@@ -145,7 +145,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 })
 
         for name, config in updates['config'].items():
-            print('update config', name)
+            output("updating config ~~ {}".format(name))
             api._edit_cfgfile(uri=uri_mapping[name], properties={
                 'type': 'OsdCfgFile',
                 'name': name,
@@ -156,7 +156,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 })
 
         for name, script in updates['serverScript'].items():
-            print('update script', name)
+            output("updating serverScript ~~ {}".format(name))
             api._edit_serverScript(uri=uri_mapping[name], properties={
                 'type': 'OSDServerScript',
                 'serverChanging': True,
@@ -170,7 +170,7 @@ def import_custom_osbps(api, new_info, remove_unused=False):
                 })
 
         for name, script in updates['ogfsScript'].items():
-            print('update script', name)
+            output("updating ogfsScript ~~ {}".format(name))
             api._edit_ogfsScript(uri=uri_mapping[name], properties={
                 'type': "OSDOGFSScript",
                 'name': name,
@@ -184,16 +184,16 @@ def import_custom_osbps(api, new_info, remove_unused=False):
         uri_mapping = get_uri_mapping(api)
         # OSBPs have to be removed first
         for name in removes['osbp']:
-            print('remove osbp', name)
+            output("removing osbp .. {}".format(name))
             api._delete_OSBP(uri=uri_mapping[name])
         for name in removes['serverScript']:
-            print('remove script', name)
+            output("removing serverScript .. {}".format(name))
             api._delete_serverScript(uri=uri_mapping[name])
         for name in removes['ogfsScript']:
-            print('remove script', name)
+            output("removing ogfsScript .. {}".format(name))
             api._delete_ogfsScript(uri=uri_mapping[name])
         for name in removes['config']:
-            print('remove config', name)
+            output("removing config .. {}".format(name))
             api._delete_cfgfile(uri=uri_mapping[name])
 
     diff = compare_cust(api.export_custom_osbps(fetch_all=True), new_info)

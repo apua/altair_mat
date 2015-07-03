@@ -1,3 +1,5 @@
+from ..utils import output
+
 osbp_steps_type_mapping = {
     'os-deployment-install-cfgfiles': 'configs',
     'os-deployment-ogfs-scripts':     'ogfsScripts',
@@ -31,7 +33,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
         osbp = api._retrieve_OSBP(uri=member['uri'])
 
         time.sleep(interval)
-        print(osbp['name'])
+        output("osbp -- {}".format(osbp['name']))
 
         info['osbp'][osbp['name']] = {
             'attr': osbp['buildPlanCustAttrs'],
@@ -81,7 +83,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
 
     if fetch_all:
         for name, uri in cust_script_names.items():
-            print(name)
+            output("script -- {}".format(member['name']))
             if 'os-deployment-ogfs-scripts' in uri:
                 ogfsScript = api._retrieve_ogfsScript(uri=uri)
                 info['ogfsScript'][ogfsScript['name']] = {
@@ -98,7 +100,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
                     'sudo': serverScript['runAsSuperUser'],
                     }
         for member in api._list_index({'category':'osdcfgfile'})['members']:
-            print(member['name'])
+            output("config -- {}".format(member['name']))
             config = api._retrieve_cfgfile(uri=member['uri'])
             if config['isCustomerContent']:
                 info['config'][config['name']] = {

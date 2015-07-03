@@ -1,6 +1,8 @@
 import functools
-import yaml
+import os
+import sys
 import time
+import yaml
 
 
 def generate_uri(netloc='localhost', path='', Query={}):
@@ -111,8 +113,13 @@ def retry(times=None, wait=None):
                 try:
                     return func(*a, **k)
                 except Exception as e:
-                    print(e.message)
-                    print("\033[7m"+"....wait and retry"+"\033[m")
+                    output(e.message)
+                    output("\033[7m"+"....wait and retry"+"\033[m")
                     time.sleep(wait)
         return func_
     return dec
+
+
+def output(msg, newline=True):
+    output.method(msg, newline)
+output.method = lambda m, n: sys.stdout.write(m + (os.linesep if n else ''))

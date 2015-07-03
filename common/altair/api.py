@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from sys import stdout
-
 import requests
+requests.packages.urllib3.disable_warnings()
+
 from .rest_api import RestAPI
-from .utils import generate_uri, failure_information
+from .utils import output
+
 
 class Altair(RestAPI):
     r"""
@@ -97,20 +98,16 @@ class Altair(RestAPI):
     # WinPE
     # =====
 
-    def upload_winpe(self, abs_path, write=None):
-        if write is None:
-            def write(s):
-                stdout.write(s)
-                stdout.flush()
-
+    def upload_winpe(self, abs_path):
         def callback(monitor):
             if not callback.disable:
                 show_text = '{:7.2f}%'.format(100. * monitor.bytes_read / monitor.len)
                 if monitor.bytes_read != monitor.len:
-                    write(show_text + '\b'*8)
+                    msg = show_text + '\b'*8
                 else:
                     callback.disable = True
-                    write(show_text + ' waiting Altair response... ')
+                    msg = show_text + ' waiting Altair response... '
+                output(msg, newline=False)
         callback.disable = False
 
         self._upload_winpe(abs_path, callback=callback)
@@ -142,5 +139,3 @@ class Altair(RestAPI):
     # ====
 
     from .sut import get_suts, add_sut, set_sut
-
-requests.packages.urllib3.disable_warnings()
