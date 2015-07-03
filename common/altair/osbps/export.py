@@ -56,11 +56,13 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
                 # there is no way to check if it is customized or not from fetched data
                 config = api._retrieve_cfgfile(item['id'])
                 if config['isCustomerContent']:
+                    output("config -- {}".format(config['name']))
                     info['config'][config['name']] = {
                         'desc': config['description'],
                         'cont': config['text'],
                         }
             elif item['type']=='os-deployment-ogfs-scripts' and item['name'] in cust_script_names:
+                output("ogfsScript -- {}".format(ogfsScript['name']))
                 ogfsScript = api._retrieve_ogfsScript(item['id'])
                 info['ogfsScript'][ogfsScript['name']] = {
                     'desc': ogfsScript['description'],
@@ -68,6 +70,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
                     'type': ogfsScript['codeType'],
                     }
             elif item['type']=='os-deployment-server-scripts' and item['name'] in cust_script_names:
+                output("serverScript -- {}".format(serverScript['name']))
                 serverScript = api._retrieve_serverScript(item['id'])
                 info['serverScript'][serverScript['name']] = {
                     'desc': serverScript['description'],
@@ -83,8 +86,8 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
 
     if fetch_all:
         for name, uri in cust_script_names.items():
-            output("script -- {}".format(member['name']))
             if 'os-deployment-ogfs-scripts' in uri:
+                output("ogfsScript -- {}".format(member['name']))
                 ogfsScript = api._retrieve_ogfsScript(uri=uri)
                 info['ogfsScript'][ogfsScript['name']] = {
                     'desc': ogfsScript['description'],
@@ -92,6 +95,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
                     'type': ogfsScript['codeType'],
                     }
             elif 'os-deployment-server-scripts' in uri:
+                output("serverScript -- {}".format(member['name']))
                 serverScript = api._retrieve_serverScript(uri=uri)
                 info['serverScript'][serverScript['name']] = {
                     'desc': serverScript['description'],
@@ -100,9 +104,9 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
                     'sudo': serverScript['runAsSuperUser'],
                     }
         for member in api._list_index({'category':'osdcfgfile'})['members']:
-            output("config -- {}".format(member['name']))
             config = api._retrieve_cfgfile(uri=member['uri'])
             if config['isCustomerContent']:
+                output("config -- {}".format(member['name']))
                 info['config'][config['name']] = {
                     'desc': config['description'],
                     'cont': config['text'],
