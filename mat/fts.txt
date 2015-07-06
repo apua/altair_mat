@@ -39,10 +39,7 @@ Set facility attributes
 
     ${act_status}=      Get activation status
     Run keyword IF      "${act_status}"!="activated"
-    ...                 Log to console          [7mActivation Key[m
     ...                 Set activation key      ${activation_key}
-    ...       ELSE
-    ...                 Log to console          [7mPass[m
 
     Log to console              [7mPXE Boot Default[m
     Set pxeboot default         ${pxeboot_default}
