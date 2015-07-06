@@ -451,6 +451,42 @@ class RestAPI(object):
     # Jobs
     # ----
 
+    def _list_job(self):
+        response = self._conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/os-deployment-jobs",
+                ),
+            headers = {
+                "X-API-Version": 108,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, failure_information(response)
+        return clean_unicode(response.json())
+
+
+    def _retrieve_job(self, jobID=None, uri=None):
+        assert (jobID is None)+(uri is None)==1
+        path = "/rest/os-deployment-jobs/{jobID}".format(**locals()) if uri is None else uri
+        response = self._conn.get(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = path,
+                ),
+            headers = {
+                "X-API-Version": 108,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = {},
+            )
+        assert response.status_code==200, failure_information(response)
+        return clean_unicode(response.json())
+
+
     # OGFS Scripts
     # ------------
 

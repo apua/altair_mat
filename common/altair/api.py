@@ -138,4 +138,4 @@ class Altair(RestAPI):
     # SUTs
     # ====
 
-    from .sut import get_suts, add_sut, set_sut
+    from .sut import get_suts, add_sut

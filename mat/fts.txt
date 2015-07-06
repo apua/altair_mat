@@ -19,12 +19,12 @@ Login Altair
 Logout Altair
     logout
     ${session_id}=      Get session id
-    #Should be equal     ${session_id}       ${None}
+    #Should be equal     ${session_id}       None
 
 *** Test Cases ***
 Check connection
-    ${session_id}=                      Get session ID
-    Should not be equal     ${session_id}       ${None}
+    ${session_id}=          Get session ID
+    Should not be equal     ${session_id}   None
 
 Set facility attributes
     [Tags]      ignore
@@ -52,12 +52,17 @@ Add users
     [Tags]      ignore
     Set users     ${users}
 
-Add SUTs
-    [Tags]      ignore
-
 Add customized OSBPs
     [Tags]      ignore
     #${osbps}=       Export custom OSBPs
     #Log to console  ${osbps}
     ${osbps}=   Get config      ${osbps_path}
     Import custom OSBPs         ${osbps}
+
+Add SUT 0
+    [Tags]      ignore
+    ${status}=          Add SUT         ${suts[0]}
+    Should be equal     ${status}       ok
+
+Add SUT 1
+    [Tags]      ignore
