@@ -1,5 +1,3 @@
-import time
-
 def get_suts(api):
     def get_attr(sut):
         cust_attrs = {}
@@ -22,9 +20,4 @@ def add_sut(api, setting):
                   'ipAddress': setting['ilo_ip_address'],
                   'username': setting['username'],
                   'password': setting['password']}
-    uri = api._add_server(properties)['uri']
-    while 1:
-        time.sleep(10)
-        job = api._retrieve_job(uri=uri)
-        if job['running']=='false':
-            return job['status']
+    return api._add_server(properties)['uri']

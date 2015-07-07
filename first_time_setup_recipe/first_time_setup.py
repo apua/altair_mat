@@ -37,4 +37,6 @@ with Altair(appliance_ip, username, password) as api:
         api.change_password(user['password'], user['login_name'])
 
     for sut in settings['suts']:
-        status = api.add_sut(sut) #blocking
+        job_uri = api.add_sut(sut) #blocking
+        status = api.wait_job_finish(job_uri)
+        print(status)

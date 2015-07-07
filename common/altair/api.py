@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import time
+
 import requests
 requests.packages.urllib3.disable_warnings()
 
@@ -139,3 +141,10 @@ class Altair(RestAPI):
     # ====
 
     from .sut import get_suts, add_sut
+
+    def wait_job_finish(self, uri, interval=10):
+        while 1:
+            job = self._retrieve_job(uri=uri)
+            if job['running']=='false':
+                return job['status']
+            time.sleep(interval)
