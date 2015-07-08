@@ -1,25 +1,14 @@
 *** Settings ***
-Library     Altair
-Library     Altair.utils
 Variables   test_data.py
-Suite Setup     Login Altair
-Suite Teardown  Logout Altair
+
+Library     Altair      &{basic_information}
+Library     Altair.utils
+
+Suite Setup     Login
+Suite Teardown  Logout
 
 *** Variables ***
-${appliance IP}=    ${basic_information['appliance_ip']}
-${username}=        ${basic_information['username']}
-${password}=        ${basic_information['password']}
 ${osbps_path}=      ../osbps/20150630.txt
-
-*** Keywords ***
-Login Altair
-    set appliance IP    ${appliance IP}
-    login   ${username}     ${password}
-
-Logout Altair
-    logout
-    ${session_id}=      Get session id
-    #Should be equal     ${session_id}       None
 
 *** Test Cases ***
 Check connection
