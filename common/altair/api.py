@@ -28,6 +28,9 @@ class Altair(RestAPI):
         finally:
             api.logout()
     """
+    ROBOT_LIBRARY_VERSION = __version__ = '0.142857'
+    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+
     def __init__(self, appliance_ip, username=None, password=None, trust_env=False):
         r"""
         api = Altair(appliance_ip)
