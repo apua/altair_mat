@@ -77,6 +77,9 @@ class Altair(RestAPI):
         self._remove_session()
         self.session_id = None
 
+    def is_logged_in(self):
+        return bool(self.session_id)
+
     # media settings, product keys, facility attributes, pxeboot default
     # ==================================================================
 

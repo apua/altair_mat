@@ -11,9 +11,9 @@ Suite Teardown  Logout
 ${osbps_path}=      ../osbps/20150630.txt
 
 *** Test Cases ***
-Check connection
-    ${session_id}=          Get session ID
-    Should not be equal     ${session_id}   None
+Check login state
+    ${logged}=          is logged in
+    Should be true      ${logged}
 
 Set facility attributes
     [Tags]      ignore
