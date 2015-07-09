@@ -20,7 +20,7 @@ Suite Setup     Run Keywords    Login Altair
 Suite Teardown  Run Keywords    Logout Altair
 
 Default Tags    regression
-
+Force Tags      ignore
 
 *** Test Cases ***
 #################

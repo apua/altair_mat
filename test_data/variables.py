@@ -8,8 +8,9 @@ vsphere = {
     'datastore':     'apua',
     }
 
-basic_information = {
+login_information = {
     'appliance_ip': '10.30.1.235',
+    #'password': 'Compaq123',
     'password': 'hpvse123',
     'username': 'administrator',
     }
@@ -38,7 +39,7 @@ facility_attributes = {
     }
 
 
-winpe_source = '/ovf/icsp-winpe4.zip'
+winpe_source = '/ovf/icsp-winpe3.zip'
 
 pxeboot_default = 'linux6-64-ogfs'
 
