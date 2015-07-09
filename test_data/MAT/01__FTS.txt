@@ -1,14 +1,5 @@
 *** Settings ***
-Variables   variables.py
-
-Library     Altair      &{login_information}
-Library     Altair.utils
-
-Suite Setup     Login
-Suite Teardown  Logout
-
-*** Variables ***
-${osbps_path}=      ../osbps/20150630.txt
+Resource    resource.txt
 
 *** Test Cases ***
 Check login state
@@ -45,13 +36,5 @@ Add customized OSBPs
     [Tags]      ignore
     #${osbps}=       Export custom OSBPs
     #Log to console  ${osbps}
-    ${osbps}=   Get config      ${osbps_path}
+    ${osbps}=   utils.Get config    ${osbps_path}
     Import custom OSBPs         ${osbps}
-
-Add SUT 0
-    [Tags]      ignore
-    ${status}=          Add SUT         ${suts[0]}
-    Should be equal     ${status}       ok
-
-Add SUT 1
-    [Tags]      ignore

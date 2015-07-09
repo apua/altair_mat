@@ -1,0 +1,5 @@
+*** Settings ***
+Variables   variables.py
+
+Library     Altair      &{login_information}
+Library     Altair.utils    WITH NAME   utils
