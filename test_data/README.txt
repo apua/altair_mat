@@ -26,3 +26,5 @@ Issues
 [✓] improve job progress
 [ ] refine `variables.py` generator
 [ ] set custom attributues of SUTs
+[ ] improve `wait job finish` messages
+[ ] provide "run OSBPs test cases generator"
