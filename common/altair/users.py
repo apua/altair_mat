@@ -80,6 +80,7 @@ def get_users(self):
 
     def generate_cleaned_user(user):
         data = {namemap[k]: v for k,v in user.items() if k!='enabled'}
+        data['password'] = '......'
         data['roles'] = get_roles(data['login_name'])
         return data
 

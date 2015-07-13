@@ -9,10 +9,10 @@ variables_file = 'settings.py'
 config_file = 'settings.txt'
 
 settings = get_config(config_file)
-basic_information = settings['basic_information']
-appliance_ip  = basic_information['appliance_ip']
-username      = basic_information['username']
-password      = basic_information['password']
+login_information = settings['login_information']
+appliance_ip  = login_information['appliance_ip']
+username      = login_information['username']
+password      = login_information['password']
 
 with Altair(appliance_ip, username, password) as api:
     api.setup()

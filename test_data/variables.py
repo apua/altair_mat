@@ -74,6 +74,14 @@ suts = [
 
 activation_key = 'MzVWTlotSjJDSkMtNTdER1QtWjVWSlItWlI4Qzc='
 
+administrator = {'email': '',
+                 'full_name': 'Default appliance administrator',
+                 'login_name': 'administrator',
+                 'mobile_phone': '',
+                 'office_phone': '',
+                 'password': 'Compaq123',
+                 'roles': ['Infrastructure administrator']}
+
 users = [
     {'email': 'HPSCSISWTAIPEI@hp.com',
      'full_name': 'CSI User',
@@ -82,11 +90,6 @@ users = [
      'office_phone': '',
      'password': 'Hp@taipei',
      'roles': ['Server administrator']},
-    {'email': '',
-     'full_name': 'Default appliance administrator',
-     'login_name': 'administrator',
-     'mobile_phone': '',
-     'office_phone': '',
-     'password': 'Compaq123',
-     'roles': ['Infrastructure administrator']},
     ]
+
+osbps_path = '../osbps/20150630.txt'

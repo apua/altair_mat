@@ -13,7 +13,7 @@ def get_suts(api):
              'username': sut['ilo']['username'],
              'password': '....',
              'custom_attributes': get_attr(sut)}
-            for sut in suts]
+            for sut in suts if sut['ilo']]
 
 def add_sut(api, setting):
     properties = {'port': 443,

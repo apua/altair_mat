@@ -19,23 +19,25 @@ variables_file = 'settings.py'
 config_file = 'settings.txt'
 
 settings = get_config(config_file)
-basic_information = settings['basic_information']
-appliance_ip  = basic_information['appliance_ip']
-username      = basic_information['username']
-password      = basic_information['password']
+login_information = settings['login_information']
+appliance_ip  = login_information['appliance_ip']
+username      = login_information['username']
+password      = login_information['password']
 
 with Altair(appliance_ip, username, password) as api:
     info = {
-        'basic_information':   basic_information,
+        'login_information':   login_information,
         'network_setting':     api.get_network_setting(),
         'media_settings':      api.get_media_settings(),
         'product_keys':        api.get_product_keys(),
         'facility_attributes': api.get_facility_attributes(),
         'pxeboot_default':     api.get_pxeboot_default(),
         'activation_key':      api.get_activation_key(),
-        'winpe_source':        '......',
-        'users':               api.get_users(),
+        'users':               [u for u in api.get_users() if u['login_name']!='administrator'],
+        'administrator':       next(u for u in api.get_users() if u['login_name']=='administrator'),
         'suts':                api.get_suts(),
+        'winpe_source':        '......',
+        'osbps_path':          '......',
         }
 
 set_config(info, config_file)
