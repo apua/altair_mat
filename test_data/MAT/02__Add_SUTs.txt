@@ -1,6 +1,9 @@
+*** Settings ***
+Resource    resource.txt
+Force Tags  Add SUTs
+
 *** Test Cases ***
 Add SUTs
-    [Tags]      ignore
     [Template]  Add SUT ${sut} and wait the job finish
     :For    ${sut}  in  @{suts}
     \       ${sut}

@@ -1,0 +1,11 @@
+*** Settings ***
+Resource    resource.txt
+Force Tags  Add OSBPs
+
+*** Test Cases ***
+Add customized OSBPs
+    #${osbps}=       Export custom OSBPs
+    #Log to console  ${osbps}
+    ${osbps}=   utils.Get config    ${osbps_path}
+    Import custom OSBPs         ${osbps}
+    Sleep   1 minute    Since Altair takes too many IO, it might need to take a rest for cache or something else.

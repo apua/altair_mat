@@ -1,5 +1,6 @@
 *** Settings ***
 Resource    resource.txt
+Force Tags  FTS
 
 *** Test Cases ***
 Check login state
@@ -7,7 +8,6 @@ Check login state
     Should be true      ${logged}
 
 Set facility attributes
-    [Tags]      ignore
     Log to console              [7mMedia Settings[m
     Set media settings          ${media_settings}
 
@@ -25,16 +25,12 @@ Set facility attributes
     Set pxeboot default         ${pxeboot_default}
 
 Upload WinPE
-    [Tags]      ignore
     Upload WinPE    ${winpe_source}
 
-Add users
-    [Tags]      ignore
-    Set users     ${users}
+Set administrator
+    Update user     ${administrator}
+    Change password     ${administrator['password']}
 
-Add customized OSBPs
-    [Tags]      ignore
-    #${osbps}=       Export custom OSBPs
-    #Log to console  ${osbps}
-    ${osbps}=   utils.Get config    ${osbps_path}
-    Import custom OSBPs         ${osbps}
+Add users
+    :For    ${user}     in      @{users}
+    \       Add user    ${user}
