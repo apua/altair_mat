@@ -487,6 +487,26 @@ class RestAPI(object):
         return clean_unicode(response.json())
 
 
+    def _run_OSBP(self, properties, query={'force':'true'}):
+        response = self._conn.post(
+            generate_uri(
+                netloc = self.appliance_ip,
+                path = "/rest/os-deployment-jobs/",
+                Query = query,
+                ),
+            headers = {
+                "X-API-Version": 108,
+                "Accept-Language": "en_US",
+                "Auth": self.session_id,
+                },
+            json = properties,
+            )
+        assert response.status_code==202, failure_information(response)
+        return clean_unicode(response.json())
+
+
+
+
     # OGFS Scripts
     # ------------
 

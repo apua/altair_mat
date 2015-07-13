@@ -148,6 +148,13 @@ class Altair(RestAPI):
 
     from .sut import get_suts, add_sut
 
+    def run_osbp(self, osbp_name, server_uri):
+        osbps = self._list_index({'category':'osdbuildplan'})['members']
+        osbp_uri = next(osbp['uri'] for osbp in osbps if osbp['name']==osbp_name)
+        properties = {"osbpUris": [osbp_uri], "failMode":None, "serverData": [{"serverUri":server_uri, "personalityData":None}], "stepNo":1}
+        job_uri = self._run_OSBP(properties)['uri']
+        return job_uri
+
     def wait_job_finish(self, uri, interval=10):
         while 1:
             job = self._retrieve_job(uri=uri)
