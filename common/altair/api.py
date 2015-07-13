@@ -160,4 +160,5 @@ class Altair(RestAPI):
             job = self._retrieve_job(uri=uri)
             if job['running']=='false':
                 return job['status']
+            output("wait {} seconds...".format(interval))
             time.sleep(interval)
