@@ -148,10 +148,19 @@ class Altair(RestAPI):
 
     from .sut import get_suts, add_sut
 
-    def run_osbp(self, osbp_name, server_uri):
+    def run_osbp(self, osbp_name, sut_ilo):
         osbps = self._list_index({'category':'osdbuildplan'})['members']
         osbp_uri = next(osbp['uri'] for osbp in osbps if osbp['name']==osbp_name)
-        properties = {"osbpUris": [osbp_uri], "failMode":None, "serverData": [{"serverUri":server_uri, "personalityData":None}], "stepNo":1}
+        output("osbp_uri")
+        output(osbp_uri)
+
+        suts = (self._retrieve_server(uri=m['uri'])
+                for m in self._list_index({'category': 'osdserver'})['members'])
+        sut_uri = next(sut['uri'] for sut in suts if sut['ilo'] and sut['ilo']['ipAddress']==sut_ilo)
+        output("sut_uri")
+        output(sut_uri)
+
+        properties = {"osbpUris": [osbp_uri], "failMode":None, "serverData": [{"serverUri":sut_uri, "personalityData":None}], "stepNo":1}
         job_uri = self._run_OSBP(properties)['uri']
         return job_uri
 
