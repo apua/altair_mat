@@ -19,6 +19,7 @@ Windows OSBP test
 
 *** Keyword ***
 With ${sut_ilo} Run OSBP: ${osbp_name}
+    [Teardown]  Sleep   1 minute    Take a rest to try to avoid the job isn`t closed yet on Altair
     Log to console  OSBP name: ${osbp_name}
     Log to console  SUT iLO: ${sut_ilo}
     ${job_uri}=     Run OSBP    ${osbp_name}     ${sut_ilo}
