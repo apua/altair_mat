@@ -31,7 +31,7 @@ ALTAIR_SETTINGS = 'settings.cfg'
 
 # methods
 #altair235 = lambda: Altair(appliance_ip='10.30.1.235', username='administrator', password='Compaq123')
-api = Altair('10.30.1.231', 'administrator', 'hpvse123')
+api = Altair('10.30.1.235', 'administrator', 'hpvse123')
 api.login()
 p = lambda v: pprint(v, depth=1)
 
