@@ -5,7 +5,7 @@ Test Template   With ${sut_ilo} Run OSBP: ${osbp_name}
 
 *** Test Cases ***
 Boot into GAIUS with LinuxPE
-    :For    ${sut_ilo}  in      @{suts}
+    :For    ${sut}  in      @{suts}
     \       ${sut['ilo_ip_address']}    ProLiant HW - Boot Linux Service OS
 
 Windows OSBP test
