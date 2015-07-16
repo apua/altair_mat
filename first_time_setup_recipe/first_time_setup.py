@@ -17,6 +17,10 @@ appliance_ip  = login_information['appliance_ip']
 username      = login_information['username']
 password      = login_information['password']
 
+#api = Altair(appliance_ip)
+#api.setup()
+#api.set_network(settings['network_setting'])
+
 with Altair(appliance_ip, username, password) as api:
     api.set_media_settings(settings['media_settings'])
     api.set_product_keys(settings['product_keys'])
@@ -31,12 +35,16 @@ with Altair(appliance_ip, username, password) as api:
 
     api.upload_winpe(settings['winpe_source'])
 
+    api.update_user(settings['administrator'])
+    if '......'!=settings['administrator']['password']:
+        api.change_password(settings['administrator']['password'])
+
     existed = {user['login_name'] for user in api.get_users()}
     for user in settings['users']:
         (api.update_user if user['login_name'] in existed else api.add_user)(user)
         api.change_password(user['password'], user['login_name'])
 
-    for sut in settings['suts']:
-        job_uri = api.add_sut(sut) #blocking
-        status = api.wait_job_finish(job_uri)
-        print(status)
+    #for sut in settings['suts']:
+    #    job_uri = api.add_sut(sut) #blocking
+    #    status = api.wait_job_finish(job_uri)
+    #    print(status)

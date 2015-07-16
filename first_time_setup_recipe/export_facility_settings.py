@@ -15,7 +15,7 @@ from pprint import pformat
 from altair.api import Altair
 from altair.utils import get_config, set_config
 
-variables_file = 'settings.py'
+variables_file = 'variables.py'
 config_file = 'settings.txt'
 
 settings = get_config(config_file)
