@@ -63,3 +63,12 @@ Issues
 [ ] set custom attributues of SUTs
 [ ] improve `wait job finish` messages
 [ ] provide "run OSBPs test cases generator"
+
+
+===================
+Download the Source
+===================
+
+There is a shell script `archive.sh` to archiving Git repository with date as version number.
+
+Users can download the archive from `ftp://csinfs.americas.hpqcorp.net/altair-recipe` with credential `csi/csi`.
