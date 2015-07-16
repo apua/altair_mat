@@ -4,9 +4,10 @@ from altair.api import Altair
 from altair.utils import get_config, set_config
 
 settings = get_config('settings.txt')
-appliance_ip  = settings['appliance_ip']
-username      = settings['username']
-password      = settings['password']
+login_information = settings['login_information']
+appliance_ip  = login_information['appliance_ip']
+username      = login_information['username']
+password      = login_information['password']
 cust_filepath = settings['cust_filepath']
 
 try:
