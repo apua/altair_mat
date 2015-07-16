@@ -166,8 +166,12 @@ class Altair(RestAPI):
 
     def wait_job_finish(self, uri, interval=10):
         while 1:
-            job = self._retrieve_job(uri=uri)
-            if job['running']=='false':
-                return job['status']
-            output("wait {} seconds...".format(interval))
+            try:
+                job = self._retrieve_job(uri=uri)
+            except:
+                output("retrieving job failed, retry after {} seconds...".format(interval))
+            else:
+                if job['running']=='false':
+                    return job['status']
+                output("wait {} seconds...".format(interval))
             time.sleep(interval)
