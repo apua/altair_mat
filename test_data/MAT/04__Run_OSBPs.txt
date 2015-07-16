@@ -1,20 +1,27 @@
 *** Settings ***
 Resource    resource.txt
 Force Tags  Run OSBPs
-Test Template   With ${sut} Run OSBP: ${osbp}
+Test Template   With ${sut_ilo} Run OSBP: ${osbp_name}
 
 *** Test Cases ***
-Run OSBPs
-    16.153.112.91   ProLiant HW - Boot Linux Service OS
-    16.153.112.90   ProLiant HW - Boot Linux Service OS
-    16.153.112.91   ProLiant HW - Boot Linux Service OS
+Boot into GAIUS with LinuxPE
+    :For    ${sut_ilo}  in      @{suts}
+    \       ${sut['ilo_ip_address']}    ProLiant HW - Boot Linux Service OS
+
+Windows OSBP test
+    :For    ${sut}      in      @{suts}
+    #\       ${sut['ilo_ip_address']}    ProLiant OS - Windows 2008 SP2 Standard x64 Scripted Install
+    #\       ${sut['ilo_ip_address']}    ProLiant OS - Windows 2008 R2 SP1 Standard x64 Scripted Install
+    \       ${sut['ilo_ip_address']}    ProLiant OS - Windows 2012 Standard x64 Scripted Install
+    \       ${sut['ilo_ip_address']}    ProLiant OS - Windows 2012 R2 Standard x64 Scripted Install
+    #\       ${sut['ilo_ip_address']}    ProLiant OS - Windows 7 SP1 Professional x64 Scripted Install
+    \       ${sut['ilo_ip_address']}    ProLiant OS - Windows 8.1 Pro x64 Scripted Install
 
 *** Keyword ***
-With ${sut} Run OSBP: ${osbp}
-    Log to console  OSBP name: ${osbp}
-    Log to console  SUT iLO: ${sut}
-    ${job_uri}=     Run OSBP    ${osbp}     ${sut}
+With ${sut_ilo} Run OSBP: ${osbp_name}
+    Log to console  OSBP name: ${osbp_name}
+    Log to console  SUT iLO: ${sut_ilo}
+    ${job_uri}=     Run OSBP    ${osbp_name}     ${sut_ilo}
     Log to console  ${job_uri}
     ${status}=      wait job finish     ${job_uri}
     Should be equal  ${status}   ok
-
