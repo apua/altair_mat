@@ -7,7 +7,7 @@ url="//csinfs.americas.hpqcorp.net/csi"
 auth="csi%csi"
 
 cd ${dir}
-git archive --prefix=${repo} --format zip master -o ${tmp}/${filename}
+git archive --format zip master -o ${tmp}/${filename}
 
 cd ${tmp}
 smbclient ${url} -U ${auth} -c "cd ${repo} ; put ${filename}"
