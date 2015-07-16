@@ -69,6 +69,6 @@ Issues
 Download the Source
 ===================
 
-There is a shell script `archive.sh` to archiving Git repository with date as version number.
+There is a shell script `publish.sh` to publish git repo to FTP through SMB.
 
 Users can download the archive from `ftp://csinfs.americas.hpqcorp.net/altair-recipe` with credential `csi/csi`.
