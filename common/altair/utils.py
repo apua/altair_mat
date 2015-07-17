@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import functools
 import os
 import sys
@@ -61,8 +62,15 @@ def get_diskspace(location):
 
 
 def set_config(data, config_path):
+    def represent_ordereddict(dumper, data):
+        repr_data = dumper.represent_data
+        value = [(repr_data(k), repr_data(v)) for k,v in data.items()]
+        return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+    
+    yaml.add_representer(OrderedDict, represent_ordereddict)
     with open(config_path, 'w') as fp:
-        yaml.safe_dump(data, stream=fp,
+        yaml.dump(data, stream=fp,
+        #yaml.safe_dump(data, stream=fp,
                        default_flow_style=False, indent=4,
                        allow_unicode=True, encoding='utf-8', line_break='\r\n')
 
