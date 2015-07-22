@@ -13,7 +13,7 @@ The Altair recipes provide:
 + `customized OSBP`_ recipe
 
 
-The latest archive can be donwnloaded from
+The latest archive can be downloaded from
 `<ftp://csinfs.americas.hpqcorp.net/altair-recipe>`_ with credential `csi/csi`.
 
 
