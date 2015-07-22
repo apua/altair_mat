@@ -12,5 +12,3 @@ cust_filepath = settings['cust_filepath']
 
 with Altair(appliance_ip, username, password) as api:
     api.import_custom_osbps(get_config(cust_filepath))
-
-raw_input('Press any key to continue...')
