@@ -1,5 +1,7 @@
 #! /bin/sh
 
+# Run :code:`sh publish.sh` to publish this git repository to FTP through SMB.
+
 dir=`dirname $0`
 repo="altair-recipe"
 version=`date +%Y%m%d`
