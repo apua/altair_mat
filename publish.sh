@@ -1,3 +1,5 @@
+#! /bin/sh
+
 dir=`dirname $0`
 repo="altair-recipe"
 version=`date +%Y%m%d`
