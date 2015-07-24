@@ -66,13 +66,16 @@ def set_config(data, config_path):
         repr_data = dumper.represent_data
         value = [(repr_data(k), repr_data(v)) for k,v in data.items()]
         return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
-    
+
     yaml.add_representer(OrderedDict, represent_ordereddict)
     with open(config_path, 'w') as fp:
         yaml.dump(data, stream=fp,
         #yaml.safe_dump(data, stream=fp,
                        default_flow_style=False, indent=4,
-                       allow_unicode=True, encoding='utf-8', line_break='\r\n')
+                       allow_unicode=True, encoding='utf-8')
+                       # Do not use `line_break` manually,
+                       # since Python interpreter will handle it
+                       #allow_unicode=True, encoding='utf-8', line_break='\r\n')
 
 
 def get_config(config_path):
