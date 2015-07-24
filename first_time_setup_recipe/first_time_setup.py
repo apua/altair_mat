@@ -33,7 +33,8 @@ with Altair(appliance_ip, username, password) as api:
 
     api.set_pxeboot_default(settings['pxeboot_default'])
 
-    api.upload_winpe(settings['winpe_source'])
+    if settings['winpe_source']:
+        api.upload_winpe(settings['winpe_source'])
 
     api.update_user(settings['administrator'])
     if '......'!=settings['administrator']['password']:
