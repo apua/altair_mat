@@ -23,3 +23,7 @@ with Altair(appliance_ip, username, password) as api:
     cust_info = api.export_custom_osbps()
     #cust_info = api.export_custom_osbps(interval=1)
     set_config(cust_info, cust_filepath)
+
+print("""
+export customized OSBPs successfully
+""")

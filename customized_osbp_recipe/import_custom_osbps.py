@@ -12,3 +12,7 @@ cust_filepath = settings['cust_filepath']
 
 with Altair(appliance_ip, username, password) as api:
     api.import_custom_osbps(get_config(cust_filepath))
+
+print("""
+import customized OSBPs successfully
+""")
