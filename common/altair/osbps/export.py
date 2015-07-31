@@ -16,7 +16,7 @@ def export_custom_osbps(api, interval=0, fetch_all=True):
     You can set :param:`interval` (second) to wait after retrieve data everytime.
 
     You can set :param:`fetch_all` (bool) `False` to fetch config/script only related to customized OSBPs,
-    it will be faster since checking if config is customized or not cannot use index.
+    it will be faster since checking if config is customized cannot use index.
     """
     import time
 
