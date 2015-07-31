@@ -1,22 +1,56 @@
-Issues
-======
+====================
+ISSUES
+====================
+
+For convenience, record issues and progress here but on wiki, since there is
+only myself trace it; may migrate to wiki in the future.
+
+
+20150731
+====================
+
+:✓: refine recipe prompt
+:✓: export facility settings in order
+
+
+20150724
+====================
+
+:✓: fix YAML line feed problem on Windows/Unix-like
+
+
+20150715
+====================
+
+:✓: let `first_time_setup.py` not to upload winpe when :var:`winpe_source` is
+    empty.
+:✓: fix line break bug of generating "settings.txt"
+
+
+Earlier
+====================
 
 :✓: improve `add sut` that display progress
 :✓: implement OSBP feature
 :✓: improve job progress
 :✓: refine `variables.py` generator
+:✓: refine "update administrator" feature
+
+
+============================================================
+
+
+Issues
+======
+
 :_: set custom attributues of SUTs
 :_: improve `wait job finish` messages
 :_: provide "run OSBPs test cases generator"
 
-
-
-
 :_: MAT - avoid user forget to set administrator password
 :_: MAT - "add user" should be idempotemt
-:✓: recipe - "update administrator" feature
-:_: YAML dump can indicate newline charactor?
-:_: YAML dump with order dict
+
+:_: GUI tool - use portable Kivy?
 
 
 Issues
