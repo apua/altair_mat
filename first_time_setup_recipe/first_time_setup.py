@@ -40,14 +40,15 @@ with Altair(appliance_ip, username, password) as api:
 
     print("set other facility settings...")
     api.set_pxeboot_default(settings['pxeboot_default'])
-    Not_Upload_WinPE = True
+    not_upload_winpe = True
     if settings['winpe_source']:
         Not_Upload_WinPE = False
         api.upload_winpe(settings['winpe_source'])
 
-    print("set administrator information and password...")
+    print("update administrator information and password...")
     api.update_user(settings['administrator'])
-    if '......'!=settings['administrator']['password']:
+    if settings['administrator']['password'] not in ('......', password):
+        print("...(NOTE: administrator password has been changed)")
         api.change_password(settings['administrator']['password'])
 
     print("set users...")
@@ -67,4 +68,4 @@ first time setup is completed, the works below not be executed:
 - change network settings
 - adding SUTs
 - import customized OSBPs
-""".format("- upload WinPE\n" if Not_Upload_WinPE else ""))
+""".format("- upload WinPE\n" if not_upload_winpe else ""))
