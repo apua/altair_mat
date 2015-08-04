@@ -6,6 +6,12 @@ For convenience, record issues and progress here but on wiki, since there is
 only myself trace it; may migrate to wiki in the future.
 
 
+20150804
+====================
+
+:✓: use FTP but SMB to upload repo
+
+
 20150731
 ====================
 
