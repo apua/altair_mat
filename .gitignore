@@ -9,9 +9,7 @@ EVAunit00/settings.cfg
 
 *.cfg
 
-osbps/import_cust_osbps.py
-osbps/export_cust_osbps.py
-osbps/settings.txt
+osbps/*
 
 robo_test/*
 
