@@ -28,7 +28,8 @@ class Bar(object):
     def acc(self, v):
         self._acc = v
         p = 1.0*v/self.total
-        s = self.templ.format(p*100, '\033[3m'+int(p)*20*' '+'\033[m')
+        s = self.templ.format(p*100, int(p*20)*'#')
+        #s = self.templ.format(p*100, '\033[3m'+int(p*20)*' '+'\033[m')
         if v==self.total:
             print('\r'+s)
         else:
