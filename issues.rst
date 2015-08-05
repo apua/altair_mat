@@ -49,6 +49,10 @@ Earlier
 Issues
 ======
 
+:_: error handler uncolor
+:_: statistic which OSBPs import fail
+
+
 :_: set custom attributues of SUTs
 :_: improve `wait job finish` messages
 :_: provide "run OSBPs test cases generator"
