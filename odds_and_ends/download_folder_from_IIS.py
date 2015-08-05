@@ -68,10 +68,9 @@ def download_file(url):
 
 
 def download_folder(url):
-    try:
+    path = get_path(url)
+    if not os.path.isdir(path):
         os.makedirs(get_path(url))
-    except:
-        pass
 
     for link in get_links(url):
         url_ = urlparse.urljoin(url, link)
