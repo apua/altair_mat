@@ -43,8 +43,13 @@ def get_links(url):
     assert resp.ok
 
     soup = bs4.BeautifulSoup(resp.content)
-    for a in soup.pre.find_all('a')[1:]:
-        yield a.attrs['href']
+    try:
+        as_ = soup.pre.find_all('a')[1:]
+    except:
+        pass
+    else:
+        for a in as_:
+            yield a.attrs['href']
 
 
 def get_path(url):
