@@ -6,11 +6,12 @@ Example: "C:\Python27\python.exe"  "C:" "http://16.100.111.195/deployment/esxi51
 This is only for IIS
 """
 
-__import__('sys').path.append('../common/')
-
 import os
 import urlparse
 import sys
+
+prog_dir = os.path.dirname(sys.argv[0]) or os.path.abspath(os.curdir)
+__import__('sys').path.append('%s/../common/'%prog_dir)
 
 import bs4
 import requests
@@ -54,7 +55,7 @@ def get_links(url):
 
 
 def get_path(url):
-    return chroot+urlparse.urlsplit(url).path
+    return chroot + os.path.normpath(urlparse.urlsplit(url).path)
 
 
 def download_file(url):
@@ -88,17 +89,14 @@ def download_folder(url):
 
 if __name__=='__main__':
     if   len(sys.argv)==1:
-        chroot = raw_input("Save files to: ")
+        chroot = raw_input("Save files to [default: %s]: "%prog_dir) or prog_dir
         source_path = raw_input("Download files from: ")
     elif len(sys.argv)==2:
-        chroot = raw_input("Save files to: ")
+        chroot = raw_input("Save files to [default: %s]: "%prog_dir) or prog_dir
         source_path = sys.argv[1]
     elif len(sys.argv)==3:
         chroot, source_path = sys.argv[1:]
     else:
         exit(__doc__)
-
-    if not chroot:
-        chroot = os.path.dirname(sys.argv[0]) or os.curdir
 
     download_folder(source_path)
