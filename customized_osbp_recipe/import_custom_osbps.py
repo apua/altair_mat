@@ -1,4 +1,13 @@
-__import__('sys').path.append('../common/')
+def _():
+    """
+    Add "../common/" to search path
+    """
+    import os, sys
+    prog_dir = os.path.dirname(sys.argv[0]) or os.curdir
+    relpath = os.path.join(prog_dir, os.path.normpath('../common/'))
+    abspath = os.path.abspath(relpath)
+    sys.path.append(abspath)
+_()
 
 from altair.api import Altair
 from altair.utils import get_config, set_config

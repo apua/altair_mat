@@ -6,6 +6,13 @@ For convenience, record issues and progress here but on wiki, since there is
 only myself trace it; may migrate to wiki in the future.
 
 
+20150814
+====================
+
+:✓: provide recipe to fetch folder from IIS
+:✓: refine "adding search path" so that it no need to execute recipe in its folder
+
+
 20150804
 ====================
 

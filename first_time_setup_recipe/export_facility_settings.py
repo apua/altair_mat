@@ -8,7 +8,16 @@ In the beginning, there should be `settings.txt` contains appliance IP, username
 password information, for connecting to Altair.
 """
 
-__import__('sys').path.append('../common/')
+def _():
+    """
+    Add "../common/" to search path
+    """
+    import os, sys
+    prog_dir = os.path.dirname(sys.argv[0]) or os.curdir
+    relpath = os.path.join(prog_dir, os.path.normpath('../common/'))
+    abspath = os.path.abspath(relpath)
+    sys.path.append(abspath)
+_()
 
 from collections import OrderedDict
 from pprint import pformat
