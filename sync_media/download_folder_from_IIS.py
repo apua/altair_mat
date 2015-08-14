@@ -99,4 +99,5 @@ if __name__=='__main__':
     else:
         exit(__doc__)
 
+    # Always assume the given path is a folder
     download_folder(source_path)
