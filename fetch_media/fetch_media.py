@@ -1,11 +1,5 @@
 r"""
-Usage: $prog    $save_to    $download_from
-
-This recipe is a simple script to fetch media source. It expects given media source (eg: http://16.100.111.195/deployment/spp/ ), the location to save (eg: `C:\MediaShare\Media` , the result will be `C:\MediaShare\Media\spp\`) .
-
-It is design only for IIS virtual directories, and it will ignore the directory which contains `index.html`.
-
-Besides, the default saving path is where the script locates, it will be used if not given where to save.
+Usage: $prog [[$save_to] $download_from]
 """
 
 def _():
