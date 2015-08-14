@@ -1,9 +1,11 @@
 r"""
 Usage: $prog    $save_to    $download_from
 
-Example: "C:\Python27\python.exe"  "C:" "http://16.100.111.195/deployment/esxi51u3ssh/"
+This recipe is a simple script to fetch media source. It expects given media source (eg: http://16.100.111.195/deployment/spp/ ), the location to save (eg: `C:\MediaShare\Media` , the result will be `C:\MediaShare\Media\spp\`) .
 
-This is only for IIS
+It is design only for IIS virtual directories, and it will ignore the directory which contains `index.html`.
+
+Besides, the default saving path is where the script locates, it will be used if not given where to save.
 """
 
 def _():
@@ -63,7 +65,10 @@ def get_links(url):
 
 
 def get_path(url):
-    return chroot + os.path.normpath(urlparse.urlsplit(url).path)
+    from os.path import join, abspath, normpath
+    urlpath = urlparse.urlsplit(url).path
+    path = abspath(join(chroot, normpath(urlpath.split('/',2)[-1])))
+    return path
 
 
 def download_file(url):
