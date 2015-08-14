@@ -73,6 +73,7 @@ def get_path(url):
 
 def download_file(url):
     rq = requests.get(url, stream=True)
+    rq.request.headers['Accept-Encoding'] = 'deflate'
     path = get_path(url)
     chunk_size = 1024
     with open(path,'w') as f:
