@@ -1,6 +1,7 @@
-"""
-Usage example:
-    $program    http://10.30.1.38/deployment/spp
+r"""
+Usage: $prog    $save_to    $download_from
+
+Example: "C:\Python27\python.exe"  "C:" "http://16.100.111.195/deployment/esxi51u3ssh/"
 
 This is only for IIS
 """
@@ -86,7 +87,18 @@ def download_folder(url):
 
 
 if __name__=='__main__':
-    if not len(sys.argv)==2:
+    if   len(sys.argv)==1:
+        chroot = raw_input("Save files to: ")
+        source_path = raw_input("Download files from: ")
+    elif len(sys.argv)==2:
+        chroot = raw_input("Save files to: ")
+        source_path = sys.argv[1]
+    elif len(sys.argv)==3:
+        chroot, source_path = sys.argv[1:]
+    else:
         exit(__doc__)
-    chroot = os.path.dirname(sys.argv[0]) or os.curdir
-    download_folder(sys.argv[1])
+
+    if not chroot:
+        chroot = os.path.dirname(sys.argv[0]) or os.curdir
+
+    download_folder(source_path)
