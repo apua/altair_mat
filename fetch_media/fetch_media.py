@@ -21,10 +21,11 @@ import bs4
 import requests
 
 
-class Bar(object):
-    def __init__(self, path, total):
-        print("Fetching... {path}".format(**locals()))
-        self.acc = 0
+def visible_streaming(resp, filename, block_size):
+    print("Fetching...    %s" % filename)
+    a = resp.headers.get('content-encoding')
+    if a: print(a)
+    return resp.iter_content(chunk_size=block_size)
 
 
 def get_links(url):
@@ -50,15 +51,13 @@ def get_path(chroot, url):
 
 
 def download_file(chroot, url):
-    rq = requests.get(url, stream=True, headers={'Accept-Encoding': None})
+    resp = requests.get(url, stream=True, headers={'Accept-Encoding': None})
     path = get_path(chroot, url)
-    chunk_size = 1024
+    block_size = 1024
     with open(path,'w') as f:
-        bar = Bar(path, int(rq.headers['content-length']))
-        for chunk in rq.iter_content(chunk_size=chunk_size):
+        for chunk in visible_streaming(resp, path, block_size):
             f.write(chunk)
             f.flush()
-            bar.acc += len(chunk)
 
 
 def download_folder(chroot, url):
