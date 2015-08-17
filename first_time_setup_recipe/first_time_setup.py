@@ -60,7 +60,7 @@ with Altair(appliance_ip, username, password) as api:
         print("...(NOTE: administrator password has been changed)")
         api.change_password(settings['administrator']['password'])
 
-    print("set users...")
+    print("add users...")
     existed = {user['login_name'] for user in api.get_users()}
     for user in settings['users']:
         (api.update_user if user['login_name'] in existed else api.add_user)(user)
