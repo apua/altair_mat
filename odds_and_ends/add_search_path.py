@@ -1,7 +1,7 @@
 """
 def _():
     import os, sys
-    prog_dir = os.path.dirname(sys.argv[0]) or os.curdir
+    prog_dir = os.path.dirname(__file__)
     print(prog_dir)
     relpath = os.path.join(prog_dir, os.path.normpath('../common/'))
     print(relpath)
@@ -19,7 +19,7 @@ def _():
     Add "../common/" to search path
     """
     import os, sys
-    prog_dir = os.path.dirname(sys.argv[0]) or os.curdir
+    prog_dir = os.path.dirname(__file__)
     relpath = os.path.join(prog_dir, os.path.normpath('../common/'))
     abspath = os.path.abspath(relpath)
     sys.path.append(abspath)

@@ -7,7 +7,7 @@ def _():
     Add "../common/" to search path
     """
     import os, sys
-    prog_dir = os.path.dirname(sys.argv[0]) or os.curdir
+    prog_dir = os.path.dirname(__file__)
     relpath = os.path.join(prog_dir, os.path.normpath('../common/'))
     abspath = os.path.abspath(relpath)
     sys.path.append(abspath)
@@ -74,7 +74,7 @@ def download_folder(chroot, url):
 
 
 def main():
-    prog_dir = os.path.dirname(sys.argv[0]) or os.path.abspath(os.curdir)
+    prog_dir = os.path.abspath(os.path.dirname(__file__))
     if   len(sys.argv)==1:
         chroot = raw_input("Save files to [default: %s]: "%prog_dir) or prog_dir
         source_path = raw_input("Download files from: ")
