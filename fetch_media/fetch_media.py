@@ -54,7 +54,7 @@ def download_file(chroot, url):
     resp = requests.get(url, stream=True, headers={'Accept-Encoding': None})
     path = get_path(chroot, url)
     block_size = 1024
-    with open(path,'w') as f:
+    with open(path,'wb') as f:
         for chunk in visible_streaming(resp, path, block_size):
             f.write(chunk)
             f.flush()
